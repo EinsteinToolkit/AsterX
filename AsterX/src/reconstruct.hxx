@@ -315,7 +315,6 @@ wenoz(const GF3D2<const CCTK_REAL> &gf_var,
   // Reconstruct cell-centered variable to left (minus) and right (plus) cell
   // interfaces
 
-  /* Spritz Weights:
   const CCTK_REAL var_m =
       (omegaZ(2)(0) / 8.0) * (3.0 * gf_Ipp - 10.0 * gf_Ip + 15.0 * gf_I) +
       (omegaZ(1)(0) / 8.0) * (-1.0 * gf_Ip + 6.0 * gf_I + 3.0 * gf_Im) +
@@ -325,18 +324,6 @@ wenoz(const GF3D2<const CCTK_REAL> &gf_var,
       (omegaZ(0)(1) / 8.0) * (3.0 * gf_Imm - 10.0 * gf_Im + 15.0 * gf_I) +
       (omegaZ(1)(1) / 8.0) * (-1.0 * gf_Im + 6.0 * gf_I + 3.0 * gf_Ip) +
       (omegaZ(2)(1) / 8.0) * (3.0 * gf_I + 6.0 * gf_Ip - 1.0 * gf_Ipp);
-  */
-
-  //GRHydro Weights:
-  const CCTK_REAL var_m =
-      (omegaZ(2)(0) / 6.0) * (2.0 * gf_Ipp - 7.0 * gf_Ip + 11.0 * gf_I) +
-      (omegaZ(1)(0) / 6.0) * (-1.0 * gf_Ip + 5.0 * gf_I + 2.0 * gf_Im) +
-      (omegaZ(0)(0) / 6.0) * (2.0 * gf_I + 5.0 * gf_Im - 1.0 * gf_Imm);
-
-  const CCTK_REAL var_p =
-      (omegaZ(0)(1) / 6.0) * (2.0 * gf_Imm - 7.0 * gf_Im + 11.0 * gf_I) +
-      (omegaZ(1)(1) / 6.0) * (-1.0 * gf_Im + 5.0 * gf_I + 2.0 * gf_Ip) +
-      (omegaZ(2)(1) / 6.0) * (2.0 * gf_I + 5.0 * gf_Ip - 1.0 * gf_Ipp);
 
   const array<CCTK_REAL, 2> var_rc = {var_m, var_p};
   return var_rc;
