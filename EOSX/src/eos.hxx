@@ -117,7 +117,7 @@ public:
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   check_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                     const CCTK_REAL ye, status &stat) const;
-  CCTK_DEVICE CCTK_HOST static CCTK_REAL nan() { return nan(); }
+  CCTK_DEVICE CCTK_HOST static CCTK_REAL nan() { return 0.0 / 0.0; }
 
   CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   press_from_valid_rho_eps_ye(const CCTK_REAL rho, const CCTK_REAL eps,

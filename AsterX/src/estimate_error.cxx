@@ -56,13 +56,12 @@ extern "C" void AsterX_EstimateError_Setup(CCTK_ARGUMENTS) {
     CCTK_ERROR("Unknown value for parameter \"regrid_method\"");
 
   /* print infos about regird error calculation */
-  CCTK_VInfo(CCTK_THORNSTRING,
-             "Regrid error will be calculated based on %ld vars (method %d):",
+  CCTK_VINFO("Regrid error will be calculated based on %ld vars (method %d):",
              regridVarsI.size(), int(regridMethod));
   ostringstream buf;
   for (size_t i = 0; i < regridVarsI.size(); i++) {
     buf << "  " << CCTK_VarName(regridVarsI[i]);
-    CCTK_VInfo(CCTK_THORNSTRING, buf.str().c_str());
+    CCTK_INFO(buf.str().c_str());
     buf.str("");
     buf.clear();
   }
