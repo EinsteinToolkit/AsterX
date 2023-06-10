@@ -5,6 +5,8 @@
 
 namespace Con2PrimFactory {
 
+using namespace std;
+
 class c2p_2DNoble : public c2p {
 public:
   /* Some attributes */
@@ -15,14 +17,17 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_2DNoble(
       EOSType &eos_th, CCTK_INT maxIter, CCTK_REAL tol);
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  get_Ssq_Exact(vec<CCTK_REAL, 3> &mom, const smat<CCTK_REAL, 3> &gup) const;
+      get_Ssq_Exact(vec<CCTK_REAL, 3> &mom,
+                    const smat<CCTK_REAL, 3> &gup) const;
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  get_Bsq_Exact(vec<CCTK_REAL, 3> &B_up, const smat<CCTK_REAL, 3> &glo) const;
+      get_Bsq_Exact(vec<CCTK_REAL, 3> &B_up,
+                    const smat<CCTK_REAL, 3> &glo) const;
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  get_BiSi_Exact(vec<CCTK_REAL, 3> &Bvec, vec<CCTK_REAL, 3> &mom) const;
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline vec<CCTK_REAL, 2>
-  get_WLorentz_bsq_Seeds(vec<CCTK_REAL, 3> &B_up, vec<CCTK_REAL, 3> &v_up,
-                         const smat<CCTK_REAL, 3> &glo) const;
+      get_BiSi_Exact(vec<CCTK_REAL, 3> &Bvec, vec<CCTK_REAL, 3> &mom) const;
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline vec<CCTK_REAL, 3>
+      get_WLorentz_vsq_bsq_Seeds(vec<CCTK_REAL, 3> &B_up,
+                                 vec<CCTK_REAL, 3> &v_up,
+                                 const smat<CCTK_REAL, 3> &glo) const;
 
   /* Called by 2DNoble */
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -34,22 +39,6 @@ public:
   get_dPdZ_funcZVsq(CCTK_REAL Z, CCTK_REAL Vsq) const;
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   get_dPdVsq_funcZVsq(CCTK_REAL Z, CCTK_REAL Vsq, cons_vars &cv) const;
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  get_2DNoble_f0(CCTK_REAL Z, CCTK_REAL Vsq, CCTK_REAL Ssq, CCTK_REAL Bsq,
-                 CCTK_REAL BiSi) const;
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  get_2DNoble_f1(CCTK_REAL Z, CCTK_REAL Vsq, CCTK_REAL Bsq, CCTK_REAL BiSi,
-                 cons_vars &cv) const;
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  get_2DNoble_df0dZ(CCTK_REAL Z, CCTK_REAL Vsq, CCTK_REAL Bsq,
-                    CCTK_REAL BiSi) const;
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  get_2DNoble_df0dVsq(CCTK_REAL Z, CCTK_REAL Bsq) const;
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  get_2DNoble_df1dZ(CCTK_REAL Z, CCTK_REAL Vsq, CCTK_REAL BiSi) const;
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-  get_2DNoble_df1dVsq(CCTK_REAL Z, CCTK_REAL Vsq, CCTK_REAL Bsq,
-                      cons_vars &cv) const;
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   WZ2Prim(CCTK_REAL Z_Sol, CCTK_REAL vsq_Sol, CCTK_REAL Bsq, CCTK_REAL BiSi,
@@ -99,10 +88,10 @@ c2p_2DNoble::get_BiSi_Exact(vec<CCTK_REAL, 3> &Bvec,
   return calc_contraction(mom, Bvec); // BiS^i
 }
 
-CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline vec<CCTK_REAL, 2>
-c2p_2DNoble::get_WLorentz_bsq_Seeds(vec<CCTK_REAL, 3> &B_up,
-                                    vec<CCTK_REAL, 3> &v_up,
-                                    const smat<CCTK_REAL, 3> &glo) const {
+CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline vec<CCTK_REAL, 3>
+c2p_2DNoble::get_WLorentz_vsq_bsq_Seeds(vec<CCTK_REAL, 3> &B_up,
+                                        vec<CCTK_REAL, 3> &v_up,
+                                        const smat<CCTK_REAL, 3> &glo) const {
   vec<CCTK_REAL, 3> v_low = calc_contraction(glo, v_up);
   CCTK_REAL vsq = calc_contraction(v_low, v_up);
   CCTK_REAL VdotB = calc_contraction(v_low, B_up);
@@ -115,9 +104,9 @@ c2p_2DNoble::get_WLorentz_bsq_Seeds(vec<CCTK_REAL, 3> &B_up,
 
   CCTK_REAL w_lor = 1. / sqrt(1. - vsq);
   CCTK_REAL bsq = ((Bsq) / (w_lor * w_lor)) + VdotBsq;
-  vec<CCTK_REAL, 2> w_bsq{w_lor, bsq};
+  vec<CCTK_REAL, 3> w_vsq_bsq{w_lor, vsq, bsq};
 
-  return w_bsq; //{w_lor, bsq}
+  return w_vsq_bsq; //{w_lor, vsq, bsq}
 }
 
 /* Called by 2dNRNoble */
@@ -145,50 +134,6 @@ c2p_2DNoble::get_dPdVsq_funcZVsq(CCTK_REAL Z, CCTK_REAL Vsq,
                                  cons_vars &cv) const {
   return ((-Z + cv.dens / (2.0 * sqrt(1.0 - Vsq))) * (GammaIdealFluid - 1.0) /
           GammaIdealFluid);
-}
-
-CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-c2p_2DNoble::get_2DNoble_f0(CCTK_REAL Z, CCTK_REAL Vsq, CCTK_REAL Ssq,
-                            CCTK_REAL Bsq, CCTK_REAL BiSi) const {
-  return (Vsq * (Bsq + Z) * (Bsq + Z) -
-          (BiSi * BiSi * (Bsq + 2.0 * Z)) / (Z * Z) - Ssq);
-}
-
-CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-c2p_2DNoble::get_2DNoble_f1(CCTK_REAL Z, CCTK_REAL Vsq, CCTK_REAL Bsq,
-                            CCTK_REAL BiSi, cons_vars &cv) const {
-  CCTK_REAL Press = get_Press_funcZVsq(Z, Vsq, cv);
-  return cv.tau + cv.dens - (Bsq / 2.0) * (1 + Vsq) +
-         (BiSi * BiSi) / (2.0 * (Z * Z)) - Z + Press;
-
-  //	printf("dum, press, tau, dens, Bsq, Vsq, BiSi, Z: %f, %f, %f, %f, %f,
-  //%f, %f, %f \n", dum, Press, cv.tau, cv.dens, Bsq, Vsq, BiSi, Z);
-  //        return cv.tau + cv.dens - Bsq / 2.0 * (1 + Vsq) +
-  //               BiSi * BiSi / 2.0 / (Z * Z) - Z + Press;
-}
-
-CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-c2p_2DNoble::get_2DNoble_df0dZ(CCTK_REAL Z, CCTK_REAL Vsq, CCTK_REAL Bsq,
-                               CCTK_REAL BiSi) const {
-  return (2.0 * Vsq * (Bsq + Z) - 2.0 * BiSi * BiSi / (Z * Z) +
-          2.0 * BiSi * BiSi * (Bsq + 2.0 * Z) / (Z * Z * Z));
-}
-
-CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-c2p_2DNoble::get_2DNoble_df0dVsq(CCTK_REAL Z, CCTK_REAL Bsq) const {
-  return (Bsq + Z) * (Bsq + Z);
-}
-
-CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-c2p_2DNoble::get_2DNoble_df1dZ(CCTK_REAL Z, CCTK_REAL Vsq,
-                               CCTK_REAL BiSi) const {
-  return (-BiSi * BiSi / (Z * Z * Z) - 1.0 + get_dPdZ_funcZVsq(Z, Vsq));
-}
-
-CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
-c2p_2DNoble::get_2DNoble_df1dVsq(CCTK_REAL Z, CCTK_REAL Vsq, CCTK_REAL Bsq,
-                                 cons_vars &cv) const {
-  return (-Bsq / 2.0 + get_dPdVsq_funcZVsq(Z, Vsq, cv));
 }
 
 template <typename EOSType>
@@ -254,30 +199,35 @@ c2p_2DNoble::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
   const CCTK_REAL Ssq = get_Ssq_Exact(cv.mom, gup);
   const CCTK_REAL Bsq = get_Bsq_Exact(pv_seeds.Bvec, glo);
   const CCTK_REAL BiSi = get_BiSi_Exact(pv_seeds.Bvec, cv.mom);
-  const vec<CCTK_REAL, 2> w_bsq = get_WLorentz_bsq_Seeds(
+  const vec<CCTK_REAL, 3> w_vsq_bsq = get_WLorentz_vsq_bsq_Seeds(
       pv_seeds.Bvec, pv_seeds.vel, glo); // this also recomputes pv_seeds.w_lor
-  pv_seeds.w_lor = w_bsq(0);
-  // const CCTK_REAL bsq = w_bsq(1);
+  pv_seeds.w_lor = w_vsq_bsq(0);
+  CCTK_REAL vsq_seed = w_vsq_bsq(1);
+  // const CCTK_REAL bsq = w_vsq_bsq(2);
 
   /* update rho seed from cv and wlor */
   // rho consistent with cv.rho should be better guess than rho from last
   // timestep
   pv_seeds.rho = cv.dens / pv_seeds.w_lor;
 
+  CCTK_REAL eps_min =
+      eos_th.range_eps_from_valid_rho_ye(pv_seeds.rho, pv_seeds.Ye).min;
+  CCTK_REAL eps_last = max({pv_seeds.eps, eps_min});
+
   /* get pressure seed from updated pv_seeds.rho */
-  pv_seeds.press = eos_th.press_from_valid_rho_eps_ye(
-      pv_seeds.rho, pv_seeds.eps, pv_seeds.Ye);
+  pv_seeds.press =
+      eos_th.press_from_valid_rho_eps_ye(pv_seeds.rho, eps_last, pv_seeds.Ye);
 
   /* get Z seed */
   CCTK_REAL Z_Seed =
-      get_Z_Seed(pv_seeds.rho, pv_seeds.eps, pv_seeds.press, pv_seeds.w_lor);
+      get_Z_Seed(pv_seeds.rho, eps_last, pv_seeds.press, pv_seeds.w_lor);
 
   /* initialize unknowns for c2p, Z and vsq: */
   CCTK_REAL x[2];
   CCTK_REAL x_old[2];
   x[0] = fabs(Z_Seed);
-  x[1] = (-1.0 + pv_seeds.w_lor * pv_seeds.w_lor) /
-         (pv_seeds.w_lor * pv_seeds.w_lor);
+  x[1] = vsq_seed;
+
   //      printf("x[0], x[1]: %f, %f \n", x[0], x[1]);
 
   /* initialize old values */
@@ -287,62 +237,90 @@ c2p_2DNoble::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
   /* Start Recovery with 2D NR Solver */
   const CCTK_INT n = 2;
   const CCTK_REAL dv = (1. - 1.e-15);
-  CCTK_REAL fvec[n];
   CCTK_REAL dx[n];
   CCTK_REAL fjac[n][n];
+  CCTK_REAL resid[n];
 
-  CCTK_REAL detjac_inv;
-  CCTK_REAL errf;
+  CCTK_REAL errx = 1.;
+  CCTK_REAL df = 1.;
+  CCTK_REAL f = 1.;
   c2p_succeeded = false; // false
+
   CCTK_INT k;
   for (k = 1; k <= maxIterations; k++) {
-    fvec[0] = get_2DNoble_f0(x[0], x[1], Ssq, Bsq, BiSi);
-    fvec[1] = get_2DNoble_f1(x[0], x[1], Bsq, BiSi, cv);
-    fjac[0][0] = get_2DNoble_df0dZ(x[0], x[1], Bsq, BiSi);
-    fjac[0][1] = get_2DNoble_df0dVsq(x[0], x[1]);
-    fjac[1][0] = get_2DNoble_df1dZ(x[0], x[1], BiSi);
-    fjac[1][1] = get_2DNoble_df1dVsq(x[0], x[1], Bsq, cv);
-    detjac_inv = 1.0 / (fjac[0][0] * fjac[1][1] - fjac[0][1] * fjac[1][0]);
-    dx[0] = -detjac_inv * (fjac[1][1] * fvec[0] - fjac[0][1] * fvec[1]);
-    dx[1] = -detjac_inv * (-fjac[1][0] * fvec[0] + fjac[0][0] * fvec[1]);
 
-    errf = 0.0;
-    for (CCTK_INT i = 0; i < n; i++) {
-      errf += fabs(fvec[i]);
-      // printf("i, fabs(fvec[i]): %i, %f \n", i, fabs(fvec[i]));
-    }
-    //	errf  = (x[0]==0.) ?  fabs(dx[0]) : fabs(dx[0]/x[0]);
-    if (errf <= tolerance) {
-      c2p_succeeded = true; // false
-      //     printf("Noble c2p failed, c2p_succeeded set to 0. \n");
-      //     printf("errf, tolerance: %f, %f \n", errf, tolerance);
-      break;
-    }
+    /* Expressions for the jacobian are adopted from the Noble C2P
+    implementation in the Spritz code. As the analytical form of the equations
+    is known, the Newton-Raphson step can be computed explicitly */
+
+    const CCTK_REAL Z = x[0];
+    const CCTK_REAL invZ = 1.0 / Z;
+    const CCTK_REAL Vsq = x[1];
+    const CCTK_REAL Sdotn = -(cv.tau + cv.dens);
+    const CCTK_REAL p_tmp = get_Press_funcZVsq(Z, Vsq, cv);
+    const CCTK_REAL dPdvsq = get_dPdVsq_funcZVsq(Z, Vsq, cv);
+    const CCTK_REAL dPdZ = get_dPdZ_funcZVsq(Z, Vsq);
+
+    fjac[0][0] = -2 * (Vsq + BiSi * BiSi * invZ * invZ * invZ) * (Bsq + Z);
+    fjac[0][1] = -(Bsq + Z) * (Bsq + Z);
+    fjac[1][0] = -1.0 + dPdZ - BiSi * BiSi * invZ * invZ * invZ;
+    fjac[1][1] = -0.5 * Bsq + dPdvsq;
+
+    resid[0] = Ssq - Vsq * (Bsq + Z) * (Bsq + Z) +
+               BiSi * BiSi * invZ * invZ * (Bsq + Z + Z);
+    resid[1] = -Sdotn - 0.5 * Bsq * (1.0 + Vsq) +
+               0.5 * BiSi * BiSi * invZ * invZ - Z + p_tmp;
+
+    const CCTK_REAL detjac =
+        (Bsq + Z) *
+        (fjac[1][0] * (Bsq + Z) +
+         (Bsq - 2.0 * dPdvsq) * (BiSi * BiSi * invZ * invZ + Vsq * Z) * invZ);
+    const CCTK_REAL detjac_inv = 1.0 / detjac;
+
+    dx[0] = -(fjac[1][1] * resid[0] - fjac[0][1] * resid[1]) * detjac_inv;
+    dx[1] = -(-fjac[1][0] * resid[0] + fjac[0][0] * resid[1]) * detjac_inv;
+
+    df = -resid[0] * resid[0] - resid[1] * resid[1];
+    f = -0.5 * (df);
 
     /* save old values before calculating the new */
+    errx = 0.;
     x_old[0] = x[0];
     x_old[1] = x[1];
 
-    for (CCTK_INT i = 0; i < n; i++) {
-      x[i] += dx[i];
+    // make the newton step
+    x[0] += dx[0];
+    x[1] += dx[1];
+
+    // calculate the convergence criterion
+    errx = (x[0] == 0.) ? fabs(dx[0]) : fabs(dx[0] / x[0]);
+
+    /* make sure that the new x[] is physical */
+    if (x[0] < 0.0) {
+      x[0] = fabs(x[0]);
+    } else {
+      if (x[0] > 1e20) {
+        x[0] = x_old[0];
+      }
+    }
+
+    if (x[1] < 0.0) {
+      x[1] = 0.0;
+    } else {
+      if (x[1] >= 1.0) {
+        x[1] = dv;
+      }
+    }
+
+    if (fabs(errx) <= tolerance) {
+      c2p_succeeded = true;
+      break;
     }
   }
 
-  /* make sure that the new x[] is physical */
-  if (x[0] < 0.0) {
-    x[0] = fabs(x[0]);
-  } else {
-    if (x[0] > 1e20) {
-      x[0] = x_old[0];
-    }
-  }
-
-  if (x[1] < 0.0) {
-    x[1] = 0.0;
-  } else {
-    if (x[1] >= 1.0) {
-      x[1] = dv;
-    }
+  // Check for bad untrapped divergences
+  if ((!isfinite(f)) || (!isfinite(df))) {
+    c2p_succeeded = false;
   }
 
   /* Calculate primitives from Z and W */

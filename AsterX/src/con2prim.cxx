@@ -140,7 +140,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType &eos_cold,
 
     /* set flag to success */
     con2prim_flag(p.I) = 1;
-
+/*
     if (pv.rho <= rho_atmo_cut) {
       // set to atmo
       cv.dBvec(0) = dBx(p.I); // undensitized
@@ -170,7 +170,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType &eos_cold,
                Avec_x(p.I), Avec_y(p.I), Avec_z(p.I)); 
       }
     }
-
+*/
     // dummy vars
     CCTK_REAL Ex, Ey, Ez;
 
