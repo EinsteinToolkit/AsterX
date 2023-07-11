@@ -107,17 +107,17 @@ extern "C" void TOV_C_Exact(CCTK_ARGUMENTS) {
     grid.loop_all<1, 0, 0>(
         grid.nghostzones,
         [=] CCTK_HOST(const Loop::PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.0; });
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avecx(p.I) = 0.0; });
 
     grid.loop_all<0, 1, 0>(
         grid.nghostzones,
         [=] CCTK_HOST(const Loop::PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.0; });
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avecy(p.I) = 0.0; });
 
     grid.loop_all<0, 0, 1>(
         grid.nghostzones,
         [=] CCTK_HOST(const Loop::PointDesc &p)
-            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = 0.0; });
+            CCTK_ATTRIBUTE_ALWAYS_INLINE { Avecz(p.I) = 0.0; });
   }
 
   CCTK_INT tov_lapse = CCTK_EQUALS(initial_lapse, "tov");

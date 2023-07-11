@@ -71,7 +71,7 @@ schedule TOV_C_Exact IN HydroBaseX_InitialData
   WRITES: HydroBaseX::vel(everywhere)
   WRITES: HydroBaseX::eps(everywhere)
   WRITES: HydroBaseX::press(everywhere)
-  WRITES: AsterX::Avec_x(everywhere) AsterX::Avec_y(everywhere) AsterX::Avec_z(everywhere)
+  WRITES: HydroBaseX::Avecx(everywhere), HydroBaseX::Avecy(everywhere) HydroBaseX::Avecz(everywhere)
 
   WRITES: metric_cell(everywhere)
   WRITES: lapse_cell(everywhere)
