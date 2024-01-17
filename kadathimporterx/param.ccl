@@ -1,0 +1,77 @@
+# Parameter definitions for thorn KadathImporter
+
+SHARES: ADMBaseX
+
+EXTENDS KEYWORD initial_data "Initial metric and extrinsic curvature datasets"
+{
+  "Kadath" :: ""
+}
+
+EXTENDS KEYWORD initial_lapse "Initial lapse value"
+{
+  "Kadath" :: ""
+}
+
+EXTENDS KEYWORD initial_shift "Initial shift value"
+{
+  "Kadath" :: "Recommend zero"
+}
+
+EXTENDS KEYWORD initial_dtlapse "Initial dtlapse value"
+{
+  "Kadath" :: "Always zero"
+}
+
+EXTENDS KEYWORD initial_dtshift "Initial dtshift value"
+{
+  "Kadath" :: "Always zero"
+}
+
+SHARES: HydroBaseX
+
+EXTENDS KEYWORD initial_hydro
+{
+  "Kadath" :: "Kadath Initial Data"
+}
+
+RESTRICTED:
+STRING type "ID type"
+{
+  "BBH" :: "Black hole ID"
+  "BH"  :: "Binary black hole ID"
+  "BNS" :: "Binary neutron star ID"
+  "NS"  :: "Neutron star ID"
+  "BHNS" :: "Black Hole neutron star ID"
+} "BBH"
+
+PRIVATE:
+
+STRING filename "Input config file name" STEERABLE=ALWAYS
+{
+  "" :: ""
+} ""
+
+
+CCTK_INT interp_order "Interpolation order for smooth junk"
+{
+  3 :: "Parabolic"
+  5 :: "Quartic"
+  7 :: "6th order polynomial"
+  8 :: "7th order polynomial"
+}8
+
+CCTK_REAL interpolation_offset "Interpolation offset (in units of r_AH)"
+{
+  -1:* :: "Anything goes"
+}0.
+
+CCTK_REAL delta_r_rel "Relative dr spacing for the interpolation polynomial"
+{
+  -1:* :: "Anything goes"
+}0.3
+
+BOOLEAN puncture_lapse "Set a puncture lapse alp = psi^-2 inside the hole"
+{
+}no
+
+

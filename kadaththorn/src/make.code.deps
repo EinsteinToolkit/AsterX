@@ -1,0 +1,14 @@
+# Main make.code.deps file for thorn Kadath
+
+export BLAS_DIR BLAS_INC_DIRS BLAS_LIB_DIRS BLAS_LIBS
+export GSL_DIR GSL_INC_DIRS GSL_LIB_DIRS GSL_LIBS
+export LAPACK_DIR LAPACK_INC_DIRS LAPACK_LIB_DIRS LAPACK_LIBS
+
+export KADATH_INSTALL_DIR KADATH_LIBS
+
+$(CCTK_TARGET) $(OBJS) $(SRCS:%=%.d): $(SCRATCH_BUILD)/done/KadathThorn
+
+ifneq ($(KADATH_BUILD),)
+$(SCRATCH_BUILD)/done/KadathThorn:
+	+$(SRCDIR)/build.sh
+endif

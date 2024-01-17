@@ -1,0 +1,12 @@
+Cactus Code Thorn Kadath  
+Author(s)    : Cactus interface: Ludwig Jens Papenfort  
+Maintainer(s): Samuel Tootle <tootle@itp.uni-frankfurt.de>  
+Licence      : GPL  
+--------------------------------------------------------------------------  
+
+Thorn to help link against the Kadath library.  
+The Kadath library can be downloaded and compiled separately or built during
+the ETK build procedure! 
+
+See https://kadath.obspm.fr/fuka/ for manual installation instructions to do so  
+Once compiled, you need to set KADATH_DIR in your OptionList (e.g. KADATH_DIR = ${HOME_KADATH})  

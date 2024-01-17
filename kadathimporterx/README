@@ -1,0 +1,9 @@
+Cactus Code Thorn KadathImporter  
+Author(s)    : Ludwig Jens Papenfort <papenfort@th.physik.uni-frankfurt.de>, Samuel David Tootle <tootle@itp.uni-frankfurt.de>  
+Maintainer(s): Samuel David Tootle <tootle@itp.uni-frankfurt.de>  
+Licence      : GPL  
+--------------------------------------------------------------------------  
+  
+1. Purpose  
+  
+Import Frankfurt/University Kadath initial data; see <https://bitbucket.org/fukaws/>  

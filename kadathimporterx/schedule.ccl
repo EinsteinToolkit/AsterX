@@ -1,0 +1,81 @@
+# Schedule definitions for thorn KadathImporter
+#
+if (CCTK_EQUALS (initial_data,    "Kadath") ||
+    CCTK_EQUALS (initial_lapse,   "Kadath") ||
+    CCTK_EQUALS (initial_shift,   "Kadath") ||
+    CCTK_EQUALS (initial_dtlapse, "Kadath") ||
+    CCTK_EQUALS (initial_dtshift, "Kadath"))
+{
+  SCHEDULE KadathImporterX_check_parameters AT WRAGH
+  {
+    LANG: C
+  } "Check parameters"
+  SCHEDULE KadathImporterX_SetImporter AT WRAGH AFTER KadathImporterX_check_parameters
+  {
+    LANG: C
+    OPTIONS: GLOBAL
+  } "Initialize FUKA ID Reader"
+}
+if (CCTK_EQUALS (type, "BH"))
+{
+  SCHEDULE KadathImporterBH IN ADMBaseX_InitialData
+  {
+    LANG: C
+    WRITES: ADMBaseX::metric(everywhere)
+    WRITES: ADMBaseX::curv(everywhere)
+    WRITES: ADMBaseX::lapse(everywhere)
+    WRITES: ADMBaseX::shift(everywhere)
+    WRITES: ADMBaseX::dtlapse(everywhere)
+    WRITES: ADMBaseX::dtshift(everywhere)
+
+    SYNC: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
+    SYNC: ADMBaseX::dtlapse ADMBaseX::dtshift
+  } "Import conformally flat BH initial data"
+}
+if (CCTK_EQUALS (type, "NS")) {
+  SCHEDULE KadathImporterNS IN HydroBaseX_InitialData
+  {
+    LANG: C
+    WRITES: ADMBaseX::metric(everywhere)
+    WRITES: ADMBaseX::curv(everywhere)
+    WRITES: ADMBaseX::lapse(everywhere)
+    WRITES: ADMBaseX::shift(everywhere)
+    WRITES: ADMBaseX::dtlapse(everywhere)
+    WRITES: ADMBaseX::dtshift(everywhere)
+    WRITES: HydroBaseX::rho(everywhere)
+    WRITES: HydroBaseX::vel(everywhere)
+    WRITES: HydroBaseX::eps(everywhere)
+    WRITES: HydroBaseX::press(everywhere)
+
+    SYNC: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
+    SYNC: ADMBaseX::dtlapse ADMBaseX::dtshift
+    SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press
+  } "Import conformally flat NS initial data"
+}
+if (CCTK_EQUALS (type, "BNS")) {
+  SCHEDULE KadathImporterBNS IN HydroBaseX_InitialData
+  {
+    LANG: C
+    WRITES: ADMBaseX::metric(everywhere)
+    WRITES: ADMBaseX::curv(everywhere)
+    WRITES: ADMBaseX::lapse(everywhere)
+    WRITES: ADMBaseX::shift(everywhere)
+    WRITES: ADMBaseX::dtlapse(everywhere)
+    WRITES: ADMBaseX::dtshift(everywhere)
+    WRITES: HydroBaseX::rho(everywhere)
+    WRITES: HydroBaseX::vel(everywhere)
+    WRITES: HydroBaseX::eps(everywhere)
+    WRITES: HydroBaseX::press(everywhere)
+
+    SYNC: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
+    SYNC: ADMBaseX::dtlapse ADMBaseX::dtshift
+    SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press
+  } "Import conformally flat BNS initial data"
+}
+
+# Should happen after ID import is done - which bin then??
+schedule KadathImporterX_FreeImporter AT TERMINATE
+{
+    LANG: C
+    OPTIONS: GLOBAL
+} "Free memory allocated for the selected importer at the end of the simulation"

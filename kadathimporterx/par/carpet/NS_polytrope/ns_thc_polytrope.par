@@ -1,0 +1,325 @@
+ActiveThorns = "
+ADMBase
+ADMCoupling
+ADMMacros
+AEILocalInterp
+Boundary
+Carpet
+CarpetIOASCII
+CarpetIOBasic
+CarpetIOHDF5
+CarpetIOScalar
+CarpetInterp
+CarpetLib
+CarpetReduce
+CarpetSlab
+CarpetRegrid2
+CartGrid3d
+CoordBase
+CoordGauge
+Dissipation
+EOS_Barotropic
+EOS_Thermal
+EOS_Thermal_Idealgas
+GenericFD
+HydroBase
+HRSCCore
+InitBase
+IOUtil
+LoopControl
+ML_ADMConstraints
+ML_BSSN
+ML_BSSN_Helper
+MoL
+NaNChecker
+NewRad
+PizzaBase
+PizzaIDBase
+PizzaNumUtils
+Kadath_Importer
+ReflectionSymmetry
+Slab
+SpaceMask
+SphericalSurface
+StaticConformal
+SymBase
+TerminationTrigger
+THC_Core
+Time
+TimerReport
+TmunuBase
+"
+
+Cactus::terminate			= "never"
+Cactus::cctk_timer_output                                   = "full"
+
+TerminationTrigger::max_walltime		= 24
+TerminationTrigger::on_remaining_walltime	= 30
+TerminationTrigger::create_termination_file	= "yes"
+TerminationTrigger::termination_from_file	= "yes"
+TerminationTrigger::termination_file		= "../TERMINATE"
+
+TimerReport::output_all_timers_readable		= "yes"
+# =============================================================================
+# Grid
+# =============================================================================
+Grid::avoid_origin			= "no"
+Grid::domain			= "full"
+Grid::type			= "coordbase"
+
+ReflectionSymmetry::reflection_x		= "yes"
+ReflectionSymmetry::reflection_y		= "yes"
+ReflectionSymmetry::reflection_z		= "yes"
+ReflectionSymmetry::avoid_origin_x		= "no"
+ReflectionSymmetry::avoid_origin_y		= "no"
+ReflectionSymmetry::avoid_origin_z		= "no"
+
+CoordBase::xmin			= 0
+CoordBase::xmax			= 80
+CoordBase::ymin			= 0
+CoordBase::ymax			= 80
+CoordBase::zmin			= 0
+CoordBase::zmax			= 80
+
+CoordBase::spacing			= "numcells"
+CoordBase::ncells_x			= 80
+CoordBase::ncells_y			= 80
+CoordBase::ncells_z			= 80
+
+CoordBase::boundary_size_x_lower		= 3
+CoordBase::boundary_size_x_upper		= 3
+CoordBase::boundary_shiftout_x_lower		= 1
+CoordBase::boundary_shiftout_x_upper		= 0
+
+CoordBase::boundary_size_y_lower		= 3
+CoordBase::boundary_size_y_upper		= 3
+CoordBase::boundary_shiftout_y_lower		= 1
+CoordBase::boundary_shiftout_y_upper		= 0
+
+CoordBase::boundary_size_z_lower		= 3
+CoordBase::boundary_size_z_upper		= 3
+CoordBase::boundary_shiftout_z_lower		= 1
+CoordBase::boundary_shiftout_z_upper		= 0
+
+Driver::ghost_size			= 3
+Driver::ghost_size_x		= 3
+Driver::ghost_size_y		= 3
+Driver::ghost_size_z		= 3
+
+Carpet::domain_from_coordbase		= "yes"
+
+InitBase::initial_data_setup_method		= "init_all_levels"
+
+Carpet::max_refinement_levels		= 3
+Carpet::prolongation_order_space		= 3
+Carpet::prolongation_order_time		= 2
+Carpet::use_buffer_zones		= "yes"
+Carpet::enable_all_storage		= "no"
+Carpet::init_fill_timelevels		= "yes"
+
+CarpetRegrid2::num_centres		= 1
+CarpetRegrid2::num_levels_1		= 3
+
+CarpetRegrid2::active_1		= "yes"
+CarpetRegrid2::radius_1[1]		= 40.0
+CarpetRegrid2::radius_1[2]		= 20.0
+
+Carpet::grid_coordinates_filename		= "grid.carpet"
+
+NaNChecker::check_every		= 100
+NaNChecker::check_vars		= "HydroBase::w_lorentz"
+NaNChecker::action_if_found		= "terminate"
+
+# =============================================================================
+# Time integration
+# =============================================================================
+Carpet::num_integrator_substeps		= 4
+
+MoL::ode_method			= "RK4"
+MoL::MoL_Intermediate_Steps		= 4
+MoL::MoL_Num_Scratch_Levels		= 1
+MoL::verbose			= "register"
+
+HydroBase::timelevels		= 3
+
+Time::timestep_method		= "courant_static"
+Time::dtfac			= 0.4
+
+# =============================================================================
+# Initial data
+# =============================================================================
+ADMBase::initial_data		= "Kadath"
+ADMBase::initial_lapse		= "Kadath"
+ADMBase::initial_shift		= "Kadath"
+ADMBase::initial_dtlapse		= "zero"
+ADMBase::initial_dtshift		= "zero"
+HydroBase::initial_hydro		= "Kadath"
+
+# Kadath BNS file
+KadathImporter::type = "NS"
+KadathImporter::filename = "ns.1.4.gam2.info"
+
+PizzaIDBase::eos_file = "gam2.pizza"
+
+# Geometric unit system for initial data, specified by length unit.
+# use CACTUS units
+PizzaBase::length_unit		= 1476.7161818921163
+
+# =============================================================================
+# Templated hydrodynamics code
+# =============================================================================
+HydroBase::evolution_method		= "THCode"
+HydroBase::initial_entropy                                  = "THCode"
+
+THC_Core::physics			= "GRHD"
+THC_Core::eos_type			= "ideal"
+
+THC_Core::bc_type			= "none"
+
+THC_Core::atmo_rho			= 1e-13
+
+HRSCCore::scheme			= "FV"
+HRSCCore::reconstruction		= "MP5"
+HRSCCore::riemann_solver		= "HLLE"
+
+THC_Core::c2a_BH_alp		= 0.15
+THC_Core::c2a_rho_strict		= 2.0e-5
+THC_Core::c2a_set_to_nan_on_failure		= "no"
+THC_Core::c2a_fix_conservatives		= "yes"
+THC_Core::c2a_kill_on_failure		= "no"
+
+EOS_Thermal::evol_eos_name = "IdealGas"
+EOS_Thermal_IdealGas::index_n = 1
+EOS_Thermal_IdealGas::eps_min = 1e-8
+
+# =============================================================================
+# Spacetime evolution
+# =============================================================================
+TmunuBase::prolongation_type		= "none"
+TmunuBase::stress_energy_storage		= "yes"
+TmunuBase::stress_energy_at_RHS		= "yes"
+TmunuBase::support_old_CalcTmunu_mechanism	= "no"
+
+ADMBase::evolution_method		= "ML_BSSN"
+ADMBase::lapse_evolution_method		= "ML_BSSN"
+ADMBase::shift_evolution_method		= "ML_BSSN"
+ADMBase::dtlapse_evolution_method		= "ML_BSSN"
+ADMBase::dtshift_evolution_method		= "ML_BSSN"
+
+ADMBase::lapse_timelevels		= 3
+ADMBase::shift_timelevels		= 3
+ADMBase::metric_timelevels		= 3
+
+ML_BSSN::timelevels			= 3
+
+ML_BSSN::harmonicN			= 1.0    # 1+log
+ML_BSSN::harmonicF			= 2.0    # 1+log
+ML_BSSN::evolveA			= 1
+ML_BSSN::evolveB			= 1
+ML_BSSN::ShiftGammaCoeff		= 0.75
+ML_BSSN::AlphaDriver		= 0.0
+ML_BSSN::BetaDriver			= 0.7    # ~ 1/M
+ML_BSSN::advectLapse		= 1
+ML_BSSN::advectShift		= 1
+
+ML_BSSN::MinimumLapse		= 1.0e-8
+ML_BSSN::conformalMethod		= 1      # 1 for W
+ML_BSSN::dt_lapse_shift_method		= "noLapseShiftAdvection"
+
+ML_BSSN::initial_boundary_condition		= "extrapolate-gammas"
+ML_BSSN::rhs_boundary_condition		= "NewRad"
+Boundary::radpower			= 2
+
+ML_BSSN::ML_log_confac_bound		= "none"
+ML_BSSN::ML_metric_bound		= "none"
+ML_BSSN::ML_Gamma_bound		= "none"
+ML_BSSN::ML_trace_curv_bound		= "none"
+ML_BSSN::ML_curv_bound		= "none"
+ML_BSSN::ML_lapse_bound		= "none"
+ML_BSSN::ML_dtlapse_bound		= "none"
+ML_BSSN::ML_shift_bound		= "none"
+ML_BSSN::ML_dtshift_bound		= "none"
+
+ML_BSSN::fdOrder			= 4
+THC_Core::fd_order			= 4
+
+Dissipation::order			= 5
+Dissipation::epsdis			= 0.1
+Dissipation::vars			= "
+ML_BSSN::ML_log_confac
+ML_BSSN::ML_metric
+ML_BSSN::ML_curv
+ML_BSSN::ML_trace_curv
+ML_BSSN::ML_Gamma
+ML_BSSN::ML_lapse
+ML_BSSN::ML_shift
+"
+
+# =============================================================================
+# Checkpoint
+# =============================================================================
+CarpetIOHDF5::checkpoint		= "yes"
+CarpetIOHDF5::use_reflevels_from_checkpoint	= "yes"
+
+IOUtil::checkpoint_on_terminate		= "yes"
+IOUtil::checkpoint_every		= 1024
+IOUtil::checkpoint_keep		= 1
+IOUtil::recover			= "autoprobe"
+IOUtil::checkpoint_dir		= "../checkpoint"
+IOUtil::recover_dir			= "../checkpoint"
+
+# =============================================================================
+# Output
+# =============================================================================
+IOUtil::out_dir			= "data"
+IOUtil::out_fileinfo		= "none"
+IOUtil::strict_io_parameter_check		= "yes"
+IOUtil::parfile_write		= "no"
+
+CarpetIOBasic::outinfo_vars		= "
+"
+
+CarpetIOScalar::outscalar_reductions		= "
+count minimum maximum average norm1 norm2 norm_inf
+"
+CarpetIOScalar::outscalar_vars		= "
+HydroBase::rho
+HydroBase::press
+HydroBase::w_lorentz
+ML_ADMConstraints::ML_Ham
+ML_ADMConstraints::ML_mom
+"
+
+CarpetIOASCII::out0D_vars		= "
+Carpet::timing
+"
+
+CarpetIOHDF5::out1D_vars		= "
+ADMBase::lapse
+ADMBase::metric
+HydroBase::rho
+HydroBase::press
+ML_ADMConstraints::ML_Ham
+ML_ADMConstraints::ML_mom
+"
+
+CarpetIOHDF5::out2d_vars		= "
+HydroBase::rho
+HydroBase::press
+ML_ADMConstraints::ML_Ham
+ML_ADMConstraints::ML_mom
+"
+
+CarpetIOHDF5::out_vars		= "
+HydroBase::rho
+HydroBase::press
+ML_ADMConstraints::ML_Ham
+ML_ADMConstraints::ML_mom
+"
+
+CarpetIOBasic::outinfo_every		= 16
+CarpetIOASCII::out0d_every		= 16
+CarpetIOScalar::outscalar_every		= 16
+CarpetIOHDF5::out1d_every		= 64
+CarpetIOHDF5::out2d_every		= 256
+CarpetIOHDF5::out_every		= 512

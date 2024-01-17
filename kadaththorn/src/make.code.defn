@@ -1,0 +1,7 @@
+# Main make.code.defn file for thorn Kadath
+
+# Source files in this directory
+SRCS =
+
+# Subdirectories containing source files
+SUBDIRS =

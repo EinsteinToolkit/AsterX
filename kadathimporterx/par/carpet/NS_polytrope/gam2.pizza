@@ -1,0 +1,5 @@
+name      = ideal-eos-for-K100
+type      = polytrope
+poly_n    = 1
+poly_rmd  = 6.177994e18
+

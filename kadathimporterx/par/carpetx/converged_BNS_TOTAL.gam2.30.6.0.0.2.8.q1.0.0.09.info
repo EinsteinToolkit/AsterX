@@ -1,0 +1,97 @@
+binary
+{
+    com -6.7522785916912207e-12
+    comy -1.7283240827587651e-09
+    distance 30.600000000000001
+    ecc_omega 0.0088417669730990172
+    global_omega 0.0087846099998539779
+    outer_shells 0
+    q 1
+    qpig 12.566370614359172
+    res 9
+    rext 61.200000000000003
+    ns1
+    {
+        chi 0
+        decay_limit 15.300000000000001
+        dim 3
+        hc 1.2559123065589992
+        madm 1.3999999999999999
+        mb 1.5059770382531936
+        n_inner_shells 0
+        nc 0.0012795615327949961
+        nshells 0
+        omega 4.1005102324695447e-05
+        ql_madm 1.3794526628824504
+        qpig 12.566370614359172
+        res 9
+        rin 4.0630006761567241
+        rmid 8.1260013594441443
+        rout 10.517334239629429
+        eosfile gam2.polytrope
+        eostype Cold_PWPoly
+        h_cut 0
+        interpolation_pts 2000
+    }
+    ns2
+    {
+        chi 0
+        decay_limit 15.300000000000001
+        dim 3
+        hc 1.2559123065589992
+        madm 1.3999999999999999
+        mb 1.5059770382531936
+        n_inner_shells 0
+        nc 0.0012795615327949961
+        nshells 0
+        omega 4.1005102325593546e-05
+        ql_madm 1.3794526628824302
+        qpig 12.566370614359172
+        res 9
+        rin 4.0630006761567241
+        rmid 8.1260013594441443
+        rout 10.517334239629429
+        eosfile gam2.polytrope
+        eostype Cold_PWPoly
+        h_cut 0
+        interpolation_pts 2000
+    }
+}
+fields
+{
+    conf on
+    lapse on
+    logh on
+    phi on
+    shift on
+}
+stages
+{
+    ecc_red off
+    total on
+    total_bc off
+}
+sequence_controls
+{
+    centralized_cos on
+    checkpoint off
+    co_use_shells off
+    corot_binary off
+    delete_shift off
+    fixed_bin_omega off
+    fixed_lapse off
+    fixed_mb off
+    initial_regrid off
+    resolve off
+    sequences on
+    update_initial off
+    use_boosted_co on
+    use_fixed_r off
+    use_pn off
+}
+sequence_settings
+{
+    initial_resolution 9
+    solver_max_iterations 15
+    solver_precision 1e-08
+}

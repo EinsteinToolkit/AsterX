@@ -1,0 +1,7 @@
+# Interface definition for thorn KadathImporterX
+
+IMPLEMENTS: KadathImporterX
+
+INHERITS: ADMBaseX HydroBaseX CarpetX
+
+USES INCLUDE HEADER: loop.hxx

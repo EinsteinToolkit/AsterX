@@ -1,0 +1,68 @@
+initial
+{
+    chi 0
+    dim 3
+    hc 1.0094227447624744
+    madm 1.3999999999999999
+    mb 1.55
+    nc 0.0013699999999999999
+    nshells 0
+    omega 0
+    ql_madm 1.3999999999999999
+    qpig 12.566370614359172
+    res 9
+    rin 3.0341687888025062
+    rmid 6.0683375776050124
+    rout 9.1025063664075176
+    eosfile togashi.lorene
+    eostype Cold_Table
+    h_cut 0
+    interpolation_pts 2000
+}
+ns
+{
+    chi 0
+    dim 3
+    hc 1.25591669786455
+    madm 1.3999999999999999
+    mb 1.5059870235002595
+    nc 0.0012795834893227498
+    nshells 0
+    omega 0
+    ql_madm 1.3999999999999999
+    qpig 12.566370614359172
+    res 9
+    rin 4.0555915513305427
+    rmid 8.1111831026610854
+    rout 12.166774653991627
+    eosfile gam2.polytrope
+    eostype Cold_PWPoly
+    h_cut 0
+    interpolation_pts 2000
+}
+fields
+{
+    conf on
+    lapse on
+    logh on
+    shift on
+}
+stages
+{
+    norot_bc on
+    pre off
+    total_bc on
+}
+sequence_controls
+{
+    checkpoint off
+    corot_binary off
+    delete_shift off
+    fixed_bin_omega off
+    mb_fixing off
+    sequences off
+    update_initial off
+    use_config_vars off
+    use_fixed_r off
+    use_pn off
+}

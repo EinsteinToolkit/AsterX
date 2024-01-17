@@ -1,0 +1,46 @@
+bh
+{
+    chi 0
+    dim 3
+    fixed_lapse 0.43493600011645173
+    mch 0.5
+    mirr 0.5
+    nshells 0
+    omega -3.4430608625043977e-17
+    qpig 12.566370614359172
+    res 9
+    rin 0.20811654526534856
+    rmid 0.42976987984002862
+    rout 1.6649323621227885
+    velx 0
+    vely 0
+}
+fields
+{
+    conf on
+    lapse on
+    shift on
+}
+stages
+{
+    total_bc on
+}
+sequence_controls
+{
+    checkpoint off
+    corot_binary off
+    delete_shift off
+    fixed_bin_omega off
+    fixed_lapse off
+    mb_fixing off
+    sequences off
+    update_initial off
+    use_boosted_co off
+    use_fixed_r off
+    use_pn off
+}
+sequence_settings
+{
+    solver_max_iterations 15
+    solver_precision 1e-08
+}

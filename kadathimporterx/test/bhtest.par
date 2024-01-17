@@ -1,0 +1,63 @@
+ActiveThorns = "
+    CarpetX
+    IOUtil
+    ODESolvers
+    SystemTopology
+    ADMBaseX
+    KadathThorn
+    KadathImporterX
+    HydroBaseX
+"
+
+
+$nlevels = 1
+$ncells = 80
+
+Cactus::cctk_show_schedule = no
+
+Cactus::presync_mode = "presync-only"
+
+Cactus::cctk_itlast = 1 #$ncells * 2 ** ($nlevels - 1) * 2
+
+CarpetX::verbose = no
+#CarpetX::poison_undefined_values=yes
+
+CarpetX::xmin                         = -30
+CarpetX::ymin                         = -30
+CarpetX::zmin                         = -30
+CarpetX::xmax                         = 30
+CarpetX::ymax                         = 30
+CarpetX::zmax                         = 30
+
+CarpetX::ncells_x = $ncells
+CarpetX::ncells_y = $ncells
+CarpetX::ncells_z = $ncells
+
+CarpetX::max_num_levels = $nlevels
+CarpetX::regrid_every = 1
+CarpetX::regrid_error_threshold = 1.0   #TODO 0.01
+
+ODESolvers::method = "RK4"
+CarpetX::dtfac = 0.4
+
+KadathImporterX::type = "BH"
+KadathImporterX::filename = "bhtest.info"
+
+ADMBaseX::initial_data = "Kadath"
+ADMBaseX::initial_lapse = "Kadath"
+ADMBaseX::initial_shift = "Kadath"
+ADMBaseX::initial_dtlapse = "zero"
+ADMBaseX::initial_dtshift = "zero"
+
+IO::out_dir = $parfile
+IO::checkpoint_ID = "yes"
+#CarpetX::checkpoint_method = "silo"
+CarpetX::checkpoint_method = "openpmd"
+CarpetX::openpmd_format = "ADIOS2_BP4"
+CarpetX::recover_method = "openpmd"
+# High frequency output to make a movie
+IO::out_every = 1   #TODO $ncells * 2 ** ($nlevels - 1) / 2
+#IO::out_mode = "np"
+#IO::out_proc_every = 1
+
+CarpetX::out_openpmd_vars = "ADMBaseX::lapse"

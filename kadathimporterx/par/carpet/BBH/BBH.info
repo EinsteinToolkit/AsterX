@@ -1,0 +1,114 @@
+initial
+{
+    binary
+    {
+        adot -0.00013923809523809521
+        com 0
+        comy 0
+        distance 10
+        global_omega 0.02799495935918607
+        outer_shells 0
+        q 1
+        qpig 12.566370614359172
+        res 9
+        rext 20
+        bh1
+        {
+            chi 0
+            fixed_lapse 0.29999999999999999
+            mch 0.5
+            mirr 0.5
+            nshells 0
+            omega 0.02799495935918607
+            qpig 12.566370614359172
+            res 9
+            rin 0.10000000000000001
+            rmid 0.29999999999999999
+            rout 1.5
+        }
+        bh2
+        {
+            chi 0
+            fixed_lapse 0.29999999999999999
+            mch 0.5
+            mirr 0.5
+            nshells 0
+            omega 0.02799495935918607
+            qpig 12.566370614359172
+            res 9
+            rin 0.10000000000000001
+            rmid 0.29999999999999999
+            rout 1.5
+        }
+    }
+}
+binary
+{
+    adot -0.00029785002514599998
+    com -0.54974178068627033
+    comy 0.010105507958875916
+    distance 10
+    ecc_omega 0.027937159121686001
+    global_omega 0.027937159121686001
+    outer_shells 0
+    q 1.2413793103399999
+    qpig 12.566370614359172
+    res 11
+    rext 20
+    bh1
+    {
+        chi -0.46000000000000002
+        fixed_lapse 0.36071295937531078
+        mch 0.44615384615480708
+        mirr 0.43347226219814827
+        nshells 0
+        omega 0.28486753569761813
+        qpig 12.566370614359172
+        res 11
+        rin 0.17229272978066618
+        rmid 0.34458545956133235
+        rout 1.5
+    }
+    bh2
+    {
+        chi 0.31
+        fixed_lapse 0.36071295937531078
+        mch 0.55384615384519287
+        mirr 0.54698253245012496
+        nshells 0
+        omega -0.11116730854035278
+        qpig 12.566370614359172
+        res 11
+        rin 0.22244930982883032
+        rmid 0.44489861965766064
+        rout 1.5
+    }
+}
+fields
+{
+    conf on
+    lapse on
+    shift on
+}
+stages
+{
+    corot_equal off
+    ecc_red on
+    fixed_omega off
+    pre off
+    total off
+    total_bc off
+}
+sequence_controls
+{
+    checkpoint off
+    corot_binary off
+    delete_shift off
+    fixed_bin_omega off
+    mb_fixing off
+    sequences off
+    update_initial off
+    use_config_vars off
+    use_fixed_r off
+    use_pn off
+}

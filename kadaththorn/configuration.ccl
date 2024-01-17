@@ -1,0 +1,12 @@
+# Configuration definitions for thorn Kadath
+
+PROVIDES Kadath
+{
+  SCRIPT src/detect.sh
+  VERSION 2019-11-21
+  LANG bash
+  OPTIONS KADATH_DIR KADATH_INSTALL_DIR
+}
+
+REQUIRES GSL LAPACK FFTW3 BOOST
+REQUIRES Kadath
