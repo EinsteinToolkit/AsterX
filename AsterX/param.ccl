@@ -1,0 +1,108 @@
+# Parameter definitions for thorn AsterX
+
+KEYWORD vector_potential_gauge "Gauge choice of four-vector potential A" STEERABLE=never
+{
+  "algebraic" :: ""
+  "generalized Lorentz" :: ""
+} "generalized Lorentz"
+
+CCTK_REAL lorenz_damp_fac "Damping factor used in the Lorenz Gauge (see Farris et al 2012)"
+{
+ 0:* :: "should be positive"
+} 0.0
+
+KEYWORD flux_type "Flux solver" STEERABLE=never
+{
+  "LxF" :: ""
+  "HLLE" :: ""
+} "LxF"
+
+BOOLEAN local_estimate_error "Use error estimation criteria of this thorn"
+{
+} yes
+
+KEYWORD regrid_method "Regrid method" STEERABLE=never
+{
+  "first derivative" :: ""
+  "second derivative" :: ""
+  "second derivative norm" :: ""
+  "first gradient" :: ""
+} "first gradient"
+
+CCTK_REAL epsilon_err "epsilon parameter in second derivative norm criterion (see Mignone+2011 eq. 50 arXiv:1110.0740)" STEERABLE=always
+{
+  0:* :: "Larger than zero, default from Mignone+2011"
+} 0.01
+
+CCTK_STRING regrid_groups "Groups used for calculating regrid error" STEERABLE=always
+{
+  .* :: "List of full group names"
+} "HydroBaseX::rho"
+
+BOOLEAN debug_mode "Print debug information if set to yes"
+{
+} no
+
+BOOLEAN unit_test "turn on all the unit tests if set to yes"
+{
+} no
+
+CCTK_INT unit_test_repetitions "Number of times each unit test should be repeated" STEERABLE=never
+{
+  0:* :: "Must be no smaller than 0"
+} 1
+
+restricted:
+
+BOOLEAN interpolate_failed_c2p "Interpolate those grid points where c2p failed."
+{
+} no
+
+CCTK_INT local_spatial_order "Order of spatial finite differencing" STEERABLE=never
+{
+  2 :: "Second order finite difference"
+  4 :: "Fourth order finite difference"
+} 2
+
+SHARES: EOSX
+USES KEYWORD evolution_eos
+USES CCTK_REAL poly_gamma
+USES CCTK_REAL poly_k
+USES CCTK_REAL gl_gamma
+USES CCTK_REAL eps_min
+USES CCTK_REAL eps_max
+USES CCTK_REAL rho_min
+USES CCTK_REAL rho_max
+USES CCTK_REAL ye_min
+USES CCTK_REAL ye_max
+USES CCTK_REAL particle_mass
+
+SHARES: Con2PrimFactory
+USES KEYWORD c2p_prime
+USES KEYWORD c2p_second
+USES CCTK_REAL rho_abs_min
+USES CCTK_REAL atmo_tol
+USES CCTK_REAL eps_atmo
+USES CCTK_REAL p_atmo
+USES CCTK_REAL Ye_atmo
+USES CCTK_REAL B_lim
+USES CCTK_REAL vw_lim
+USES CCTK_REAL rho_strict
+USES BOOLEAN Ye_lenient
+USES CCTK_INT max_iter
+USES CCTK_REAL c2p_tol
+
+SHARES: ReconX
+USES KEYWORD reconstruction_method
+USES CCTK_REAL ppm_eta1
+USES CCTK_REAL ppm_eta2
+USES CCTK_REAL ppm_eps
+USES CCTK_REAL ppm_eps_shock
+USES CCTK_REAL ppm_small
+USES CCTK_REAL ppm_omega1
+USES CCTK_REAL ppm_omega2 
+USES CCTK_REAL enhanced_ppm_C2
+USES CCTK_BOOLEAN ppm_shock_detection
+USES CCTK_BOOLEAN ppm_zone_flattening
+USES CCTK_REAL weno_eps
+USES CCTK_REAL mp5_alpha

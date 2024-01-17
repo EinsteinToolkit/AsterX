@@ -1,0 +1,104 @@
+ActiveThorns = "
+    CarpetX
+    IOUtil
+    ODESolvers
+    ADMBaseX
+    HydroBaseX
+    TmunuBaseX
+    AsterSeeds
+    AsterX
+    EOSX
+"
+ 
+$nlevels = 1
+$ncells = 50
+
+Cactus::cctk_show_schedule = yes
+
+Cactus::presync_mode = "mixed-error"
+
+Cactus::terminate = "time"
+Cactus::cctk_final_time = 0.40
+
+ADMBaseX::initial_data            = "Cartesian Minkowski"
+ADMBaseX::initial_lapse           = "one"
+ADMBaseX::initial_shift           = "zero"
+ADMBaseX::initial_dtlapse         = "none"
+ADMBaseX::initial_dtshift         = "none"
+
+CarpetX::verbose = no
+
+CarpetX::xmin = -0.5
+CarpetX::ymin = -0.5
+CarpetX::zmin = -0.5
+
+CarpetX::xmax = +0.5
+CarpetX::ymax = +0.5
+CarpetX::zmax = +0.5
+
+CarpetX::boundary_x = "linear extrapolation"
+CarpetX::boundary_y = "linear extrapolation"
+CarpetX::boundary_z = "linear extrapolation"
+
+CarpetX::boundary_upper_x = "linear extrapolation"
+CarpetX::boundary_upper_y = "linear extrapolation"
+CarpetX::boundary_upper_z = "linear extrapolation"
+
+CarpetX::ncells_x = $ncells
+CarpetX::ncells_y = 2
+CarpetX::ncells_z = 2
+
+CarpetX::max_num_levels = $nlevels
+CarpetX::regrid_every = 100000
+CarpetX::blocking_factor_x = 1
+CarpetX::blocking_factor_y = 1
+CarpetX::blocking_factor_z = 1
+CarpetX::regrid_error_threshold = 0.01
+
+CarpetX::prolongation_type = "ddf"
+CarpetX::ghost_size = 3
+CarpetX::dtfac = 0.25
+ 
+AsterSeeds::test_type = "1DTest"
+AsterSeeds::test_case = "Balsara1"
+AsterSeeds::shock_dir = "x"
+
+AsterX::debug_mode = "yes"
+AsterX::flux_type = "HLLE"
+
+ReconX::reconstruction_method = "PPM"
+
+Con2PrimFactory::c2p_prime = "Noble"
+Con2PrimFactory::c2p_second = "Palenzuela"
+Con2PrimFactory::c2p_tol = 1e-8
+Con2PrimFactory::max_iter = 100
+Con2PrimFactory::rho_abs_min = 1e-8
+Con2PrimFactory::unit_test = "yes"
+Con2PrimFactory::B_lim = 1e8
+Con2PrimFactory::vw_lim = 1e8
+Con2PrimFactory::Ye_lenient = "yes"
+
+EOSX::evolution_eos = "IdealGas"
+EOSX::gl_gamma = 2.0
+EOSX::poly_gamma = 2.0
+EOSX::rho_max = 1e8
+EOSX::eps_max = 1e8
+
+ODESolvers::method = "RK4"
+
+IO::out_dir = $parfile
+IO::out_every = 10
+IO::parfile_write = no
+
+CarpetX::out_metadata = no
+CarpetX::out_norm_vars = " "
+CarpetX::out_norm_omit_unstable = yes
+
+CarpetX::out_tsv_vars = "
+    HydroBaseX::rho
+    HydroBaseX::vel
+    HydroBaseX::eps
+    HydroBaseX::press
+    HydroBaseX::Bvec
+"
+

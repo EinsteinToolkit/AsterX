@@ -1,0 +1,75 @@
+#! /bin/bash
+
+echo "Preparing:"
+set -euxo pipefail
+
+cd @RUNDIR@-active
+
+echo 'Job setup:'
+echo '   Allocated:'
+echo '      Nodes:                      @NODES@'
+echo '      Cores per node:             @PPN@'
+echo '   Running:'
+echo '      MPI processes:              @NUM_PROCS@'
+echo '      OpenMP threads per process: @NUM_THREADS@'
+echo '      MPI processes per node:     @NODE_PROCS@'
+echo '      OpenMP threads per core:    @NUM_SMT@'
+echo '      OpenMP threads per node:    @(@PPN_USED@ * @NUM_SMT@)@'
+
+echo "Checking:"
+date
+env
+hostname
+pwd
+
+module list
+
+scontrol show hostnames
+hostfile="SIMFACTORY/NODES"
+scontrol show hostnames >"${hostfile}" 
+
+/sbin/ifconfig || true
+
+# VIEW="@SOURCEDIR@/view"
+
+echo "Environment:"
+export 'SIMULATION_ID=@SIMULATION_ID@'
+export 'CACTUS_MAX_MEMORY=@(@MEMORY@ * 1024)@' # Byte
+export 'CACTUS_NUM_PROCS=@NUM_PROCS@'
+export 'CACTUS_NUM_THREADS=@NUM_THREADS@'
+export 'CACTUS_SET_THREAD_BINDINGS=1'
+export 'GLIBCXX_FORCE_NEW=1'
+export 'GMON_OUT_PREFIX=gmon.out'
+export 'OMP_DISPLAY_ENV=FALSE'  # false, true
+export 'OMP_NUM_THREADS=@NUM_THREADS@'
+export 'OMP_PLACES=cores'       # threads, cores, sockets
+export 'OMP_PROC_BIND=FALSE'    # false, true, master, close, spread
+export 'OMP_STACKSIZE=8192'     # kByte
+env | sort >'SIMFACTORY/ENVIRONMENT'
+
+export MPICH_GPU_SUPPORT_ENABLED=1
+
+echo "Starting:"
+date
+export CACTUS_STARTTIME=$(date +%s)
+
+# RePrimAnd uses `libboost_atomic` but its build script does not set the respective run path
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/sw/frontier/spack-envs/base/opt/cray-sles15-zen3/cce-15.0.0/boost-1.79.0-d6jrrigiqh5hmj4xglori6k2yfh2ypnl/lib"
+
+time                                            \
+    srun                                        \
+    --ntasks=@NUM_PROCS@                        \
+    --ntasks-per-node=@NODE_PROCS@              \
+    --gpus=@NUM_PROCS@                          \
+    --gpus-per-node=@NODE_PROCS@                \
+    --gpu-bind=closest                          \
+    "@EXECUTABLE@"                              \
+    -L 3                                        \
+    "@PARFILE@"                                 \
+    >stdout.txt                                 \
+    2>stderr.txt
+
+echo "Stopping:"
+date
+
+echo "Done."

@@ -1,0 +1,66 @@
+# Parameter definitions for thorn EOSX
+
+restricted:
+
+KEYWORD evolution_eos "Equation of state employed during evolution" STEERABLE=never
+{ 
+  "IdealGas" :: ""
+  "Hybrid" :: "" 
+  "Tabulated" :: ""
+} "IdealGas"
+
+#parameters for Polytropic EOS
+
+CCTK_REAL poly_gamma "Adiabatic Index for poly EOS" STEERABLE=RECOVER
+{
+ (0:* :: "any positive number"
+} 2.0
+
+CCTK_REAL poly_k "Polytropic constant in c=G=Msun=1"  STEERABLE=RECOVER
+{
+ : :: ""
+} 100.0
+
+#parameters for Ideal Gas EOS
+
+CCTK_REAL gl_gamma "Adiabatic index for ideal gas EOS"
+{
+  0:* :: ""
+} 2.0
+
+CCTK_REAL rho_max "Validity region: max density" STEERABLE=RECOVER
+{
+  0:* :: ""
+} 1.0
+
+CCTK_REAL rho_min "Validity region: min density" STEERABLE=RECOVER
+{
+  0:* :: ""
+} 0.0
+
+CCTK_REAL eps_max "Validity region: max internal specific energy" STEERABLE=RECOVER
+{
+  0:* :: ""
+} 2.0
+
+CCTK_REAL eps_min "Validity region: min internal specific energy" STEERABLE=RECOVER
+{
+  0:* :: ""
+} 0.0
+
+CCTK_REAL ye_max "Validity region: max dummy electron fraction" STEERABLE=RECOVER
+{
+  0:* :: ""
+} 1.0
+
+CCTK_REAL ye_min "Validity region: min dummy electron fraction" STEERABLE=RECOVER
+{
+  0:* :: ""
+} 0.0
+
+# The default value is for a gas of nucleons with Y_e = 0.45
+CCTK_REAL particle_mass "mass used to formally compute temperature from kinetic gas theory"
+{
+  0:* :: "in MeV"
+} 938.985
+

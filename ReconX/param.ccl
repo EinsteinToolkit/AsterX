@@ -1,0 +1,78 @@
+# Parameter definitions for thorn AsterX
+
+restricted:
+
+KEYWORD reconstruction_method "Reconstruction method" STEERABLE=never
+{
+  "Godunov" :: ""
+  "minmod" :: ""
+  "monocentral" :: ""
+  "ppm" :: ""
+  "eppm" :: ""
+  "wenoz" :: ""
+  "mp5" :: ""
+} "Godunov"
+
+#PPM parameters
+
+CCTK_BOOLEAN ppm_shock_detection "Whether to activate the PPM shock detection mechanism to detect contact discontinuities"
+{
+} yes
+
+CCTK_BOOLEAN ppm_zone_flattening "[USE WITH CAUTION] Whether to activate the PPM zone flattening mechanism (using only 3 ghost cells, not 4). It introduces extra dissipation: good e.g. for avoiding post-shock oscillations, but may fail at correctly resolving sharp features."
+{
+} no
+
+CCTK_REAL ppm_eta1 "eta1 parameter in the PPM shock detection algorithm (see Colella & Woodward 1984 eq. 1.16)"
+{
+  *:* :: "Any real number, default from Colella & Woodward 1984"
+} 20.
+
+CCTK_REAL ppm_eta2 "eta2 parameter in the PPM shock detection algorithm (see Colella & Woodward 1984 eq. 1.16)"
+{
+  *:* :: "Any real number, default from Colella & Woodward 1984"
+} 0.05
+
+CCTK_REAL ppm_eps "epsilon parameter in the PPM zone flattening algorithm (see Colella & Woodward 1984 eq. 1.16)"
+{
+  *:* :: "Any real number, default from Colella & Woodward 1984"
+} 0.33
+
+CCTK_REAL ppm_eps_shock "Epsilon for PPM shock detection"
+{
+  *:* :: "Anything goes. Default is from Colella & Woodward"
+} 0.01
+
+CCTK_REAL ppm_small "A floor used by PPM shock detection"
+{
+  0.0:1.0       :: "In [0,1]"
+} 1.e-7
+
+CCTK_REAL ppm_omega1 "omega1 parameter in the PPM zone flattening algorithm (see Colella & Woodward 1984 eq. 1.16)"
+{
+  *:* :: "Any real number, default from Colella & Woodward 1984"
+} 0.75
+
+CCTK_REAL ppm_omega2 "omega2 parameter in the PPM zone flattening algorithm (see Colella & Woodward 1984 eq. 1.16)"
+{
+  *:* :: "Any real number, default from Colella & Woodward 1984"
+} 10.
+
+CCTK_REAL enhanced_ppm_C2 "Parameter for enhancecd ppm limiter. Default from McCorquodale & Colella 2011" STEERABLE=ALWAYS
+{
+   *:* :: "must be greater than 1. According to Colella&Sekora 2008, enhanced ppm is insensitive to C in [1.25,5]"
+} 1.25
+
+#WENO parameters
+
+CCTK_REAL weno_eps "Epsilon parameter for WENO-Z in order to avoid division by 0"
+{
+  0.0:* :: "Must be small and positive"
+} 1e-26
+
+#MP5 parameters
+
+CCTK_REAL mp5_alpha "alpha parameter for MP5 reconstruction"
+{
+  0:* :: "positive"
+} 4.0

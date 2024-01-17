@@ -1,0 +1,138 @@
+# Parameter definitions for thorn TOVSolverX
+SHARES: HydroBaseX
+
+EXTENDS KEYWORD initial_hydro "Initial setup" STEERABLE=never
+{
+  "tov" :: "TOV neutron star setup"
+}
+
+shares:ADMBaseX
+
+EXTENDS KEYWORD initial_data
+{
+  "tov" :: "TOV star initial metric"
+}
+
+EXTENDS KEYWORD initial_lapse
+{
+  "tov" :: "TOV star initial lapse; isotropic"
+}
+
+EXTENDS KEYWORD initial_shift
+{
+  "tov" :: "TOV star initial shift"
+}
+
+CCTK_INT TOV_Num_TOVs "The number of TOVs"
+{
+  1:* :: "Greater than 0"
+} 1
+
+CCTK_INT TOV_Num_Radial "The number of radial points for the ODE integration"
+{
+  1:* :: "Greater than 0"
+} 100000
+
+CCTK_REAL TOV_dr[10] "The spacing in the radial direction on the 1d grid"
+{
+  (0.0:* :: "Greater than 0"
+} 5.e-4
+
+BOOLEAN Perturb[10] "Add density perturbation (you should solve the IVP if true)"
+{
+} "no"
+
+CCTK_REAL Pert_Amplitude[10] "Amplitude of perturbation"
+{
+  *:* :: "Anything"
+} 0.0
+
+CCTK_REAL TOV_Position_x[10] "Position of neutron star, x coordinate" STEERABLE=always
+{
+  *:* :: "real"
+} 0.0
+
+CCTK_REAL TOV_Position_y[10] "Position of neutron star, y coordinate" STEERABLE=always
+{
+  *:* :: "real"
+} 0.0
+
+CCTK_REAL TOV_Position_z[10] "Position of neutron star, z coordinate" STEERABLE=always
+{
+  *:* :: "real"
+} 0.0
+
+# contravariant fluid three velocity as measured by the Eulerian observers: v^i = u^i / (alpha u^t) + beta^i / alpha
+# as used by HydroBaseX. Follows the Valencia formulation eg. eqs. 26 and 27 of Font et al's paper (gr-qc/9811015) or
+# below Equ. 31 in http://relativity.livingreviews.org/Articles/lrr-2008-7/articlesu1.html#x6-30002.1
+CCTK_REAL TOV_Velocity_x[10] "(fixed) Velocity of neutron star, x coordinate (caution!)" STEERABLE=always
+{
+  *:* :: "real"
+} 0.0
+
+CCTK_REAL TOV_Velocity_y[10] "(fixed) Velocity of neutron star, y coordinate (caution!)" STEERABLE=always
+{
+  *:* :: "real"
+} 0.0
+
+CCTK_REAL TOV_Velocity_z[10] "(fixed) Velocity of neutron star, z coordinate (caution!)" STEERABLE=always
+{
+  *:* :: "real"
+} 0.0
+
+BOOLEAN TOV_Fast_Interpolation "Use faster interpolation algorithm? Default is yes."
+{
+} "yes"
+
+BOOLEAN TOV_Clear_Initial_Data "Clear initial data (spacetime)? Default is yes."
+{
+} "yes"
+
+
+CCTK_REAL TOV_Gamma "The polytropic constant in P = K rho^Gamma" STEERABLE=always
+{
+  1.0: :: "The physical range at high Lorentz factors is [1,2], but otherwise higher values of gamma can also be used"
+} 2.0
+
+CCTK_REAL TOV_K "The polytropic constant in P = K rho^Gamma" STEERABLE=always
+{
+  0.0:* :: "Greater than 0"
+} 100.0
+
+CCTK_REAL TOV_Rho_Central[10] "The central density"
+{
+  (0.0:* :: "Must be positive"
+} 1e-3
+
+BOOLEAN TOV_Use_Old_Initial_Data "Take old initial data into account (spacetime)? Default is no."
+{
+} "no"
+
+BOOLEAN TOV_Use_Old_Matter_Initial_Data "Use also old matter initial data? Default is no."
+{
+} "no"
+
+BOOLEAN TOV_Cowling "Schedule TOVSolverX for cowling case."
+{
+} "no"
+
+keyword TOV_Combine_Method "Which combine method should be used."
+{
+  "maximum" :: "Take the maximum of rho and gxx as clue for the rest as clue."
+  "average" :: "Take the average of all available parts."
+} "average"
+
+CCTK_INT TOV_Populate_Timelevels "Populate that amount of timelevels" STEERABLE=always
+{
+  1:3 :: "1 (default) to 3"
+} 1
+
+CCTK_INT TOV_fake_evolution "Fake evolution by setting ID at every step" STEERABLE=always
+{
+  *:* :: "anything, 0 as off (default), everything else as on"
+} 0
+
+STRING TOV_save_to_datafile "Only save data to file and exit"
+{
+  ".*" :: "Any filename, not used if empty"
+} ""

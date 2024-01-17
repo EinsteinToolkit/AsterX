@@ -1,0 +1,7 @@
+Cactus Code Thorn TOVSolverX
+
+1. Purpose
+
+Set the initial data for TOV neutron stars based on Cactus/arrangements/EinsteinInitialData/TOVSolverX
+Switch the original code from C to C++, and update the looping functions over the grid variables.
+Some functions and parameters are removed for preliminary test.

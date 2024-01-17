@@ -1,0 +1,100 @@
+# Interface definition for thorn AsterX
+
+IMPLEMENTS: AsterX
+
+INHERITS: CarpetX ADMBaseX HydroBaseX TmunuBaseX
+
+USES INCLUDE HEADER: fixmath.hxx
+USES INCLUDE HEADER: loop_device.hxx
+USES INCLUDE HEADER: eos_1p.hxx eos_polytropic.hxx
+USES INCLUDE HEADER: eos.hxx eos_idealgas.hxx
+USES INCLUDE HEADER: c2p.hxx c2p_2DNoble.hxx c2p_1DPalenzuela.hxx
+USES INCLUDE HEADER: reconstruct.hxx
+
+PUBLIC:
+
+CCTK_REAL dens TYPE=gf CENTERING={ccc} TAGS='rhs="densrhs" dependents="HydroBaseX::rho TmunuBaseX::eTtt AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Conserved rest mass density"
+
+CCTK_REAL mom TYPE=gf CENTERING={ccc} TAGS='rhs="momrhs" dependents="HydroBaseX::vel TmunuBaseX::eTti"'
+{
+  momx, momy, momz
+} "Conserved momentum density"
+
+CCTK_REAL tau TYPE=gf CENTERING={ccc} TAGS='rhs="taurhs" dependents="HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec TmunuBaseX::eTij"' "Conserved internal energy density"
+
+CCTK_REAL flux_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+{
+  fxdens
+  fxmomx fxmomy fxmomz
+  fxtau
+  fxBx fxBy fxBz
+} "Fluxes in x direction"
+
+CCTK_REAL flux_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+{
+  fydens
+  fymomx fymomy fymomz
+  fytau
+  fyBx fyBy fyBz
+} "Fluxes in y direction"
+
+CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+{
+  fzdens
+  fzmomx fzmomy fzmomz
+  fztau
+  fzBx fzBy fzBz
+} "Fluxes in z direction"
+
+CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
+
+CCTK_REAL momrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+  momxrhs, momyrhs, momzrhs
+} "Conserved momentum density RHS"
+
+CCTK_REAL taurhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved internal energy density RHS" 
+
+
+CCTK_REAL Avec_x TYPE=gf CENTERING={cvv} TAGS='rhs="Avec_x_rhs"' "x-component of vector potential"
+CCTK_REAL Avec_y TYPE=gf CENTERING={vcv} TAGS='rhs="Avec_y_rhs"' "y-component of vector potential"
+CCTK_REAL Avec_z TYPE=gf CENTERING={vvc} TAGS='rhs="Avec_z_rhs"' "z-component of vector potential"
+
+CCTK_REAL Avec_x_rhs TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of vector potential RHS"
+CCTK_REAL Avec_y_rhs TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of vector potential RHS"
+CCTK_REAL Avec_z_rhs TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of vector potential RHS"
+
+CCTK_REAL Bx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered magnetic field"
+CCTK_REAL By_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered magnetic field"
+CCTK_REAL Bz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered magnetic field"
+
+CCTK_REAL dB TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+  dBx, dBy, dBz
+} "Densitized magnetic field components: sqrt(det(gamma_ij))*B^k"
+
+CCTK_REAL dBx_stag TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"' "x-component of staggered densitized magnetic field"
+CCTK_REAL dBy_stag TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"' "y-component of staggered densitized magnetic field"
+CCTK_REAL dBz_stag TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "z-component of staggered densitized magnetic field"
+
+CCTK_REAL Psi TYPE=gf CENTERING={vvv} TAGS='rhs="Psi_rhs"' "t-component of vector potential: sqrt(det(gamma_ij))*Phi"
+
+CCTK_REAL Psi_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of vector potential RHS"
+
+CCTK_REAL Aux_in_RHSof_A_Psi TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
+{
+  Fx, Fy, Fz, Fbetax, Fbetay, Fbetaz, G
+} "Auxiliary vertices variables which appears in the rhs of Avec and Psi"
+
+#CCTK_REAL Ex TYPE=gf CENTERING={cvv} TAGS='checkpoint="no"' "x-component of electric field"
+#CCTK_REAL Ey TYPE=gf CENTERING={vcv} TAGS='checkpoint="no"' "y-component of electric field"
+#CCTK_REAL Ez TYPE=gf CENTERING={vvc} TAGS='checkpoint="no"' "z-component of electric field"
+
+CCTK_REAL con2prim_flag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Flag indicating failure of con2prim"
+
+CCTK_REAL saved_prims TYPE=gf CENTERING={ccc}
+{
+  saved_rho
+  saved_velx saved_vely saved_velz
+  saved_eps
+} "Saved primitive variables as initial guesses for con2prim"

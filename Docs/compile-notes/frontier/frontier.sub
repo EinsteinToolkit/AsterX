@@ -1,0 +1,18 @@
+#! /bin/bash
+#SBATCH --account=@ALLOCATION@
+#SBATCH --job-name=@SHORT_SIMULATION_NAME@
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=@EMAIL@
+#SBATCH --output=@RUNDIR@/stdlog.txt
+#SBATCH --time=@WALLTIME@
+#SBATCH --partition=@QUEUE@
+#SBATCH --nodes=@NODES@
+#SBATCH --gpus-per-node=@NODE_PROCS@
+#SBATCH --gpu-bind=closest
+# Jobs with this option will not start
+##SBATCH --tasks-per-node=@PPN_USED@
+#SBATCH --cpus-per-task=1
+#SBATCH @("@CHAINED_JOB_ID@" != "" ? "--dependency=afterany:@CHAINED_JOB_ID@" : "")@
+#SBATCH --export=ALL
+cd @SOURCEDIR@
+@SIMFACTORY@ run @SIMULATION_NAME@ --basedir=@BASEDIR@ --machine=@MACHINE@ --restart-id=@RESTART_ID@ @FROM_RESTART_COMMAND@

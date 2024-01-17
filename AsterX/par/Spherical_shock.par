@@ -1,0 +1,130 @@
+ActiveThorns = "
+  ADMBaseX
+  AsterSeeds
+  AsterX
+  CarpetX
+  EOSX
+  Formaline
+  HydroBaseX
+  IOUtil
+  ODESolvers
+  TimerReport
+  TmunuBaseX
+"
+
+# ***** User-defined parameters *****
+$nlevels = 1
+$ncells  = 50
+
+
+# -------------------- Cactus --------------------------------------------------
+Cactus::cctk_show_schedule = yes
+Cactus::presync_mode       = "mixed-error"
+
+Cactus::terminate       = "time"
+Cactus::cctk_final_time = 0.1
+
+
+
+# -------------------- CarpetX -------------------------------------------------
+CarpetX::verbose = no
+
+CarpetX::xmin = -0.2
+CarpetX::ymin = -0.2
+CarpetX::zmin = -0.2
+
+CarpetX::xmax = +0.2
+CarpetX::ymax = +0.2
+CarpetX::zmax = +0.2
+
+CarpetX::ncells_x = $ncells
+CarpetX::ncells_y = $ncells
+CarpetX::ncells_z = $ncells
+
+CarpetX::boundary_x = "linear extrapolation"
+CarpetX::boundary_y = "linear extrapolation"
+CarpetX::boundary_z = "linear extrapolation"
+
+CarpetX::boundary_upper_x = "linear extrapolation"
+CarpetX::boundary_upper_y = "linear extrapolation"
+CarpetX::boundary_upper_z = "linear extrapolation"
+
+CarpetX::max_num_levels         = $nlevels
+CarpetX::regrid_every           = 16
+CarpetX::regrid_error_threshold = 0.01
+
+CarpetX::blocking_factor_x = 1
+CarpetX::blocking_factor_y = 1
+CarpetX::blocking_factor_z = 1
+
+CarpetX::prolongation_type = "ddf"
+CarpetX::ghost_size        = 3
+CarpetX::dtfac             = 0.25
+
+
+
+# -------------------- ODESolvers ----------------------------------------------
+ODESolvers::method = "RK4"
+
+
+
+# -------------------- ADMBaseX -------------------------------------------------
+ADMBaseX::initial_data    = "Cartesian Minkowski"
+ADMBaseX::initial_lapse   = "one"
+ADMBaseX::initial_shift   = "zero"
+ADMBaseX::initial_dtlapse = "none"
+ADMBaseX::initial_dtshift = "none"
+
+
+
+# -------------------- AsterSeeds ----------------------------------------------
+AsterSeeds::test_type    = "3DTest"
+AsterSeeds::test_case    = "spherical shock"
+AsterSeeds::shock_radius = 0.1
+
+
+
+# -------------------- AsterX --------------------------------------------------
+AsterX::debug_mode = "yes"
+AsterX::flux_type = "HLLE"
+
+ReconX::reconstruction_method = "PPM"
+
+Con2PrimFactory::c2p_prime = "Noble"
+Con2PrimFactory::c2p_second = "Palenzuela"
+Con2PrimFactory::c2p_tol = 1e-8
+Con2PrimFactory::max_iter = 100
+Con2PrimFactory::rho_abs_min = 1e-8
+Con2PrimFactory::unit_test = "yes"
+Con2PrimFactory::B_lim = 1e8
+Con2PrimFactory::vw_lim = 1e8
+Con2PrimFactory::Ye_lenient = "yes"
+
+# -------------------- EOSX ----------------------------------------------------
+EOSX::evolution_eos = "IdealGas"
+EOSX::gl_gamma = 1.66666666666667
+EOSX::poly_gamma = 1.66666666666667
+EOSX::rho_max = 1e8
+EOSX::eps_max = 1e8
+
+
+# -------------------- TimerReport ---------------------------------------------
+TimerReport::out_every                  = 10
+TimerReport::out_filename               = "TimerReport"
+TimerReport::output_all_timers_together = yes
+TimerReport::output_all_timers_readable = yes
+TimerReport::n_top_timers               = 50
+
+
+
+# -------------------- IO ------------------------------------------------------
+IO::out_dir   = $parfile
+IO::out_every = 1
+CarpetX::out_silo_vars = "
+  HydroBaseX::rho
+  HydroBaseX::eps
+  HydroBaseX::press
+  HydroBaseX::vel
+  HydroBaseX::Bvec
+  CarpetX::regrid_error
+"

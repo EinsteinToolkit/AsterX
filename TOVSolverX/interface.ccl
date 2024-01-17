@@ -1,0 +1,21 @@
+# Interface definition for thorn TOVSolverX
+
+IMPLEMENTS: TOVSolverX
+
+INHERITS: CarpetX ADMBaseX HydroBaseX AsterX
+
+USES INCLUDE HEADER: fixmath.hxx
+USES INCLUDE HEADER: loop_device.hxx
+
+PUBLIC:
+
+CCTK_REAL metric_cell TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' { gxx_cell gxy_cell gxz_cell gyy_cell gyz_cell gzz_cell } "cell-centered ADM 3-metric g_ij"
+
+CCTK_REAL curv_cell TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' { kxx_cell kxy_cell kxz_cell kyy_cell kyz_cell kzz_cell } "cell-centered ADM extrinstic curvature K_ij"
+
+CCTK_REAL lapse_cell TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' { alp_cell } "cell-centered ADM lapse function alpha"
+
+CCTK_REAL shift_cell TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' { betax_cell betay_cell betaz_cell} "cell-centered ADM shift function beta^i"
+
+CCTK_REAL dtlapse_cell TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' { dtalp_cell } "cell-centered Time derivative of ADM lapse function"
+CCTK_REAL dtshift_cell TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' { dtbetax_cell dtbetay_cell dtbetaz_cell} "cell-centered Time derivative of ADM shift function"

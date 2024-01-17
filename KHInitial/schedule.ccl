@@ -1,0 +1,12 @@
+# Schedule definitions for thorn KHInitial
+
+# Initial conditions for the Kelvin-Helmholtz instability test
+
+SCHEDULE KHInitial_Initialize IN HydroBaseX_InitialData
+{
+  LANG: C
+  WRITES: HydroBaseX::rho(everywhere)
+  WRITES: HydroBaseX::vel(everywhere)
+  WRITES: HydroBaseX::eps(everywhere)
+  WRITES: HydroBaseX::press(everywhere)
+} "Set up KHI initial conditions"

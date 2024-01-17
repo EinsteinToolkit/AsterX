@@ -1,0 +1,7 @@
+# Interface definition for thorn KHInitial
+
+IMPLEMENTS: KHInitial
+
+INHERITS: CarpetX ADMBaseX HydroBaseX
+
+USES INCLUDE HEADER: loop_device.hxx

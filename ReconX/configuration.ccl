@@ -1,0 +1,5 @@
+#Configuration definitions for thorn ReconX
+
+REQUIRES Loop
+PROVIDES ReconX {
+}

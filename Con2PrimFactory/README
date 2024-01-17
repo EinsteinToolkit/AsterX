@@ -1,0 +1,10 @@
+Cactus Code Thorn Con2PrimFactory
+Author(s)    : Erik Schnetter <schnetter@gmail.com>
+Maintainer(s): Erik Schnetter <schnetter@gmail.com>
+Licence      : LGPL
+--------------------------------------------------------------------------
+
+1. Purpose
+
+Provide various conservative-to-primitive variable recovery schemes.
+Inspired by Wolfgang Kastaun's C2P framework.

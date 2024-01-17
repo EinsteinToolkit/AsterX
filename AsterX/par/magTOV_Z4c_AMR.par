@@ -1,0 +1,195 @@
+###############################
+# Simple test of magnetised TOV neutron star
+# Same neutron star as the gallery example
+# K=100, rho_c = 1.28e-3 => M = 1.4, M_b = 1.506
+# evolve for t = 48.82 M
+##############################
+ActiveThorns = "
+    ADMBaseX
+    BoxInBox
+    CarpetX
+    HydroBaseX
+    IOUtil
+    ODESolvers
+    TimerReport
+    TmunuBaseX
+    AsterX
+    AsterSeeds
+    Z4c
+"
+
+$nlevels	= 6
+$ncells 	=  256
+
+CarpetX::verbose = no
+Cactus::presync_mode = "mixed-error"
+CarpetX::poison_undefined_values = no
+
+# Finest grid spacing is 0.15625 
+# To have a symmetric grid along 0, we have odd number of points (257) 
+# along each direction going from -20.078125 to +20.078125 for the finest level
+
+CarpetX::xmin = -642.5
+CarpetX::ymin = -642.5
+CarpetX::zmin = -642.5
+
+CarpetX::xmax = 642.5
+CarpetX::ymax = 642.5
+CarpetX::zmax = 642.5
+
+CarpetX::ncells_x = $ncells
+CarpetX::ncells_y = $ncells
+CarpetX::ncells_z = $ncells
+
+CarpetX::boundary_x =  "neumann"
+CarpetX::boundary_y =  "neumann"
+CarpetX::boundary_z =  "neumann"
+CarpetX::boundary_upper_x =  "neumann"
+CarpetX::boundary_upper_y =  "neumann"
+CarpetX::boundary_upper_z =  "neumann"
+
+CarpetX::max_num_levels = $nlevels
+CarpetX::regrid_every = 128
+CarpetX::regrid_error_threshold = 0.9
+
+CarpetX::prolongation_type = "ddf"
+CarpetX::ghost_size = 3
+CarpetX::dtfac = 0.25
+
+CarpetX::blocking_factor_x = 8
+CarpetX::blocking_factor_y = 8
+CarpetX::blocking_factor_z = 8
+
+BoxInBox::num_regions = 1
+# Region 1
+BoxInBox::shape_1 = "cube"
+BoxInBox::num_levels_1 = $nlevels 
+BoxInBox::radius_1 = [ -1.0, 321.25, 160.625, 80.3125, 40.15625, 20.078125 ]
+
+
+#ADMBaseX::set_adm_variables_during_evolution = "yes"
+ADMBaseX::initial_data       = "tov"
+ADMBaseX::initial_lapse      = "tov"
+ADMBaseX::initial_shift      = "tov"
+ADMBaseX::initial_dtlapse    = "zero"
+ADMBaseX::initial_dtshift    = "zero"
+
+Z4c::calc_ADM_vars = yes                  # for Weyl
+Z4c::calc_ADMRHS_vars = no  #yes               # for Weyl
+Z4c::calc_constraints = yes
+Z4c::chi_floor = 1.0e-6
+Z4c::alphaG_floor = 1.0e-8
+Z4c::epsdiss = 0.32
+Z4c::boundary_conditions = "NewRadX"
+
+ActiveThorns = "TOVSolverX"
+TOVSolverX::TOV_Rho_Central[0] = 1.28e-3
+TOVSolverX::TOV_Gamma          = 2.0
+TOVSolverX::TOV_K              = 100.0
+TOVSolverX::TOV_Cowling = no
+
+
+AsterSeeds::test_type = "3DTest"
+AsterSeeds::test_case = "magTOV"
+AsterSeeds::Afield_config = "internal dipole"
+AsterSeeds::Ab = 100.0
+AsterSeeds::press_cut = 0.04
+AsterSeeds::press_max = 1.638e-4
+AsterSeeds::Avec_kappa = 2.0
+
+#AsterSeeds::Afield_config = "external dipole"
+#AsterSeeds::B0 = 1e-7
+#AsterSeeds::r0 = 5.0
+
+AsterX::debug_mode = "no"
+AsterX::flux_type = "HLLE"
+AsterX::vector_potential_gauge = "algebraic"
+AsterX::local_spatial_order = 4
+AsterX::local_estimate_error = "no"
+
+ReconX::reconstruction_method = "PPM"
+ReconX::ppm_zone_flattening = "yes"
+ReconX::ppm_shock_detection = "no"
+
+Con2PrimFactory::c2p_prime = "Noble"
+Con2PrimFactory::c2p_second = "Palenzuela"
+Con2PrimFactory::c2p_tol = 1e-8
+Con2PrimFactory::max_iter = 100
+Con2PrimFactory::rho_abs_min = 1e-11
+Con2PrimFactory::atmo_tol = 1e-3
+Con2PrimFactory::unit_test = "yes"
+Con2PrimFactory::B_lim = 1e8
+Con2PrimFactory::vw_lim = 1e8
+Con2PrimFactory::Ye_lenient = "yes"
+Con2PrimFactory::rho_strict = 6.4e-05
+
+EOSX::evolution_eos = "IdealGas"
+EOSX::gl_gamma = 2.0
+EOSX::poly_gamma = 2.0
+EOSX::poly_k = 100
+EOSX::rho_max = 1e8
+EOSX::eps_max = 1e8
+
+Cactus::terminate = "never"
+#Cactus::cctk_itlast = 10000000
+Cactus::cctk_final_time = 3000
+ODESolvers::method = "RK4"
+
+IO::out_dir = $parfile
+IO::out_every = 64
+CarpetX::out_norm_vars = "all"
+CarpetX::out_norm_omit_unstable = yes
+CarpetX::out_silo_vars = "
+#    AsterX::Avec_x
+#    AsterX::Avec_y
+#    AsterX::Avec_z
+#    AsterX::dB
+    HydroBaseX::Bvec
+    HydroBaseX::rho
+    HydroBaseX::vel
+    HydroBaseX::eps
+    HydroBaseX::press
+    CarpetX::regrid_error
+    ADMBaseX::lapse
+    ADMBaseX::shift
+    ADMBaseX::metric
+    TmunuBaseX::eTtt
+    TmunuBaseX::eTti
+    TmunuBaseX::eTij
+    Z4c::allC
+    Z4c::HC
+    Z4c::MtC
+"
+CarpetX::out_tsv_vars = "
+    AsterX::dB
+    HydroBaseX::Bvec
+    HydroBaseX::rho
+    HydroBaseX::vel
+    HydroBaseX::press
+    CarpetX::regrid_error
+    ADMBaseX::lapse
+    ADMBaseX::shift
+    ADMBaseX::metric
+    TmunuBaseX::eTtt
+    TmunuBaseX::eTti
+    TmunuBaseX::eTij
+    Z4c::allC
+    Z4c::HC
+    Z4c::MtC
+"
+TimerReport::out_every = 128
+TimerReport::out_filename = "TimerReport"
+TimerReport::output_all_timers_together = yes
+TimerReport::output_all_timers_readable = yes
+TimerReport::n_top_timers = 50
+
+IO::checkpoint_dir = "../checkpoint"
+IO::recover_dir    = "../checkpoint"
+IO::checkpoint_ID = no
+IO::checkpoint_every = 0
+IO::checkpoint_every_walltime_hours = 12.0
+IO::checkpoint_on_terminate = yes
+IO::recover                 = "autoprobe"
+
+CarpetX::checkpoint_method = "openpmd"
+CarpetX::recover_method    = "openpmd"

@@ -1,0 +1,11 @@
+#Interface definition for thorn Con2PrimFactory
+
+implements: Con2PrimFactory 
+INCLUDES HEADER: atmo.hxx IN atmo.hxx 
+INCLUDES HEADER: prims.hxx IN prims.hxx 
+INCLUDES HEADER: cons.hxx IN cons.hxx 
+INCLUDES HEADER: c2p_2DNoble.hxx IN c2p_2DNoble.hxx 
+INCLUDES HEADER: c2p_1DPalenzuela.hxx IN c2p_1DPalenzuela.hxx 
+USES INCLUDE HEADER: eos.hxx 
+USES INCLUDE HEADER: eos_idealgas.hxx
+USES INCLUDE HEADER: roots.hxx

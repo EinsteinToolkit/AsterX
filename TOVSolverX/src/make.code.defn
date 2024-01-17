@@ -1,0 +1,7 @@
+# Main make.code.defn file for thorn TOVSolverX
+
+# Source files in this directory
+SRCS =	tov.cxx
+
+# Subdirectories containing source files
+SUBDIRS = 

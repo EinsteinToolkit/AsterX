@@ -1,0 +1,61 @@
+ActiveThorns = "
+    CarpetX
+    IOUtil
+    ODESolvers
+    ADMBaseX
+    HydroBaseX
+    TmunuBaseX
+    AsterSeeds
+    AsterX
+    EOSX
+"
+ 
+$nlevels = 1
+$ncells = 2
+
+Cactus::cctk_show_schedule = yes
+
+Cactus::presync_mode = "mixed-error"
+
+Cactus::terminate = "time"
+Cactus::cctk_final_time = 0.0
+
+ADMBaseX::initial_data            = "Cartesian Minkowski"
+ADMBaseX::initial_lapse           = "one"
+ADMBaseX::initial_shift           = "zero"
+ADMBaseX::initial_dtlapse         = "none"
+ADMBaseX::initial_dtshift         = "none"
+
+CarpetX::verbose = no
+
+CarpetX::xmin = -0.5
+CarpetX::ymin = -0.5
+CarpetX::zmin = -0.5
+
+CarpetX::xmax = +0.5
+CarpetX::ymax = +0.5
+CarpetX::zmax = +0.5
+
+CarpetX::boundary_x = "linear extrapolation"
+CarpetX::boundary_y = "linear extrapolation"
+CarpetX::boundary_z = "linear extrapolation"
+
+CarpetX::boundary_upper_x = "linear extrapolation"
+CarpetX::boundary_upper_y = "linear extrapolation"
+CarpetX::boundary_upper_z = "linear extrapolation"
+
+CarpetX::ncells_x = $ncells
+CarpetX::ncells_y = $ncells
+CarpetX::ncells_z = $ncells
+
+CarpetX::max_num_levels = $nlevels
+CarpetX::regrid_every = 100000
+CarpetX::blocking_factor_x = 1
+CarpetX::blocking_factor_y = 1
+CarpetX::blocking_factor_z = 1
+
+CarpetX::prolongation_type = "ddf"
+CarpetX::ghost_size = 2
+ 
+AsterX::unit_test = yes
+AsterX::unit_test_repetitions = 10

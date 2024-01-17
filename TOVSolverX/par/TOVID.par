@@ -1,0 +1,101 @@
+ActiveThorns = "
+    ADIOS
+    ADMBaseX
+    CarpetX
+    HydroBaseX
+    IOUtil
+    ODESolvers
+    SystemTopology
+    TimerReport
+    TmunuBaseX
+"
+
+$nlevels	= 3
+$ncells 	=  64
+$max_p		=  30
+$max_m 		=  0
+
+CarpetX::verbose = no
+
+Cactus::presync_mode = "mixed-error"
+CarpetX::poison_undefined_values = no
+
+CarpetX::xmin = $max_m
+CarpetX::ymin = $max_m
+CarpetX::zmin = $max_m
+
+CarpetX::xmax = $max_p
+CarpetX::ymax = $max_p
+CarpetX::zmax = $max_p
+
+CarpetX::ncells_x = $ncells
+CarpetX::ncells_y = $ncells
+CarpetX::ncells_z = $ncells
+#CarpetX::blocking_factor_z = 2
+
+CarpetX::reflection_x  = yes
+CarpetX::reflection_y  = yes
+CarpetX::reflection_z  = yes
+
+CarpetX::von_neumann_x = yes
+CarpetX::von_neumann_y = yes
+CarpetX::von_neumann_z = yes
+CarpetX::von_neumann_upper_x = yes
+CarpetX::von_neumann_upper_y = yes
+CarpetX::von_neumann_upper_z = yes
+
+CarpetX::max_num_levels = $nlevels
+CarpetX::regrid_every = 10
+CarpetX::regrid_error_threshold = 0.05
+
+CarpetX::prolongation_type = "ddf"
+CarpetX::ghost_size = 2
+CarpetX::dtfac = 0.5
+
+ADMBaseX::set_adm_variables_during_evolution = yes
+ADMBaseX::initial_data       = "tov"
+ADMBaseX::initial_lapse      = "tov"
+ADMBaseX::initial_shift      = "tov"
+ADMBaseX::initial_dtlapse    = "zero"
+ADMBaseX::initial_dtshift    = "zero"
+
+HydroBaseX::initial_hydro = "tov"
+
+ActiveThorns = "TOVSolverX"
+TOVSolverX::TOV_Rho_Central[0] = 1.28e-3
+TOVSolverX::TOV_Gamma          = 2.0
+TOVSolverX::TOV_K              = 100.0
+#TOVSolverX::TOV_Num_Radial     = 100000
+#TOVSolverX::TOV_Fast_Interpolation = "no"
+TOVSolverX::TOV_save_to_datafile = "save.txt"
+
+Cactus::terminate = "iteration"
+Cactus::cctk_itlast = 0
+ODESolvers::method = "RK4"
+
+IO::out_dir = $parfile
+IO::out_every = 10
+CarpetX::out_silo_vars = "
+    HydroBaseX::rho
+    HydroBaseX::vel
+    HydroBaseX::eps
+    HydroBaseX::press
+    CarpetX::regrid_error
+    ADMBaseX::lapse
+    ADMBaseX::shift
+    ADMBaseX::metric
+"
+
+CarpetX::out_openpmd_vars = "
+    HydroBaseX::rho
+    HydroBaseX::vel
+    HydroBaseX::eps
+    HydroBaseX::press
+    CarpetX::regrid_error
+"
+
+TimerReport::out_every = 1
+TimerReport::out_filename = "TimerReport"
+TimerReport::output_all_timers_together = yes
+TimerReport::output_all_timers_readable = yes
+TimerReport::n_top_timers = 50

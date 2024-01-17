@@ -1,0 +1,64 @@
+# source ../src/spack/share/spack/setup-env.sh
+# env TMPDIR=$WORK/tmp spack --env-dir $HOME/Tools/Misc/Spack_files/frontera/cuda-11.5.2 compiler find view-cuda-compilers &&
+# env TMPDIR=$WORK/tmp spack --env-dir $HOME/Tools/Misc/Spack_files/frontera/cuda-11.5.2 concretize --force &&
+# env TMPDIR=$WORK/tmp spack --env-dir $HOME/Tools/Misc/Spack_files/frontera/cuda-11.5.2 install --fail-fast
+spack:
+  definitions:
+  - compilers:
+    - gcc @11.2.0 #arch=linux-centos7-broadwell
+  - packages:
+    - adios2 ~python
+    - amrex +cuda cuda_arch=70 ~fortran +hdf5 +openmp +particles
+    - cuda @11.5.2 +allow-unsupported-compilers
+    - fftw +mpi +openmp
+    - hwloc @1.11.12
+    - hdf5 @1.12.1 +cxx +fortran +hl +mpi +threadsafe
+    - nsimd @3.0.1
+    - openpmd-api
+    - ssht
+    - silo@4.10.2 ~fortran ~pic ~shared
+    - yaml-cpp
+    - zlib
+      #    - gsl
+      #    - openblas
+  packages:
+    hwloc:
+      buildable: false
+      externals:
+      - spec: hwloc@1.11.12
+        prefix: /opt/apps/hwloc/1.11.12
+    cmake:
+      buildable: false
+      externals:
+      - spec: cmake@3.24.2
+        prefix: /opt/apps/cmake/3.24.2
+    intel-mkl:
+      buildable: false
+      externals:
+      - spec: intel-mkl@19.1.1
+        prefix: /opt/intel/compilers_and_libraries_2020.1.217/linux/mkl
+    fftw:
+      buildable: false
+      externals:
+      - spec: fftw@3.3.10
+        prefix: /opt/apps/intel19/impi19_0/fftw3/3.3.10
+    libfabric:
+      buildable: false
+      externals:
+      - spec: libfabric@19.0.9
+        prefix: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib
+    intel-mpi:
+      buildable: false
+      externals:
+      - spec: intel-mpi@19.0.9
+        prefix: /opt/intel/compilers_and_libraries_2020.4.304/linux/mpi
+    mpi:
+      buildable: false
+  specs:
+  - matrix:
+    - [$%compilers]
+    - [$packages]
+  concretizer:
+    reuse: false
+    unify: true
+  view: /home1/08708/liwei/Cactus_cuda/view

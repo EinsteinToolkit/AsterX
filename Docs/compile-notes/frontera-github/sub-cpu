@@ -1,0 +1,34 @@
+#!/bin/bash
+
+#SBATCH -J qc0_X_N4
+#SBATCH -N 4               # Total # of nodes 40
+#SBATCH -n 8               # Total # of mpi tasks 280
+#SBATCH -p development     # Queue (partition) name
+#SBATCH -o myjob.o%j       # Name of stdout output file
+#SBATCH -e myjob.e%j       # Name of stderr error file
+#SBATCH -t 00:30:00        # Run time (hh:mm:ss)
+#SBATCH -A PHY20010        # Project/Allocation name (req'd if you have more than 1)
+
+##SBATCH --mail-type=all    # Send email at begin and end of job
+##SBATCH --mail-user=...@rit.edu
+
+# Any other commands must follow all #SBATCH directives...
+export OMP_NUM_THREADS=28
+#export FI_PROVIDER=sockets
+#export I_MPI_DEBUG=4
+#module purge
+#module load TACC
+ml
+
+source /.../spack/share/spack/setup-env.sh
+spack load gcc@11.2.0
+
+ppn=${SLURM_TASKS_PER_NODE%(*}
+ranks=$SLURM_NTASKS
+nodes=$((ranks / ppn))
+echo "PPN   = $ppn"
+echo "Ranks = $ranks"
+
+# Launch MPI code...
+#mpiexec -np $ranks -ppn $ppn ./cactus_Spherical SphericalNR_B2_off_centered.par
+ibrun ../../cactus_CarpetX-gcc qc0.par

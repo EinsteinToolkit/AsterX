@@ -1,0 +1,88 @@
+binary
+{
+    adot -4.0220633146332303e-05
+    com 2.6420216095092932e-09
+    comy 1.1350947199194673e-08
+    distance 30.199999999999999
+    ecc_omega 0.0090053779036499502
+    global_omega 0.0090053779036499502
+    outer_shells 0
+    q 1
+    qpig 12.566370614359172
+    res 11
+    rext 60.399999999999999
+    ns1
+    {
+        chi 0
+        decay_limit 15.1
+        dim 3
+        fixed_r 7.5948125845474941
+        hc 1.2559165690690843
+        madm 1.4000000000197792
+        mb 1.5059867154261801
+        n_inner_shells 0
+        nc 0.0012795828453454217
+        nshells 0
+        omega 4.2775058199618115e-05
+        ql_madm 1.379377905980198
+        qpig 12.566370614359172
+        res 9
+        rin 3.797406292273747
+        rmid 8.1259619352861314
+        rout 10.356803324872462
+        eosfile gam2.polytrope
+        eostype Cold_PWPoly
+    }
+    ns2
+    {
+        chi 0
+        decay_limit 15.1
+        dim 3
+        fixed_r 7.5948125838711711
+        hc 1.2559165690690843
+        madm 1.4000000000197792
+        mb 1.5059867154261801
+        n_inner_shells 0
+        nc 0.0012795828453454217
+        nshells 0
+        omega 4.2775060117071758e-05
+        ql_madm 1.3793779059733646
+        qpig 12.566370614359172
+        res 9
+        rin 3.7974062919355855
+        rmid 8.1259619352861314
+        rout 10.356803324872462
+        eosfile gam2.polytrope
+        eostype Cold_PWPoly
+    }
+}
+fields
+{
+    conf on
+    lapse on
+    logh on
+    phi on
+    shift on
+}
+stages
+{
+    ecc_red on
+    total off
+    total_bc off
+}
+sequence_controls
+{
+    centralized_cos off
+    checkpoint off
+    corot_binary off
+    fixed_lapse off
+    resolve off
+    sequences on
+    use_pn off
+}
+sequence_settings
+{
+    initial_resolution 9
+    solver_max_iterations 15
+    solver_precision 1e-08
+}

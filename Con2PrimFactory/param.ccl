@@ -1,0 +1,72 @@
+#Parameter definitions for thorn Con2PrimFactory
+
+BOOLEAN unit_test "turn on all the unit tests if set to yes" {}
+no
+
+restricted :
+
+KEYWORD c2p_prime "Name of the main con2prim scheme" {
+  "Noble" ::"Noble"
+  "Palenzuela" ::"Palenzuela"
+}
+"Noble"
+
+KEYWORD c2p_second "Name of the backup con2prim scheme" {
+  "Noble" ::"Noble"
+  "Palenzuela" ::"Palenzuela"
+}
+"Palenzuela"
+
+CCTK_REAL rho_abs_min "atmosphere density" STEERABLE=never
+{
+  0:* :: "Larger than zero"
+} 1e-13
+
+CCTK_REAL atmo_tol "atmosphere density tolerance factor" STEERABLE=never
+{
+  0:* :: "Larger than zero"
+} 1e-3
+
+CCTK_REAL eps_atmo "Specific energy density of the atmosphere" STEERABLE = recover {
+  0 : *::"Larger than zero"
+}
+1e-10
+
+CCTK_REAL p_atmo "Pressure of the atmosphere" STEERABLE = recover {
+  0 : *::"Larger than zero"
+}
+1e-10
+
+CCTK_REAL Ye_atmo "Electron fraction of the atmosphere" STEERABLE = recover {
+  0 : *::"Larger than zero"
+}
+1e-10
+
+CCTK_REAL B_lim "Upper limit for the value of magnetization" STEERABLE=ALWAYS
+{
+  0:            :: "Must be positive"
+}  100.0
+
+CCTK_REAL vw_lim "Upper limit for the value of velocity * lorentz_factor " STEERABLE=ALWAYS
+{
+  0:            :: "Must be positive"
+}  10.0
+
+CCTK_REAL rho_strict "Density above which RePrimAnd c2p corrections are forbidden" STEERABLE=ALWAYS
+{
+  0:            :: "Must be positive"
+} 1e100
+
+BOOLEAN Ye_lenient "Whether to allow restricting Y_e to a valid range" STEERABLE=ALWAYS
+{
+}  "no"
+
+CCTK_INT max_iter "Maximum allowed number of iterations for root finding" STEERABLE=never
+{
+  1:* :: "Must be no smaller than 1"
+} 30
+
+CCTK_REAL c2p_tol "c2p torelance for root finding" STEERABLE=never
+{
+  0:* :: "Larger than zero"
+} 1e-10

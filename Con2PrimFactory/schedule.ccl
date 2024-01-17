@@ -1,0 +1,9 @@
+#Schedule definitions for thorn Con2PrimFactory
+
+if (unit_test) {
+  SCHEDULE Con2PrimFactory_Test AT wragh {
+  LANG:
+    C OPTIONS : meta
+  }
+  "Con2Prim Self-test"
+}

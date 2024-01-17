@@ -1,0 +1,141 @@
+# Parameter definitions for thorn AsterSeeds
+
+KEYWORD test_type "Type of test to set up" STEERABLE=never
+{
+  "1DTest" :: ""
+  "2DTest" :: ""
+  "3DTest" :: "" 
+  "Atmosphere" :: "Atmosphere" 
+} "1DTest"
+
+KEYWORD test_case "Name of the testcase" STEERABLE=never
+{
+  "equilibrium"              :: ""
+  "sound wave"               :: ""
+  "shock tube"               :: ""
+  "Balsara1"                 :: ""
+  "Balsara2"                 :: ""
+  "Balsara3"                 :: ""
+  "Balsara4"                 :: ""
+  "Balsara5"                 :: ""
+
+  "cylindrical blast"        :: ""
+  "magnetic rotor"           :: ""
+  "magnetic loop advection"  :: ""
+
+  "spherical shock"          :: ""
+  "magTOV"                   :: ""
+} "Balsara1"
+
+private:
+
+# parameters for atmosphere
+
+REAL rho_atmosphere "floor density in the atmosphere"
+{
+  0.0:*   :: "Positive"
+} 1e-5
+
+# parameters for 1D tests
+
+CCTK_REAL amplitude "Wave amplitude" STEERABLE=never
+{
+  0.0:* :: ""
+} 1.0e-3
+
+CCTK_REAL shock_radius "Shock radius" STEERABLE=never
+{
+  0.0:* :: ""
+} 0.1
+
+KEYWORD shock_dir "Shock direction" STEERABLE=never
+{
+  "x" :: "Parallel to x axis"
+  "y" :: "Parallel to y axis"
+  "z" :: "Parallel to z axis"
+} "x"
+
+# parameters for 2D tests
+
+CCTK_KEYWORD mag_loop_adv_type "2D or 3D magnetic loop advection" STEERABLE=NEVER
+{
+  "2D" :: "The axis of the magnetic field loop is directed along the z axis"
+  "3D" :: "The axis of the magnetic field loop is NOT directed along the z axis"
+} "2D"
+
+CCTK_KEYWORD mag_loop_adv_axial_vel "Zero or non-zero fluid velocity along the direction of the magnetic loop's axis" STEERABLE=NEVER
+{
+  "zero"     ::     "Zero fluid velocity along the direction of the magnetic loop's axis"
+  "non-zero" :: "Non-zero fluid velocity along the direction of the magnetic loop's axis"
+} "zero"
+
+# parameters for 3D tests
+
+# initial magnetic field configuration for magnetized TOV test
+KEYWORD Afield_config "Definition of the initial vector potential"
+{
+  "none"             :: "Nothing set here"
+  "internal dipole"  :: "Dipole field according to Ciolfi+2017"
+  "external dipole"  :: "Dipole field according to Moesta+2020"
+} "none"
+
+# parameters for internal dipolar magnetic field
+
+REAL Ab "Magnetic field intensity of the star"
+{
+  *:*     :: "Anything"
+} 0.0
+
+REAL press_cut "cutoff on the pressure"
+{
+  0.0:*   :: "Positive"
+} 0.04
+
+REAL press_max "initial maximum pressure"
+{
+  0.0:*   :: "Positive"
+} 1e-4
+
+REAL Avec_kappa "Exponential used in the definition of Avec in Ciolfi+2017"
+{
+  0:*     :: "Should be positive"
+} 2.0
+
+# parameters for external dipolar magnetic field
+
+REAL B0 "Magnetic field strength" STEERABLE=ALWAYS
+{
+  *:*     :: "Anything"
+} 0.0
+
+REAL r0 "Characteristic radial offset" STEERABLE=ALWAYS
+{
+  *:*     :: "Anything"
+} 0.0
+
+REAL dipole_x "x-coordinate of dipole center" STEERABLE=ALWAYS
+{
+  *:*     :: "Anything"
+} 0.0
+
+REAL dipole_y "y-coordinate of the dipole center" STEERABLE=ALWAYS
+{
+  *:*     :: "Anything"
+} 0.0
+
+REAL dipole_z "z-coordinate of the dipole center" STEERABLE=ALWAYS
+{
+  *:*     :: "Anything"
+} 0.0
+
+SHARES: EOSX
+USES CCTK_REAL poly_gamma
+USES CCTK_REAL poly_k
+USES CCTK_REAL gl_gamma
+USES CCTK_REAL eps_min
+USES CCTK_REAL eps_max
+USES CCTK_REAL rho_min
+USES CCTK_REAL rho_max
+USES CCTK_REAL ye_min
+USES CCTK_REAL ye_max
+USES CCTK_REAL particle_mass

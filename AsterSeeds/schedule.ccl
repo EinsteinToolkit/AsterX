@@ -1,0 +1,71 @@
+#Schedule definitions for thorn AsterSeeds
+
+#Initial conditions for setting atmosphere test
+
+if (CCTK_Equals(test_type, "Atmosphere")) {
+
+  SCHEDULE Atmosphere_Initialize IN HydroBaseX_InitialData AFTER HydroBaseX_initial_data {
+  LANG: C
+  WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere)
+  WRITES: AsterX::Avec_x(everywhere) AsterX::Avec_y(everywhere) AsterX::Avec_z(everywhere)
+  }
+  "Set up initial conditions for atmosphere"
+}
+
+#Initial conditions for 1D tests
+
+if (CCTK_Equals(test_type, "1DTest")) {
+
+  SCHEDULE Tests1D_Initialize IN HydroBaseX_InitialData AFTER HydroBaseX_initial_data {
+  LANG: C 
+  WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere)
+  WRITES: AsterX::Avec_x(everywhere) AsterX::Avec_y(everywhere) AsterX::Avec_z(everywhere)
+  }
+  "Set up initial conditions for 1D tests"
+}
+
+#Initial conditions for 2D tests
+
+if (CCTK_Equals(test_type, "2DTest")) {
+
+  SCHEDULE Tests2D_Initialize IN HydroBaseX_InitialData AFTER HydroBaseX_initial_data {
+  LANG: C 
+  WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere)
+  WRITES: AsterX::Avec_x(everywhere) AsterX::Avec_y(everywhere) AsterX::Avec_z(everywhere)
+  }
+  "Set up initial conditions for 2D tests"
+}
+#Initial conditions for 3D tests
+
+if (CCTK_Equals(test_type, "3DTest")) {
+
+  if (CCTK_Equals(test_case, "spherical shock")) {
+    SCHEDULE Tests3D_Initialize IN HydroBaseX_InitialData AFTER HydroBaseX_initial_data {
+    LANG: C 
+    WRITES: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere)
+    WRITES: AsterX::Avec_x(everywhere) AsterX::Avec_y(everywhere) AsterX::Avec_z(everywhere)
+    }
+    "Set up initial conditions for 3D tests"
+  }
+
+  #Initial conditions for magnetic field for TOV test
+
+  if (CCTK_Equals(test_case, "magTOV")) {
+
+    STORAGE: Avec_cent
+    SCHEDULE AsterSeeds_InitializeCenteredAvec AT initial AFTER HydroBaseX_PostInitial BEFORE AsterX_ComputedBstagFromA {
+    LANG: C 
+    READS: HydroBaseX::press(everywhere) 
+    WRITES: Avec_x_cent(everywhere) Avec_y_cent(everywhere) Avec_z_cent(everywhere)
+    }
+    "Set up initial conditions for the cell-centered vector potential"
+
+    SCHEDULE AsterSeeds_InitializeStagAvec AT initial AFTER AsterSeeds_InitializeCenteredAvec BEFORE AsterX_ComputedBstagFromA {
+    LANG: C 
+    READS: Avec_x_cent(everywhere) Avec_y_cent(everywhere) Avec_z_cent(everywhere) 
+    WRITES: AsterX::Avec_x(interior) AsterX::Avec_y(interior) AsterX::Avec_z(interior) 
+    SYNC: AsterX::Avec_x AsterX::Avec_y AsterX::Avec_z
+    }
+    "Set up initial conditions for the vector potential"
+  }
+}
