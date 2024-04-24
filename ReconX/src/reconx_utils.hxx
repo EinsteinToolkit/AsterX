@@ -15,7 +15,7 @@ using namespace std;
 using namespace Arith;
 
 // Struct used to pass parameters to the reconstruction routine
-typedef struct {
+struct reconstruct_params_t {
   // PPM parameters
   bool ppm_shock_detection, ppm_zone_flattening;
   CCTK_REAL poly_k, poly_gamma;
@@ -27,7 +27,7 @@ typedef struct {
   CCTK_REAL weno_eps;
   // MP5 parameters
   CCTK_REAL mp5_alpha;
-} reconstruct_params_t;
+};
 
 template <typename T>
 inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST int sgn(T val) {
@@ -37,4 +37,3 @@ inline CCTK_ATTRIBUTE_ALWAYS_INLINE CCTK_DEVICE CCTK_HOST int sgn(T val) {
 } // namespace ReconX
 
 #endif // RECONX_UTILS_HXX
-

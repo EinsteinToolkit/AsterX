@@ -46,6 +46,8 @@ void test_minmod(std::mt19937_64 &engine, int repetitions);
 
 void test_mp5(std::mt19937_64 &engine, int repetitions);
 
+void test_ppm(std::mt19937_64 &engine, int repetitions);
+
 } // namespace AsterXTests
 
 #endif // ASTERX_TESTS_HXX

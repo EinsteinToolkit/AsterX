@@ -6,4 +6,5 @@ SRCS = contraction_smat_upvec.cxx    \
        cross_product.cxx             \
        minmod.cxx                    \
        mp5.cxx                       \
+       ppm.cxx                       \
        wlorentz.cxx
