@@ -165,11 +165,35 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
     /* Reconstruct primitives from the cells on left (indice 0) and right
      * (indice 1) side of this face rc = reconstructed variables or
      * computed from reconstructed variables */
-    const vec<CCTK_REAL, 2> rho_rc{reconstruct_pt(rho, p, true, true)};
+
+    vec<CCTK_REAL, 2> rho_rc{reconstruct_pt(rho, p, true, true)};
+
+    // set to atmo if reconstructed rho is less than atmo or is negative
+    if (rho_rc(0) < rho_abs_min) {
+      rho_rc(0) = rho_abs_min;
+    }
+    if (rho_rc(1) < rho_abs_min) {
+      rho_rc(1) = rho_abs_min;
+    }
+
     const vec<vec<CCTK_REAL, 2>, 3> vels_rc([&](int i) ARITH_INLINE {
       return vec<CCTK_REAL, 2>{reconstruct_pt(gf_vels(i), p, false, false)};
     });
-    const vec<CCTK_REAL, 2> press_rc{reconstruct_pt(press, p, false, true)};
+    vec<CCTK_REAL, 2> press_rc{reconstruct_pt(press, p, false, true)};
+    // TODO: Correctly reconstruct Ye
+    const vec<CCTK_REAL, 2> ye_rc{ye_min, ye_max};
+
+    // TODO: currently sets negative reconstructed pressure to 0 since eps_min=0
+    // for ideal gas
+    if (press_rc(0) < 0) {
+      press_rc(0) =
+          eos_th.press_from_valid_rho_eps_ye(rho_rc(0), eps_min, ye_rc(0));
+    }
+    if (press_rc(1) < 0) {
+      press_rc(1) =
+          eos_th.press_from_valid_rho_eps_ye(rho_rc(1), eps_min, ye_rc(1));
+    }
+
     const vec<vec<CCTK_REAL, 2>, 3> Bs_rc([&](int i) ARITH_INLINE {
       return vec<CCTK_REAL, 2>{reconstruct_pt(gf_Bvecs(i), p, false, false)};
     });
@@ -227,9 +251,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
     // TODO: Compute pressure based on user-specified EOS.
     // Currently, computing press for classical ideal gas from reconstructed
     // vars
-
-    // TODO: Correctly reconstruct Ye
-    const vec<CCTK_REAL, 2> ye_rc{ye_min, ye_max};
 
     // Ideal gas case {
     /* eps for ideal gas EOS */

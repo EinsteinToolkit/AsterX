@@ -1,0 +1,120 @@
+ActiveThorns = "
+    CarpetX
+    IOUtil
+    ODESolvers
+    TimerReport
+    ADMBaseX
+    HydroBaseX
+    TmunuBaseX
+    AsterSeeds
+    AsterX
+    EOSX
+"
+ 
+$nlevels = 1
+$ncells = 17
+
+Cactus::cctk_show_schedule = yes
+
+Cactus::presync_mode = "mixed-error"
+
+Cactus::terminate = "time"
+Cactus::cctk_final_time = 10.
+
+ADMBaseX::initial_data            = "Cartesian Minkowski"
+ADMBaseX::initial_lapse           = "one"
+ADMBaseX::initial_shift           = "zero"
+ADMBaseX::initial_dtlapse         = "none"
+ADMBaseX::initial_dtshift         = "none"
+
+CarpetX::verbose = no
+$lmin=-0.53125 #-0.4375
+$lmax=0.53125 #0.5625
+CarpetX::xmin = $lmin
+CarpetX::ymin = $lmin
+CarpetX::zmin = $lmin
+
+CarpetX::xmax = $lmax
+CarpetX::ymax = $lmax
+CarpetX::zmax = $lmax
+
+CarpetX::boundary_x = "none"
+CarpetX::boundary_y = "none" #"linear extrapolation"
+CarpetX::boundary_z = "none" #"linear extrapolation"
+
+CarpetX::boundary_upper_x = "none"
+CarpetX::boundary_upper_y = "none" #"linear extrapolation"
+CarpetX::boundary_upper_z = "none" #"linear extrapolation"
+
+CarpetX::periodic_x = yes
+CarpetX::periodic_y = yes
+CarpetX::periodic_z = yes
+
+CarpetX::ncells_x = $ncells
+CarpetX::ncells_y = 3
+CarpetX::ncells_z = 3
+
+CarpetX::max_num_levels = $nlevels
+CarpetX::regrid_every = 100000
+CarpetX::blocking_factor_x = 1
+CarpetX::blocking_factor_y = 1
+CarpetX::blocking_factor_z = 1
+CarpetX::regrid_error_threshold = 0.01
+
+CarpetX::prolongation_type = "ddf"
+CarpetX::ghost_size = 2
+CarpetX::dtfac = 0.2
+ 
+AsterSeeds::test_type = "1DTest"
+AsterSeeds::test_case = "Alfven wave"
+
+AsterX::debug_mode = "no"
+AsterX::flux_type = "HLLE"
+AsterX::vector_potential_gauge = "algebraic"
+AsterX::local_spatial_order = 2
+AsterX::local_estimate_error = "no"
+AsterX::update_tmunu = "no"
+
+ReconX::reconstruction_method = "minmod"
+
+Con2PrimFactory::c2p_prime = "Noble"
+Con2PrimFactory::c2p_second = "Palenzuela"
+Con2PrimFactory::c2p_tol = 1e-8
+Con2PrimFactory::max_iter = 100
+Con2PrimFactory::rho_abs_min = 1e-5
+Con2PrimFactory::atmo_tol = 1e-1
+Con2PrimFactory::unit_test = "no"
+Con2PrimFactory::B_lim = 1e8
+Con2PrimFactory::vw_lim = 1e8
+Con2PrimFactory::Ye_lenient = "yes"
+
+EOSX::evolution_eos = "IdealGas"
+EOSX::gl_gamma = 1.6666666
+EOSX::poly_gamma = 1.6666666
+EOSX::rho_max = 1e8
+EOSX::eps_max = 1e8
+EOSX::eps_min = 1e-8
+
+ODESolvers::method = "RK2"
+
+IO::out_dir = $parfile
+IO::out_every = 1 #$ncells * 2 ** ($nlevels - 1) / 32
+CarpetX::out_norm_vars = "all"
+CarpetX::out_norm_omit_unstable = yes
+CarpetX::out_norm_every = 1
+CarpetX::out_silo_vars = "
+    HydroBaseX::rho
+    HydroBaseX::Bvec
+"
+
+CarpetX::out_tsv_vars = "
+    HydroBaseX::rho
+    HydroBaseX::Bvec
+"
+
+TimerReport::out_every = 10 #$ncells * 2 ** ($nlevels - 1) / 32
+TimerReport::out_filename = "TimerReport"
+TimerReport::output_all_timers_together = yes
+TimerReport::output_all_timers_readable = yes
+TimerReport::n_top_timers = 50
+

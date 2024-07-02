@@ -7,11 +7,7 @@ STORAGE: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
 STORAGE: Aux_in_RHSof_A_Psi
 STORAGE: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
 
-# Initialization
 
-SCHEDULE GROUP AsterX_CalcPrim IN ODESolvers_PostStep BEFORE TmunuBaseX_SetTmunuVars AFTER AsterX_Sync
-{
-} "Compute primitive variables"
 
 if(unit_test)
 {
@@ -29,10 +25,22 @@ if(local_estimate_error)
     LANG: C
     OPTIONS: GLOBAL
   } "set up for calculating regrid error"
-}
-# Initial conditions
 
-SCHEDULE AsterX_ComputedBstagFromA AT initial AFTER HydroBaseX_PostInitial BEFORE AsterX_ComputedBFromdBstag
+  SCHEDULE AsterX_EstimateError IN ODESolvers_EstimateError
+  {
+    LANG: C
+    READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere)
+    WRITES: CarpetX::regrid_error(interior)
+  } "Estimate local error for regridding initial conditions"
+}
+
+
+
+SCHEDULE GROUP AsterX_InitialGroup AT initial AFTER HydroBaseX_PostInitial
+{
+} "Initialize conservative variables"
+
+SCHEDULE AsterX_ComputedBstagFromA IN AsterX_InitialGroup
 {
   LANG: C
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
@@ -40,7 +48,7 @@ SCHEDULE AsterX_ComputedBstagFromA AT initial AFTER HydroBaseX_PostInitial BEFOR
   SYNC: dBx_stag dBy_stag dBz_stag
 } "Calculate dBstag from curl of A"
 
-SCHEDULE AsterX_ComputedBFromdBstag AT initial BEFORE AsterX_ComputeBFromdB
+SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_InitialGroup AFTER AsterX_ComputedBstagFromA
 {
   LANG: C
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
@@ -48,7 +56,7 @@ SCHEDULE AsterX_ComputedBFromdBstag AT initial BEFORE AsterX_ComputeBFromdB
   SYNC: dB
 } "Calculate centered dB from dBstag"
 
-SCHEDULE AsterX_ComputeBFromdB AT initial BEFORE AsterX_Prim2Con_Initial
+SCHEDULE AsterX_ComputeBFromdB IN AsterX_InitialGroup AFTER AsterX_ComputedBFromdBstag
 {
   LANG: C
   READS: dB(interior) ADMBaseX::metric(interior)
@@ -56,7 +64,7 @@ SCHEDULE AsterX_ComputeBFromdB AT initial BEFORE AsterX_Prim2Con_Initial
   SYNC: HydroBaseX::Bvec
 } "Calculate centered B from densitized B"
 
-SCHEDULE AsterX_Prim2Con_Initial AT initial AFTER HydroBaseX_PostInitial
+SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_ComputeBFromdB
 {
   LANG: C
   READS: ADMBaseX::metric(interior)
@@ -68,16 +76,7 @@ SCHEDULE AsterX_Prim2Con_Initial AT initial AFTER HydroBaseX_PostInitial
   SYNC: saved_prims
 } "Compute conserved variables from primitive variables at initial"
 
-if(local_estimate_error)
-{
-  SCHEDULE AsterX_EstimateError IN ODESolvers_EstimateError
-  {
-    LANG: C
-    READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere)
-    WRITES: CarpetX::regrid_error(interior)
-  } "Estimate local error for regridding initial conditions"
-}
-# Regridding
+
 
 SCHEDULE AsterX_Sync AT postregrid
 {
@@ -87,9 +86,20 @@ SCHEDULE AsterX_Sync AT postregrid
   SYNC: saved_prims
 } "Synchronize"
 
-# Time stepping
+SCHEDULE AsterX_Sync IN ODESolvers_PostStep
+{
+  LANG: C
+  OPTIONS: global
+  SYNC: dens tau mom Avec_x Avec_y Avec_z Psi
+} "Synchronize"
 
-SCHEDULE AsterX_ComputedBstagFromA IN AsterX_CalcPrim BEFORE AsterX_Con2Prim
+
+
+SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostStep BEFORE TmunuBaseX_SetTmunuVars AFTER AsterX_Sync
+{
+} "Compute primitive variables"
+
+SCHEDULE AsterX_ComputedBstagFromA IN AsterX_Con2PrimGroup
 {
   LANG: C
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere)
@@ -97,7 +107,7 @@ SCHEDULE AsterX_ComputedBstagFromA IN AsterX_CalcPrim BEFORE AsterX_Con2Prim
   SYNC: dBx_stag dBy_stag dBz_stag
 } "Calculate dBstag from curl of A"
 
-SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_CalcPrim AFTER AsterX_ComputedBstagFromA BEFORE AsterX_Con2Prim 
+SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBstagFromA
 {
   LANG: C
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
@@ -105,8 +115,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_CalcPrim AFTER AsterX_ComputedBsta
   SYNC: dB
 } "Calculate centered dB from dBstag"
 
-
-SCHEDULE AsterX_Con2Prim IN AsterX_CalcPrim
+SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
 {
   LANG: C
   READS: ADMBaseX::metric(interior)
@@ -123,9 +132,60 @@ SCHEDULE AsterX_Con2Prim IN AsterX_CalcPrim
   SYNC: dens tau mom dB
 } "Calculate primitive variables from conservative variables"
 
+
+
+SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
+{
+} "Calculate AsterX RHS"
+
+SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
+{
+  LANG: C
+  READS: ADMBaseX::metric(everywhere)
+  READS: ADMBaseX::lapse(everywhere)
+  READS: ADMBaseX::shift(everywhere)
+  READS: dens(everywhere) tau(everywhere) mom(everywhere)
+  READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
+  READS: HydroBaseX::Bvec(everywhere)
+  READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+  WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
+  WRITES: Aux_in_RHSof_A_Psi(interior)
+  SYNC: Aux_in_RHSof_A_Psi
+  SYNC: flux_x flux_y flux_z
+} "Calculate the hydro fluxes"
+
+SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
+{
+  LANG: C
+  READS: ADMBaseX::metric(everywhere)
+  READS: ADMBaseX::lapse(everywhere)
+  READS: ADMBaseX::shift(everywhere)
+  READS: ADMBaseX::curv(everywhere)
+  READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
+  READS: HydroBaseX::Bvec(everywhere)
+  WRITES: densrhs(interior) taurhs(interior) momrhs(interior)
+  SYNC: densrhs taurhs momrhs
+} "Calculate the source terms and compute the RHS of the hydro equations"
+
+SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
+{
+  LANG: C
+  READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
+  READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  READS: densrhs(everywhere) taurhs(everywhere) momrhs(everywhere)
+  READS: Psi(everywhere)
+  READS: Aux_in_RHSof_A_Psi(everywhere)
+  WRITES: densrhs(interior) taurhs(interior) momrhs(interior)
+  WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
+  SYNC: densrhs taurhs momrhs
+  SYNC: Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
+} "Update the RHS of the hydro equations with the flux contributions"
+
+
+
 if (interpolate_failed_c2p)
 {
-  SCHEDULE AsterX_Con2Prim_Interpolate_Failed IN ODESolvers_RHS BEFORE AsterX_Fluxes
+  SCHEDULE AsterX_Con2Prim_Interpolate_Failed IN AsterX_RHSGroup BEFORE AsterX_Fluxes
   {
     LANG: C
     READS: ADMBaseX::metric(interior)
@@ -144,49 +204,6 @@ if (interpolate_failed_c2p)
   } "Interpolate those grid points where con2prim failed"
 }
   
-SCHEDULE AsterX_Fluxes IN ODESolvers_RHS
-{
-  LANG: C
-  READS: ADMBaseX::metric(everywhere)
-  READS: ADMBaseX::lapse(everywhere)
-  READS: ADMBaseX::shift(everywhere)
-  READS: dens(everywhere) tau(everywhere) mom(everywhere)
-  READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
-  READS: HydroBaseX::Bvec(everywhere)
-  READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
-  WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
-  WRITES: Aux_in_RHSof_A_Psi(interior)
-  SYNC: Aux_in_RHSof_A_Psi
-  SYNC: flux_x flux_y flux_z
-} "Calculate the hydro fluxes"
-
-SCHEDULE AsterX_SourceTerms IN ODESolvers_RHS AFTER AsterX_Fluxes 
-{
-  LANG: C
-  READS: ADMBaseX::metric(everywhere)
-  READS: ADMBaseX::lapse(everywhere)
-  READS: ADMBaseX::shift(everywhere)
-  READS: ADMBaseX::curv(everywhere)
-  READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
-  READS: HydroBaseX::Bvec(everywhere)
-  WRITES: densrhs(interior) taurhs(interior) momrhs(interior)
-  SYNC: densrhs taurhs momrhs
-} "Calculate the source terms and compute the RHS of the hydro equations"
-
-SCHEDULE AsterX_RHS IN ODESolvers_RHS AFTER AsterX_SourceTerms
-{
-  LANG: C
-  READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
-  READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  READS: densrhs(everywhere) taurhs(everywhere) momrhs(everywhere)
-  READS: Psi(everywhere)
-  READS: Aux_in_RHSof_A_Psi(everywhere)
-  WRITES: densrhs(interior) taurhs(interior) momrhs(interior)
-  WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
-  SYNC: densrhs taurhs momrhs
-  SYNC: Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
-} "Update the RHS of the hydro equations with the flux contributions"
-
 if(update_tmunu){
   SCHEDULE AsterX_Tmunu IN TmunuBaseX_AddToTmunu
   {
@@ -199,10 +216,3 @@ if(update_tmunu){
     SYNC: TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij
   } "Compute the energy-momentum tensor"
 }
-
-SCHEDULE AsterX_Sync IN ODESolvers_PostStep
-{
-  LANG: C
-  OPTIONS: global
-  SYNC: dens tau mom Avec_x Avec_y Avec_z Psi
-} "Synchronize"

@@ -361,7 +361,7 @@ c2p_1DPalenzuela::solve(EOSType &eos_th, prim_vars &pv, prim_vars &pv_seeds,
         pv.eps, rgeps.min);
     printf(" Not adjusting cons.. \n");
     */
-    rep.set_range_eps(pv.eps); // sets adjust_cons to false by default
+    rep.set_range_eps(rgeps.min); // sets adjust_cons to true
   }
 
   // TODO: check validity for Ye

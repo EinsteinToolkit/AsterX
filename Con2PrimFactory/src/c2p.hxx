@@ -12,7 +12,6 @@ c2p is effectively an interface to be used by different c2p implementations.
 #include <cctk.h>
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
-#include <boost/math/tools/roots.hpp>
 #include "c2p_utils.hxx"
 #include "eos.hxx"
 #include "eos_idealgas.hxx"

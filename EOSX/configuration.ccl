@@ -1,6 +1,6 @@
 # Configuration definitions for thorn EOSX
 
-REQUIRES Boost Loop
+REQUIRES Loop
 PROVIDES EOSX
 {
 }

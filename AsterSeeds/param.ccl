@@ -12,6 +12,7 @@ KEYWORD test_case "Name of the testcase" STEERABLE=never
 {
   "equilibrium"              :: ""
   "sound wave"               :: ""
+  "Alfven wave"              :: ""
   "shock tube"               :: ""
   "Balsara1"                 :: ""
   "Balsara2"                 :: ""

@@ -154,11 +154,13 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType &eos_cold,
       printf("Second C2P failed too :( :( \n");
       rep_second.debug_message();
       con2prim_flag(p.I) = 0;
+    }
 
+    if (rep_first.set_atmo && rep_second.set_atmo) {
       if (debug_mode) {
         printf(
             "WARNING: \n"
-            "C2P failed. Printing cons and saved prims before set to "
+            "C2Ps failed. Printing cons and saved prims before set to "
             "atmo: \n"
             "cctk_iteration = %i \n "
             "x, y, z = %26.16e, %26.16e, %26.16e \n "

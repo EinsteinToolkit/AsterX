@@ -7,7 +7,6 @@
 #include <cmath>
 
 #include "utils.hxx"
-#include <boost/math/tools/roots.hpp>
 
 #include "reprimand/eos_thermal.h" // The EOS framework
 #include "reprimand/eos_idealgas.h"
@@ -64,6 +63,10 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
     sm_metric3 g(sm_symt3l(glo(0, 0), glo(0, 1), glo(1, 1), glo(0, 2),
                            glo(1, 2), glo(2, 2)));
 
+    /* Calculate inverse of 3-metric */
+    const CCTK_REAL spatial_detg = calc_det(glo);
+    const CCTK_REAL sqrt_detg = sqrt(spatial_detg);
+
     prim_vars_mhd pv;
     prim_vars_mhd pv_seeds{saved_rho(p.I),
                            saved_eps(p.I),
@@ -86,7 +89,6 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
     // Handle incorrectable errors
     if (rep.failed()) {
       CCTK_WARN(1, rep.debug_message().c_str());
-      atmo.set(pv, cv, g);
 
       if (debug_mode) {
         // need to fix pv to computed values like pv.rho instead of rho(p.I)
@@ -115,6 +117,12 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
             // velz(p.I), Bvecx(p.I), Bvecy(p.I), Bvecz(p.I),
             Avec_x(p.I), Avec_y(p.I), Avec_z(p.I));
       }
+      //set to atmo
+      cv.bcons(0) = dBx(p.I);
+      cv.bcons(1) = dBy(p.I);
+      cv.bcons(2) = dBz(p.I);
+      pv.B = cv.bcons / sqrt_detg;
+      atmo.set(pv, cv, g);
     }
 
     /* set flag to success */

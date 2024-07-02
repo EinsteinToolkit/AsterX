@@ -53,14 +53,14 @@ if (CCTK_Equals(test_type, "3DTest")) {
   if (CCTK_Equals(test_case, "magTOV")) {
 
     STORAGE: Avec_cent
-    SCHEDULE AsterSeeds_InitializeCenteredAvec AT initial AFTER HydroBaseX_PostInitial BEFORE AsterX_ComputedBstagFromA {
+    SCHEDULE AsterSeeds_InitializeCenteredAvec AT initial AFTER HydroBaseX_PostInitial BEFORE AsterX_InitialGroup {
     LANG: C 
     READS: HydroBaseX::press(everywhere) 
     WRITES: Avec_x_cent(everywhere) Avec_y_cent(everywhere) Avec_z_cent(everywhere)
     }
     "Set up initial conditions for the cell-centered vector potential"
 
-    SCHEDULE AsterSeeds_InitializeStagAvec AT initial AFTER AsterSeeds_InitializeCenteredAvec BEFORE AsterX_ComputedBstagFromA {
+    SCHEDULE AsterSeeds_InitializeStagAvec AT initial AFTER AsterSeeds_InitializeCenteredAvec BEFORE AsterX_InitialGroup {
     LANG: C 
     READS: Avec_x_cent(everywhere) Avec_y_cent(everywhere) Avec_z_cent(everywhere) 
     WRITES: AsterX::Avec_x(interior) AsterX::Avec_y(interior) AsterX::Avec_z(interior) 

@@ -476,7 +476,7 @@ ExternalLibraries/HDF5
 ExternalLibraries/hwloc
 ExternalLibraries/LAPACK
 ExternalLibraries/libjpeg
-ExternalLibraries/LORENE
+#DISABLED ExternalLibraries/LORENE
 ExternalLibraries/MPI
 #DISABLED ExternalLibraries/OpenBLAS
 #DISABLED ExternalLibraries/OpenCL
@@ -695,7 +695,7 @@ Numerical/AEILocalInterp
 # CarpetX thorns
 !TARGET   = $ARR
 !TYPE     = git
-!URL      = https://github.com/eschnett/CarpetX.git
+!URL      = https://github.com/EinsteinToolkit/CarpetX.git
 !REPO_PATH= $2
 !CHECKOUT =
 CarpetX/ADMBaseX
@@ -724,7 +724,7 @@ CarpetX/WaveToyX
 # SpacetimeX thorns
 !TARGET   = $ARR
 !TYPE     = git
-!URL      = https://github.com/lwJi/SpacetimeX.git
+!URL      = https://github.com/EinsteinToolkit/SpacetimeX.git
 !REPO_PATH= $2
 !CHECKOUT = SpacetimeX/AHFinder SpacetimeX/BaikalX SpacetimeX/BrillLindquist
 #DISABLED SpacetimeX/AHFinder

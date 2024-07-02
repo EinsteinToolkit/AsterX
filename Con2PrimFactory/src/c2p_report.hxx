@@ -149,7 +149,7 @@ public:
   set_range_eps(CCTK_REAL eps_) {
     status = RANGE_EPS;
     set_atmo = false;
-    adjust_cons = false; // we do not adjust cons in this case!
+    adjust_cons = true; // we adjust cons in this case!
     eps = eps_;
   }
 
@@ -233,7 +233,7 @@ public:
       printf("Density out of range, dens = %16.8e, rho = %16.8e \n", dens, rho);
       break;
     case RANGE_EPS:
-      printf("Specific energy out of range, eps = %16.8e \n", eps);
+      printf("Specific energy was out of range! eps readjusted to = %16.8e \n", eps);
       break;
     case SPEED_LIMIT:
       printf("Speed limit exceeded, vx, vy, vz = %16.8e, %16.8e, %16.8e \n",

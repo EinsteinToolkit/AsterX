@@ -1,3 +1,3 @@
 # Configuration definitions for thorn AsterX
 
-REQUIRES Loop Boost EOSX Con2PrimFactory ReconX
+REQUIRES Loop EOSX Con2PrimFactory ReconX
