@@ -9,26 +9,6 @@
 #include <array>
 
 template <std::size_t N>
-static std::array<CCTK_REAL, N>
-constant_line(CCTK_REAL yvalue, const std::array<CCTK_REAL, N> &) {
-  std::array<CCTK_REAL, N> func{};
-  std::fill(func.begin(), func.end(), yvalue);
-  return func;
-}
-
-template <std::size_t N>
-static std::array<CCTK_REAL, N> sloped_line(CCTK_REAL a, CCTK_REAL b,
-                                            const std::array<CCTK_REAL, N> &x) {
-  std::array<CCTK_REAL, N> func{};
-
-  for (std::size_t i = 0; i < N; i++) {
-    func[i] = a * x[i] + b;
-  }
-
-  return func;
-}
-
-template <std::size_t N>
 static std::array<CCTK_REAL, N> parabola(CCTK_REAL a, CCTK_REAL b, CCTK_REAL c,
                                          const std::array<CCTK_REAL, N> &x) {
   std::array<CCTK_REAL, N> func{};
@@ -41,13 +21,15 @@ static std::array<CCTK_REAL, N> parabola(CCTK_REAL a, CCTK_REAL b, CCTK_REAL c,
 }
 
 template <std::size_t N>
-static std::array<CCTK_REAL, N> hyperbole(CCTK_REAL a, CCTK_REAL b, CCTK_REAL c,
-                                          CCTK_REAL d,
-                                          const std::array<CCTK_REAL, N> &x) {
-  std::array<CCTK_REAL, N> func{};
+static std::array<CCTK_REAL, N - 1>
+parabola_avgs(CCTK_REAL a, CCTK_REAL b, CCTK_REAL c,
+              const std::array<CCTK_REAL, N> &x) {
+  std::array<CCTK_REAL, N - 1> func{};
 
-  for (std::size_t i = 0; i < N; i++) {
-    func[i] = a * x[i] * x[i] * x[i] + b * x[i] * x[i] + c * x[i] + d;
+  for (std::size_t i = 0; i < N - 1; i++) {
+    const auto xl{x[i]};
+    const auto xr{x[i + 1]};
+    func[i] = c + 0.5 * b * (xl + xr) + a * (xl * xl + xl * xr + xr * xr) / 3.0;
   }
 
   return func;
@@ -92,8 +74,8 @@ void AsterXTests::test_ppm(std::mt19937_64 &engine, int repetitions) {
 
   // Values obtained from parameter file defaults
   const reconstruct_params_t reconstruct_params{
-      .ppm_shock_detection = true,
-      .ppm_zone_flattening = false,
+      .ppm_shock_detection = false,
+      .ppm_zone_flattening = true,
       .poly_k = 100.0,
       .poly_gamma = 2.0,
       .ppm_eta1 = 20.0,
@@ -106,12 +88,16 @@ void AsterXTests::test_ppm(std::mt19937_64 &engine, int repetitions) {
   };
 
   for (int i = 0; i < repetitions; i++) {
-    CCTK_VINFO("Testing PPM reconstruction of a constant line, rep. %i", i);
+    CCTK_VINFO("Testing PPM exact reconstruction of a parabola, rep. %i", i);
     {
-      const auto yval{real_distrib(engine)};
-      const auto gf_faces{constant_line(yval, cell_faces)};
-      const auto gf_centers{constant_line(yval, cell_centers)};
+      const auto a{real_distrib(engine)};
+      const auto b{real_distrib(engine)};
+      const auto c{real_distrib(engine)};
+      const auto gf_faces{parabola(a, b, c, cell_faces)};
+      const auto gf_centers{parabola(a, b, c, cell_centers)};
+      // const auto gf_centers{parabola_avgs(a, b, c, cell_faces)};
 
+      // | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
       const auto [recon_left, recon_right] = ppm_reconstruct(
           gf_centers[0], gf_centers[1], gf_centers[2], gf_centers[4],
           gf_centers[5], gf_centers[6], press[0], press[1], press[2], press[4],
