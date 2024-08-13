@@ -46,8 +46,16 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
   /* grid functions */
   const vec<GF3D2<const CCTK_REAL>, dim> gf_vels{velx, vely, velz};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_dBstags{dBx_stag, dBy_stag, dBz_stag};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
   const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
+  /* grid functions for Upwind CT */
+  const vec<GF3D2<CCTK_REAL>, dim> vtildes_one{vtilde_y_xface, vtilde_z_yface,
+                                               vtilde_x_zface};
+  const vec<GF3D2<CCTK_REAL>, dim> vtildes_two{vtilde_z_xface, vtilde_x_yface,
+                                               vtilde_y_zface};
+  const vec<GF3D2<CCTK_REAL>, dim> amax{amax_xface, amax_yface, amax_zface};
+  const vec<GF3D2<CCTK_REAL>, dim> amin{amin_xface, amin_yface, amin_zface};
 
   static_assert(dir >= 0 && dir < 3, "");
 
@@ -156,6 +164,10 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
 
+  constexpr array<int, dim> dir_arr = {(dir==0) ? 2 : ( (dir==1) ? 0 : 1 ), 
+                                       dir,
+                                       (dir==0) ? 1 : ( (dir==1) ? 2 : 0 )};
+
   grid.loop_int_device<
       face_centred[0], face_centred[1],
       face_centred
@@ -194,10 +206,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
           eos_th.press_from_valid_rho_eps_ye(rho_rc(1), eps_min, ye_rc(1));
     }
 
-    const vec<vec<CCTK_REAL, 2>, 3> Bs_rc([&](int i) ARITH_INLINE {
-      return vec<CCTK_REAL, 2>{reconstruct_pt(gf_Bvecs(i), p, false, false)};
-    });
-
     /* Interpolate metric components from vertices to faces */
     const CCTK_REAL alp_avg = calc_avg_v2f(alp, p, dir);
     const vec<CCTK_REAL, 3> betas_avg(
@@ -221,6 +229,26 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
     const vec<CCTK_REAL, 2> w_lorentz_rc([&](int f) ARITH_INLINE {
       return 1 / sqrt(1 - calc_contraction(vlows_rc, vels_rc)(f));
     });
+
+    // Introduce reconstructed Bs
+    // Use staggered dB for i == dir
+
+    vec<vec<CCTK_REAL, 2>, 3> Bs_rc;
+    array<CCTK_REAL,2> Bs_rc_dummy; // note: can't copy array<,2> to vec<,2>, only construct
+
+    Bs_rc(dir)(0) = gf_dBstags(dir)(p.I)/sqrtg;
+    Bs_rc(dir)(1) = Bs_rc(dir)(0);
+
+    Bs_rc_dummy = reconstruct_pt(gf_Bvecs(dir_arr[0]), p, false, false);
+    Bs_rc(dir_arr[0])(0) = Bs_rc_dummy[0];
+    Bs_rc(dir_arr[0])(1) = Bs_rc_dummy[1];
+
+    Bs_rc_dummy = reconstruct_pt(gf_Bvecs(dir_arr[2]), p, false, false);
+    Bs_rc(dir_arr[2])(0) = Bs_rc_dummy[0];
+    Bs_rc(dir_arr[2])(1) = Bs_rc_dummy[1];
+
+    // End of setting Bs
+
 
     /* alpha * b0 = W * B^i * v_i */
     const vec<CCTK_REAL, 2> alp_b0_rc([&](int f) ARITH_INLINE {
@@ -449,6 +477,31 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
       printf("  vtilde_rc = %16.8e, %16.8e.\n", vtilde_rc(0), vtilde_rc(1));
       assert(0);
     }
+
+    /* Begin code for upwindCT */
+        // if dir==0: dir1=1, dir2=2 | dir==1: dir1=2, dir2=0 | dir==2; dir1=0,
+        // dir2=1
+
+        const int dir1 = (dir == 0) ? 1 : ((dir == 1) ? 2 : 0);
+        const int dir2 = (dir == 0) ? 2 : ((dir == 1) ? 0 : 1);
+
+        amax(dir)(p.I) = max({CCTK_REAL(0), lambda(0)(0), lambda(0)(1),
+                              lambda(0)(2), lambda(0)(3), lambda(1)(0),
+                              lambda(1)(1), lambda(1)(2), lambda(1)(3)});
+
+        amin(dir)(p.I) = -1 * (min({CCTK_REAL(0), lambda(0)(0), lambda(0)(1),
+                                    lambda(0)(2), lambda(0)(3), lambda(1)(0),
+                                    lambda(1)(1), lambda(1)(2), lambda(1)(3)}));
+
+        vtildes_one(dir)(p.I) = (amax(dir)(p.I) * vtildes_rc(dir1)(0) +
+                                 amin(dir)(p.I) * vtildes_rc(dir1)(1)) /
+                                (amax(dir)(p.I) + amin(dir)(p.I));
+        vtildes_two(dir)(p.I) = (amax(dir)(p.I) * vtildes_rc(dir2)(0) +
+                                 amin(dir)(p.I) * vtildes_rc(dir2)(1)) /
+                                (amax(dir)(p.I) + amin(dir)(p.I));
+
+        /* End code for upwindCT */
+
   });
 }
 

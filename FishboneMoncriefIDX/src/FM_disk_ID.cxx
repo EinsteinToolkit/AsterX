@@ -148,9 +148,12 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS)
           set_to_atmosphere=true;
 
         }
+
         // Outside the disk? Set to atmosphere all hydrodynamic variables!
         if(set_to_atmosphere) {
-         if(atmo_isentropic) {
+
+         if(CCTK_EQUALS(atmo_type, "isentropic-graded")) {
+
           // Choose an atmosphere such that
           //   rho =       1e-5 * r^(-3/2), and
           //   P   = k rho^gamma
@@ -161,15 +164,30 @@ extern "C" void FishboneMoncrief_ET_GRHD_initial(CCTK_ARGUMENTS)
           velx(p.I) = 0.0;
           vely(p.I) = 0.0;
           velz(p.I) = 0.0;
-         } else {
+
+         } else if (CCTK_EQUALS(atmo_type, "free-graded")) {
+
           rho(p.I) = rho_min * pow(rr + 1e-100,-nrho);
           press(p.I) = press_min*pow(rr + 1e-100,-npress);
           eps(p.I) = press(p.I) / ((rho(p.I) + 1e-300) * (gamma - 1.0));
           velx(p.I) = 0.0;
           vely(p.I) = 0.0;
           velz(p.I) = 0.0;
+
+         } else if (CCTK_EQUALS(atmo_type, "constant")) {
+
+          rho(p.I) = rho_min;
+          press(p.I) = press_min;
+          eps(p.I) = press_min / ((rho_min + 1e-300) * (gamma - 1.0));
+          velx(p.I) = 0.0;
+          vely(p.I) = 0.0;
+          velz(p.I) = 0.0;
+         
+         } else {
+          CCTK_ERROR("Unknown value for parameter \"atmo_type\"");
          }
         }
+
       });
 }
 

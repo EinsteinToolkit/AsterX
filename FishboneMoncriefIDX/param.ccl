@@ -133,9 +133,12 @@ BOOLEAN use_pressure "Use pressure to set up vector potential, otherwise density
 
 ##################################
 restricted:
-BOOLEAN atmo_isentropic "Use polytropic EOS for pressure in atmosphere?"
+KEYWORD atmo_type "Matter distribution around torus - atmosphere"
 {
-} "no"
+  "isentropic-graded" :: "Graded rho, pressure is set using polytropic EOS"
+  "free-graded"       :: "Graded rho, pressure is using press_min below"
+  "constant"          :: "Constant rho and pressure using rho_min and press_min below"
+} "isentropic-graded"
 
 restricted:
 CCTK_REAL rho_min "Initial atmosphere density is set according to rho_min*r^-nrho"
