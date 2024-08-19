@@ -25,37 +25,57 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
 
   const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
-  // Setting up initial data EOS
-  const CCTK_REAL n = 1 / (poly_gamma - 1); // Polytropic index
-  const CCTK_REAL adiab_ind_id = 1.0 / (poly_gamma - 1);
-  const CCTK_REAL rmd_p = pow(poly_k, -n); //Polytropic density scale
-  const auto eos_id = make_eos_barotr_poly(adiab_ind_id, rmd_p, rho_max);
-
-  // Setting up evolution EOS
-  const CCTK_REAL adiab_ind_evol = 1.0 / (gl_gamma - 1);
-  const auto eos = make_eos_idealgas(adiab_ind_evol, eps_max, rho_max);
-
-  // Setting up atmosphere
-  const CCTK_REAL rho_atmo_cut = rho_abs_min * (1 + atmo_tol);
-  CCTK_REAL eps_atm = eos_id.at_rho(rho_abs_min).eps();
-  eps_atm  = eos.range_eps(rho_abs_min, Ye_atmo).limit_to(eps_atm);
-  CCTK_REAL p_atm  = eos.at_rho_eps_ye(rho_abs_min, eps_atm, Ye_atmo).press();
-  const atmosphere atmo(rho_abs_min, eps_atm, Ye_atmo, p_atm, rho_atmo_cut);
-
-  CCTK_REAL dummy_Ye = 0.5;
-  CCTK_REAL dummy_dYe = 0.5;
-
-  // Get a recovery function
-  con2prim_mhd cv2pv(eos, 1e-5, 1, 100, 100, atmo, 1e-8, 100);
-  //  con2prim_mhd cv2pv(eos, rho_strict, ye_lenient, max_z, max_b, atmo,
-  //  c2p_acc,
-  //                  max_iter);
-
   // Loop over the interior of the grid
   cctk_grid.loop_int_device<
       1, 1, 1>(grid.nghostzones, [=] CCTK_DEVICE(
                                      const PointDesc
                                          &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+    // Setting up initial data EOS
+    const CCTK_REAL n = 1 / (poly_gamma - 1); // Polytropic index
+    const CCTK_REAL adiab_ind_id = 1.0 / (poly_gamma - 1);
+    const CCTK_REAL rmd_p = pow(poly_k, -n); // Polytropic density scale
+    const auto eos_id = make_eos_barotr_poly(adiab_ind_id, rmd_p, rho_max);
+
+    // Setting up evolution EOS
+    const CCTK_REAL adiab_ind_evol = 1.0 / (gl_gamma - 1);
+    const auto eos = make_eos_idealgas(adiab_ind_evol, eps_max, rho_max);
+
+    // Setting up atmosphere
+
+    CCTK_REAL rho_atm = 0.0;   // dummy initialization
+    CCTK_REAL press_atm = 0.0; // dummy initialization
+    CCTK_REAL eps_atm = 0.0;   // dummy initialization
+    CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+
+    // Grading rho
+    rho_atm = (radial_distance > r_atmo)
+                  ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
+                  : rho_abs_min;
+    const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
+
+    // Grading pressure and eps
+    if (thermal_eos_atmo) {
+      press_atm = (radial_distance > r_atmo)
+                      ? (p_atmo * pow(r_atmo / radial_distance, n_press_atmo))
+                      : p_atmo;
+      //TODO: eos.at_rho_press_ye(rho_atm, press_atm, Ye_atmo).eps() does not exist in RePrimAnd
+      //Currently computing eps from ideal gas EOS
+      //eps_atm = eos.at_rho_press_ye(rho_atm, press_atm, Ye_atmo).eps();
+      eps_atm = press_atm/(rho_atm*(gl_gamma - 1.));
+    } else {
+      eps_atm = eos_id.at_rho(rho_atm).eps();
+      eps_atm = eos.range_eps(rho_atm, Ye_atmo).limit_to(eps_atm);
+      press_atm = eos.at_rho_eps_ye(rho_atm, eps_atm, Ye_atmo).press();
+    }
+    const atmosphere atmo(rho_atm, eps_atm, Ye_atmo, press_atm, rho_atmo_cut);
+
+    CCTK_REAL dummy_Ye = 0.5;
+    CCTK_REAL dummy_dYe = 0.5;
+
+    // Get a recovery function
+    con2prim_mhd cv2pv(eos, rho_strict, Ye_lenient, vw_lim, B_lim, atmo, c2p_tol,
+                       max_iter);
+
     /* Get covariant metric */
     const smat<CCTK_REAL, 3> glo(
         [&](int i, int j) ARITH_INLINE { return calc_avg_v2c(gf_g(i, j), p); });
@@ -117,7 +137,7 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
             // velz(p.I), Bvecx(p.I), Bvecy(p.I), Bvecz(p.I),
             Avec_x(p.I), Avec_y(p.I), Avec_z(p.I));
       }
-      //set to atmo
+      // set to atmo
       cv.bcons(0) = dBx(p.I);
       cv.bcons(1) = dBy(p.I);
       cv.bcons(2) = dBz(p.I);

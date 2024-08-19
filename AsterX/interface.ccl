@@ -98,3 +98,35 @@ CCTK_REAL saved_prims TYPE=gf CENTERING={ccc}
   saved_velx saved_vely saved_velz
   saved_eps
 } "Saved primitive variables as initial guesses for con2prim"
+
+#grid functions required for upwindCT computation of electric field
+
+CCTK_REAL vtilde_xface TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+{
+  vtilde_y_xface, vtilde_z_xface
+} "staggered vtilde components on x-face where vtilde^i = \alpha*v^i-\Beta^i"
+
+CCTK_REAL vtilde_yface TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+{
+  vtilde_x_yface, vtilde_z_yface
+} "staggered vtilde components on y-face where vtilde^i = \alpha*v^i-\Beta^i"
+
+CCTK_REAL vtilde_zface TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+{
+  vtilde_x_zface, vtilde_y_zface
+} "staggered vtilde components on z-face where vtilde^i = \alpha*v^i-\Beta^i"
+
+CCTK_REAL a_xface TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+{
+  amax_xface, amin_xface
+} "staggered vtilde components on x-face where vtilde^i = \alpha*v^i-\Beta^i"
+
+CCTK_REAL a_yface TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+{
+  amax_yface, amin_yface
+} "staggered vtilde components on y-face where vtilde^i = \alpha*v^i-\Beta^i"
+
+CCTK_REAL a_zface TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+{
+  amax_zface, amin_zface
+} "staggered vtilde components on z-face where vtilde^i = \alpha*v^i-\Beta^i"
