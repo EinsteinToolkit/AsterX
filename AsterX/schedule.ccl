@@ -148,11 +148,15 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: dens(everywhere) tau(everywhere) mom(everywhere)
   READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
   READS: HydroBaseX::Bvec(everywhere)
+  READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
   WRITES: Aux_in_RHSof_A_Psi(interior)
+  WRITES: vtilde_xface(interior) vtilde_yface(interior) vtilde_zface(interior)
+  WRITES: a_xface(interior) a_yface(interior) a_zface(interior)
   SYNC: Aux_in_RHSof_A_Psi
   SYNC: flux_x flux_y flux_z
+  SYNC: vtilde_xface vtilde_yface vtilde_zface a_xface a_yface a_zface
 } "Calculate the hydro fluxes"
 
 SCHEDULE AsterX_Flux_Corrections IN AsterX_RHSGroup AFTER AsterX_Fluxes
@@ -181,10 +185,14 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
 {
   LANG: C
   READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
+  READS: HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere)
   READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
   READS: densrhs(everywhere) taurhs(everywhere) momrhs(everywhere)
   READS: Psi(everywhere)
   READS: Aux_in_RHSof_A_Psi(everywhere)
+  READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  READS: vtilde_xface(everywhere) vtilde_yface(everywhere) vtilde_zface(everywhere)
+  READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
   WRITES: densrhs(interior) taurhs(interior) momrhs(interior)
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
   SYNC: densrhs taurhs momrhs

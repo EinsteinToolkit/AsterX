@@ -55,28 +55,45 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType &eos_cold,
 
   const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
-  // Setting up atmosphere
-  const CCTK_REAL rho_atmo_cut = rho_abs_min * (1 + atmo_tol);
-  const CCTK_REAL gm1 = eos_cold.gm1_from_valid_rmd(rho_abs_min);
-  CCTK_REAL eps_atm = eos_cold.sed_from_valid_gm1(gm1);
-  eps_atm = std::min(std::max(eos_th.rgeps.min, eps_atm), eos_th.rgeps.max);
-  const CCTK_REAL p_atm =
-      eos_th.press_from_valid_rho_eps_ye(rho_abs_min, eps_atm, Ye_atmo);
-  atmosphere atmo(rho_abs_min, eps_atm, Ye_atmo, p_atm, rho_atmo_cut);
-
-  // Construct Noble c2p object:
-  c2p_2DNoble c2p_Noble(eos_th, atmo, max_iter, c2p_tol, rho_strict, vw_lim,
-                        B_lim, Ye_lenient);
-
-  // Construct Palenzuela c2p object:
-  c2p_1DPalenzuela c2p_Pal(eos_th, atmo, max_iter, c2p_tol, rho_strict, vw_lim,
-                           B_lim, Ye_lenient);
-
   // Loop over the interior of the grid
   cctk_grid.loop_int_device<
       1, 1, 1>(grid.nghostzones, [=] CCTK_DEVICE(
                                      const PointDesc
                                          &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+    // Setting up atmosphere
+    CCTK_REAL rho_atm = 0.0;   // dummy initialization
+    CCTK_REAL press_atm = 0.0; // dummy initialization
+    CCTK_REAL eps_atm = 0.0;   // dummy initialization
+    CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+
+    // Grading rho
+    rho_atm = (radial_distance > r_atmo)
+                  ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
+                  : rho_abs_min;
+    const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
+
+    // Grading pressure based on either cold or thermal EOS
+    if (thermal_eos_atmo) {
+      press_atm = (radial_distance > r_atmo)
+                      ? (p_atmo * pow(r_atmo / radial_distance, n_press_atmo))
+                      : p_atmo;
+      eps_atm = eos_th.eps_from_valid_rho_press_ye(rho_atm, press_atm, Ye_atmo);
+    } else {
+      const CCTK_REAL gm1 = eos_cold.gm1_from_valid_rmd(rho_atm);
+      eps_atm = eos_cold.sed_from_valid_gm1(gm1);
+      eps_atm = std::min(std::max(eos_th.rgeps.min, eps_atm), eos_th.rgeps.max);
+      press_atm = eos_th.press_from_valid_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+    }
+    atmosphere atmo(rho_atm, eps_atm, Ye_atmo, press_atm, rho_atmo_cut);
+
+    // Construct Noble c2p object:
+    c2p_2DNoble c2p_Noble(eos_th, atmo, max_iter, c2p_tol, rho_strict, vw_lim,
+                          B_lim, Ye_lenient);
+
+    // Construct Palenzuela c2p object:
+    c2p_1DPalenzuela c2p_Pal(eos_th, atmo, max_iter, c2p_tol, rho_strict,
+                             vw_lim, B_lim, Ye_lenient);
+
     /* Get covariant metric */
     const smat<CCTK_REAL, 3> glo(
         [&](int i, int j) ARITH_INLINE { return calc_avg_v2c(gf_g(i, j), p); });

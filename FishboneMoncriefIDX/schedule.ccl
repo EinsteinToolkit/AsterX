@@ -1,0 +1,72 @@
+
+schedule FishboneMoncrief_ET_GRHD_initial IN HydroBaseX_InitialData
+{
+  LANG: C
+
+  WRITES: HydroBaseX::rho(everywhere)
+  WRITES: HydroBaseX::vel(everywhere)
+  WRITES: HydroBaseX::eps(everywhere)
+  WRITES: HydroBaseX::press(everywhere)
+
+  WRITES: ADMBaseX::metric(everywhere)
+  WRITES: ADMBaseX::lapse(everywhere)
+  WRITES: ADMBaseX::shift(everywhere)
+  WRITES: ADMBaseX::curv(everywhere)
+  WRITES: ADMBaseX::dtlapse(everywhere)
+  WRITES: ADMBaseX::dtshift(everywhere)
+
+} "Set up general relativistic hydrodynamic (GRHD) fields for Fishbone-Moncrief disk"
+
+schedule FishboneMoncrief_ET_GRHD_initial__perturb_pressure IN HydroBaseX_InitialData AFTER FishboneMoncrief_ET_GRHD_initial
+{
+    LANG: C
+
+    READS: HydroBaseX::rho(everywhere)
+    READS: HydroBaseX::eps(everywhere)
+    READS: HydroBaseX::press(everywhere)
+
+    WRITES: HydroBaseX::rho(everywhere)
+    WRITES: HydroBaseX::eps(everywhere)
+    WRITES: HydroBaseX::press(everywhere)
+
+} "Add random perturbation to initial pressure, after seed magnetic fields have been set up (in case we'd like the seed magnetic fields to depend on the pristine pressures)"
+
+if (FM_Cowling) {
+  schedule FishboneMoncrief_Set_Spacetime IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep
+  {
+    LANG: C
+    WRITES: ADMBaseX::metric(everywhere)
+    WRITES: ADMBaseX::lapse(everywhere)
+    WRITES: ADMBaseX::shift(everywhere)
+    WRITES: ADMBaseX::curv(everywhere)
+    WRITES: ADMBaseX::dtlapse(everywhere)
+    WRITES: ADMBaseX::dtshift(everywhere)
+
+  } "Set ADM variables for FM torus"
+
+  schedule FishboneMoncrief_Set_Spacetime IN CCTK_POST_RECOVER_VARIABLES
+  {
+    LANG: C
+    WRITES: ADMBaseX::metric(everywhere)
+    WRITES: ADMBaseX::lapse(everywhere)
+    WRITES: ADMBaseX::shift(everywhere)
+    WRITES: ADMBaseX::curv(everywhere)
+    WRITES: ADMBaseX::dtlapse(everywhere)
+    WRITES: ADMBaseX::dtshift(everywhere)
+
+  } "Set ADM variables for FM torus"
+}
+
+if (seed_magnetic) {
+  schedule FishboneMoncrief_Set_A IN HydroBaseX_InitialData BEFORE FishboneMoncrief_ET_GRHD_initial__perturb_pressure
+  {
+    LANG: C
+
+    READS: HydroBaseX::press(everywhere) HydroBaseX::rho(everywhere)
+
+    WRITES: AsterX::Avec_x(everywhere)
+    WRITES: AsterX::Avec_y(everywhere)
+    WRITES: AsterX::Avec_z(everywhere)
+
+  } "Set up initial conditions for the vector potential"
+}

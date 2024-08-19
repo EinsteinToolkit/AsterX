@@ -1,0 +1,6 @@
+IMPLEMENTS: FishboneMoncriefIDX
+
+INHERITS: ADMBaseX CarpetX HydroBaseX AsterX
+
+#USES INCLUDE HEADER: fixmath.hxx
+USES INCLUDE HEADER: loop_device.hxx

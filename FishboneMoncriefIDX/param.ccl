@@ -1,0 +1,163 @@
+shares: ADMBaseX
+
+EXTENDS KEYWORD initial_data
+{
+  "FishboneMoncriefID" :: "Initial data from FishboneMoncriefID solution"
+}
+EXTENDS KEYWORD initial_lapse
+{
+  "FishboneMoncriefID" :: "Initial lapse from FishboneMoncriefID solution"
+}
+EXTENDS KEYWORD initial_shift
+{
+  "FishboneMoncriefID" :: "Initial shift from FishboneMoncriefID solution"
+}
+EXTENDS KEYWORD initial_dtlapse
+{
+  "FishboneMoncriefID" :: "Initial dtlapse from FishboneMoncriefID solution"
+}
+EXTENDS KEYWORD initial_dtshift
+{
+  "FishboneMoncriefID" :: "Initial dtshift from FishboneMoncriefID solution"
+}
+
+shares: HydroBaseX
+
+EXTENDS KEYWORD initial_hydro
+{
+  "FishboneMoncriefID" :: "Initial GRHD data from FishboneMoncriefID solution"
+}
+
+restricted:
+CCTK_REAL r_in "Fixes the inner edge of the disk"
+{
+ 0.0:* :: "Must be positive"
+} 6.0
+
+restricted:
+CCTK_REAL r_at_max_density "Radius at maximum disk density. Needs to be > r_in"
+{
+ 0.0:* :: "Must be positive"
+} 12.0
+
+restricted:
+CCTK_REAL a "The spin parameter of the black hole"
+{
+ 0:1.0 :: "Positive values, up to 1. Negative disallowed, as certain roots are chosen in the hydro fields setup. Check those before enabling negative spins!"
+} 0.9375
+
+restricted:
+CCTK_REAL M "Kerr-Schild BH mass. Probably should always set M=1."
+{
+ 0.0:* :: "Must be positive"
+} 1.0
+
+restricted:
+CCTK_REAL kappa "Equation of state: P = kappa * rho^gamma"
+{
+ 0.0:* :: "Positive values"
+} 1.0e-3
+
+restricted:
+CCTK_REAL gamma "Equation of state: P = kappa * rho^gamma"
+{
+ 0.0:* :: "Positive values"
+} 1.3333333333333333333333333333
+
+##################################
+# PRESSURE PERTURBATION PARAMETERS
+private:
+
+CCTK_REAL random_min "Floor value of random perturbation to initial pressure, where perturbed pressure = pressure*(1.0 + (random_min + (random_max-random_min)*RAND[0,1)))"
+{
+  *:*      :: "Any value"
+} -0.02
+
+private:
+CCTK_REAL random_max "Ceiling value of random perturbation to initial pressure, where perturbed pressure = pressure*(1.0 + (random_min + (random_max-random_min)*RAND[0,1)))"
+{
+  *:*      :: "Any value"
+} 0.02
+
+##################################
+BOOLEAN FM_Cowling "Do not evolve spacetime"
+{
+} "yes"
+
+##################################
+restricted:
+BOOLEAN seed_magnetic "Should we seed magnetic fields?"
+{
+} "no"
+
+restricted:
+BOOLEAN wrt_rho_max "Use location of maximum density to seed A?"
+{
+} "yes"
+
+restricted:
+CCTK_REAL A_b "Scaling factor for the vector potential"
+{
+ *:* :: ""
+} 1.0
+
+restricted:
+CCTK_REAL press_cut "Cutoff based on pressure"
+{
+  0.0:*   :: "Positive"
+} 0.04
+
+CCTK_REAL rho_cut "Cutoff based on density"
+{
+  0.0:*   :: "Positive"
+} 0.2
+
+restricted:
+CCTK_REAL A_n "Exponent used in the definition of A"
+{
+  0:*     :: "Should be positive"
+} 2.0
+
+restricted:
+CCTK_REAL A_c "Exponent used for cylindrical radius"
+{
+  *:*     :: "Should be positive"
+} 2.0
+
+restricted:
+BOOLEAN use_pressure "Use pressure to set up vector potential, otherwise density"
+{
+} "yes"
+
+##################################
+restricted:
+KEYWORD atmo_type "Matter distribution around torus - atmosphere"
+{
+  "isentropic-graded" :: "Graded rho, pressure is set using polytropic EOS"
+  "free-graded"       :: "Graded rho, pressure is using press_min below"
+  "constant"          :: "Constant rho and pressure using rho_min and press_min below"
+} "isentropic-graded"
+
+restricted:
+CCTK_REAL rho_min "Initial atmosphere density is set according to rho_min*r^-nrho"
+{
+ [0.0:* :: ""
+} 1.0e-5
+
+restricted:
+CCTK_REAL press_min "Initial atmosphere pressure is set according to press_min*r^-npress"
+{
+  [0.0:*   :: ""
+} 1.0e-7
+
+restricted:
+CCTK_REAL nrho "Exponent of atmosphere density"
+{
+  [0.0:*     :: ""
+} 1.5
+
+restricted:
+CCTK_REAL npress "Exponent of atmosphere pressure"
+{
+  [0.0:*     :: ""
+} 2.5
