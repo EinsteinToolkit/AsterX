@@ -72,8 +72,12 @@ SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_ComputeBFro
   WRITES: dens(interior) tau(interior) mom(interior) dB(interior)
   WRITES: Psi(everywhere)
   WRITES: saved_prims
+  WRITES: zvec
+  WRITES: svec
   SYNC: dens tau mom dB
   SYNC: saved_prims
+  SYNC: zvec
+  SYNC: svec
 } "Compute conserved variables from primitive variables at initial"
 
 
@@ -125,10 +129,14 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   WRITES: con2prim_flag(interior)
   WRITES: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
   WRITES: saved_prims(interior)
+  WRITES: zvec(interior)
+  WRITES: svec(interior)
   WRITES: dens(interior) tau(interior) mom(interior) dB(interior)
   SYNC: con2prim_flag
   SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press HydroBaseX::Bvec
   SYNC: saved_prims
+  SYNC: zvec
+  SYNC: svec
   SYNC: dens tau mom dB
 } "Calculate primitive variables from conservative variables"
 
@@ -148,6 +156,8 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
   READS: HydroBaseX::Bvec(everywhere)
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
+  READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
+  READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
   WRITES: Aux_in_RHSof_A_Psi(interior)
@@ -165,7 +175,10 @@ SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
   READS: ADMBaseX::lapse(everywhere)
   READS: ADMBaseX::shift(everywhere)
   READS: ADMBaseX::curv(everywhere)
-  READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
+  READS: HydroBaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
+  READS: HydroBaseX::vel(everywhere)
+  READS: zvec_x(everywhere), zvec_y(everywhere), zvec_z(everywhere)
+  READS: svec_x(everywhere), svec_y(everywhere), svec_z(everywhere)
   READS: HydroBaseX::Bvec(everywhere)
   WRITES: densrhs(interior) taurhs(interior) momrhs(interior)
   SYNC: densrhs taurhs momrhs
@@ -217,7 +230,10 @@ if(update_tmunu){
   {
     LANG: C
     READS: ADMBaseX::metric(everywhere) ADMBaseX::lapse(everywhere) ADMBaseX::shift(everywhere)
-    READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
+    READS: HydroBaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere)
+    READS: HydroBaseX::vel(everywhere)
+    READS: zvec_x(everywhere), zvec_y(everywhere), zvec_z(everywhere)
+    READS: svec_x(everywhere), svec_y(everywhere), svec_z(everywhere)
     READS: HydroBaseX::Bvec(everywhere)
     READS: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)
     WRITES: TmunuBaseX::eTtt(interior) TmunuBaseX::eTti(interior) TmunuBaseX::eTij(interior)

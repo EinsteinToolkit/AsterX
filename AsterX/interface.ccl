@@ -100,6 +100,16 @@ CCTK_REAL saved_prims TYPE=gf CENTERING={ccc}
   saved_eps
 } "Saved primitive variables as initial guesses for con2prim"
 
+CCTK_REAL zvec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+  zvec_x, zvec_y, zvec_z
+} ""
+
+CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+  svec_x, svec_y, svec_z
+} ""
+
 #grid functions required for upwindCT computation of electric field
 
 CCTK_REAL vtilde_xface TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'

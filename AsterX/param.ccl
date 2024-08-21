@@ -21,6 +21,13 @@ KEYWORD flux_type "Flux solver" STEERABLE=always
   "HLLE" :: ""
 } "LxF"
 
+KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
+{
+  "v_vec" :: "Eulerian 3-velocity"
+  "z_vec" :: "Lorentz factor x Eulerian 3-velocity"
+  "s_vec" :: "Purely hydrodynamic part of conserved momentum without volume factor"
+} "v_vec"
+
 BOOLEAN local_estimate_error "Use error estimation criteria of this thorn" STEERABLE=always
 {
 } yes

@@ -28,7 +28,6 @@ EXTENDS KEYWORD initial_hydro
   "FishboneMoncriefID" :: "Initial GRHD data from FishboneMoncriefID solution"
 }
 
-#["r_in","r_at_max_density","a","M"] A_b, kappa, gamma
 restricted:
 CCTK_REAL r_in "Fixes the inner edge of the disk"
 {
@@ -52,7 +51,6 @@ CCTK_REAL M "Kerr-Schild BH mass. Probably should always set M=1."
 {
  0.0:* :: "Must be positive"
 } 1.0
-
 
 restricted:
 CCTK_REAL kappa "Equation of state: P = kappa * rho^gamma"

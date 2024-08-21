@@ -135,6 +135,12 @@ calc_wlorentz(const vec<T, D> &v_up, const vec<T, D> &v_dn) {
   return 1.0 / sqrt(1.0 - calc_contraction(v_up, v_dn));
 }
 
+template <typename T, int D>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
+calc_wlorentz_zvec(const vec<T, D> &zvec_up, const vec<T, D> &zvec_dn) {
+  return sqrt(1.0 + calc_contraction(zvec_up, zvec_dn));
+}
+
 template <typename T>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T pow2(T x) {
   return x * x;

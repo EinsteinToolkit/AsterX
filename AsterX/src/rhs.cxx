@@ -196,6 +196,7 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
         momyrhs(p.I) += calcupdate_hydro(gf_fmomy, p);
         momzrhs(p.I) += calcupdate_hydro(gf_fmomz, p);
         taurhs(p.I) += calcupdate_hydro(gf_ftau, p);
+        
         if (isnan(densrhs(p.I))) {
           printf("calcupdate = %f, ", calcupdate_hydro(gf_fdens, p));
           printf("densrhs = %f, gf_fdens = %f, %f, %f, %f, %f, %f \n",
@@ -204,6 +205,7 @@ extern "C" void AsterX_RHS(CCTK_ARGUMENTS) {
                  gf_fdens(1)(p.I + p.DI[1]), gf_fdens(2)(p.I + p.DI[2]));
         }
         assert(!isnan(densrhs(p.I)));
+        
       });
 
   grid.loop_int_device<1, 0, 0>(grid.nghostzones,
