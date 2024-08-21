@@ -30,21 +30,30 @@ if(local_estimate_error)
       READS: HydroBaseX::rho(everywhere)
       WRITES: CarpetX::regrid_error(interior)
     } "Estimate regrid error using HydroBaseX::rho(everywhere) with the first derivative method"
-
+  }
+  
+  if(CCTK_EQUALS(regrid_data, "sd_rho") == 1)
+  {
     SCHEDULE AsterX_Error_sd_rho IN ODESolvers_EstimateError
     {
       LANG: C
       READS: HydroBaseX::rho(everywhere)
       WRITES: CarpetX::regrid_error(interior)
     } "Estimate regrid error using HydroBaseX::rho(everywhere) with the second derivative method"
+  }
 
+  if(CCTK_EQUALS(regrid_data, "sdn_rho") == 1)
+  {
     SCHEDULE AsterX_Error_sdn_rho IN ODESolvers_EstimateError
     {
       LANG: C
       READS: HydroBaseX::rho(everywhere)
       WRITES: CarpetX::regrid_error(interior)
     } "Estimate regrid error using HydroBaseX::rho(everywhere) with the second derivative norm method"
+  }
 
+  if(CCTK_EQUALS(regrid_data, "fg_rho") == 1)
+  {
     SCHEDULE AsterX_Error_fg_rho IN ODESolvers_EstimateError
     {
       LANG: C
