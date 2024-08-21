@@ -28,7 +28,6 @@ EXTENDS KEYWORD initial_hydro
   "FishboneMoncriefID" :: "Initial GRHD data from FishboneMoncriefID solution"
 }
 
-#["r_in","r_at_max_density","a","M"] A_b, kappa, gamma
 restricted:
 CCTK_REAL r_in "Fixes the inner edge of the disk"
 {
@@ -52,7 +51,6 @@ CCTK_REAL M "Kerr-Schild BH mass. Probably should always set M=1."
 {
  0.0:* :: "Must be positive"
 } 1.0
-
 
 restricted:
 CCTK_REAL kappa "Equation of state: P = kappa * rho^gamma"
@@ -133,9 +131,12 @@ BOOLEAN use_pressure "Use pressure to set up vector potential, otherwise density
 
 ##################################
 restricted:
-BOOLEAN atmo_isentropic "Use polytropic EOS for pressure in atmosphere?"
+KEYWORD atmo_type "Matter distribution around torus - atmosphere"
 {
-} "no"
+  "isentropic-graded" :: "Graded rho, pressure is set using polytropic EOS"
+  "free-graded"       :: "Graded rho, pressure is using press_min below"
+  "constant"          :: "Constant rho and pressure using rho_min and press_min below"
+} "isentropic-graded"
 
 restricted:
 CCTK_REAL rho_min "Initial atmosphere density is set according to rho_min*r^-nrho"

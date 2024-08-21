@@ -11,11 +11,22 @@ CCTK_REAL lorenz_damp_fac "Damping factor used in the Lorenz Gauge (see Farris e
  0:* :: "should be positive"
 } 0.0
 
+BOOLEAN use_uct "Shall we use the Upwind-CT method to compute the electric field (instead of the fluxCT approach)?" STEERABLE=always
+{
+} "no"
+
 KEYWORD flux_type "Flux solver" STEERABLE=always
 {
   "LxF" :: ""
   "HLLE" :: ""
 } "LxF"
+
+KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
+{
+  "v_vec" :: "Eulerian 3-velocity"
+  "z_vec" :: "Lorentz factor x Eulerian 3-velocity"
+  "s_vec" :: "Purely hydrodynamic part of conserved momentum without volume factor"
+} "v_vec"
 
 BOOLEAN local_estimate_error "Use error estimation criteria of this thorn" STEERABLE=always
 {
@@ -96,6 +107,10 @@ USES CCTK_REAL rho_strict
 USES BOOLEAN Ye_lenient
 USES CCTK_INT max_iter
 USES CCTK_REAL c2p_tol
+USES CCTK_REAL r_atmo
+USES CCTK_REAL n_rho_atmo
+USES CCTK_REAL n_press_atmo
+USES BOOLEAN thermal_eos_atmo
 
 SHARES: ReconX
 USES KEYWORD reconstruction_method

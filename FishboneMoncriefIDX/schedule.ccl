@@ -3,21 +3,17 @@ schedule FishboneMoncrief_ET_GRHD_initial IN HydroBaseX_InitialData
 {
   LANG: C
 
-  WRITES: HydroBaseX::rho(interior)
-  WRITES: HydroBaseX::vel(interior)
-  WRITES: HydroBaseX::eps(interior)
-  WRITES: HydroBaseX::press(interior)
+  WRITES: HydroBaseX::rho(everywhere)
+  WRITES: HydroBaseX::vel(everywhere)
+  WRITES: HydroBaseX::eps(everywhere)
+  WRITES: HydroBaseX::press(everywhere)
 
-  WRITES: ADMBaseX::metric(interior)
-  WRITES: ADMBaseX::lapse(interior)
-  WRITES: ADMBaseX::shift(interior)
-  WRITES: ADMBaseX::curv(interior)
-  WRITES: ADMBaseX::dtlapse(interior)
-  WRITES: ADMBaseX::dtshift(interior)
-
-  SYNC: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
-  SYNC: ADMBaseX::dtlapse ADMBaseX::dtshift
-  SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press
+  WRITES: ADMBaseX::metric(everywhere)
+  WRITES: ADMBaseX::lapse(everywhere)
+  WRITES: ADMBaseX::shift(everywhere)
+  WRITES: ADMBaseX::curv(everywhere)
+  WRITES: ADMBaseX::dtlapse(everywhere)
+  WRITES: ADMBaseX::dtshift(everywhere)
 
 } "Set up general relativistic hydrodynamic (GRHD) fields for Fishbone-Moncrief disk"
 
@@ -29,11 +25,9 @@ schedule FishboneMoncrief_ET_GRHD_initial__perturb_pressure IN HydroBaseX_Initia
     READS: HydroBaseX::eps(everywhere)
     READS: HydroBaseX::press(everywhere)
 
-    WRITES: HydroBaseX::rho(interior)
-    WRITES: HydroBaseX::eps(interior)
-    WRITES: HydroBaseX::press(interior)
-
-    SYNC: HydroBaseX::rho HydroBaseX::eps HydroBaseX::press
+    WRITES: HydroBaseX::rho(everywhere)
+    WRITES: HydroBaseX::eps(everywhere)
+    WRITES: HydroBaseX::press(everywhere)
 
 } "Add random perturbation to initial pressure, after seed magnetic fields have been set up (in case we'd like the seed magnetic fields to depend on the pristine pressures)"
 
@@ -41,30 +35,24 @@ if (FM_Cowling) {
   schedule FishboneMoncrief_Set_Spacetime IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep
   {
     LANG: C
-    WRITES: ADMBaseX::metric(interior)
-    WRITES: ADMBaseX::lapse(interior)
-    WRITES: ADMBaseX::shift(interior)
-    WRITES: ADMBaseX::curv(interior)
-    WRITES: ADMBaseX::dtlapse(interior)
-    WRITES: ADMBaseX::dtshift(interior)
-
-    SYNC: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
-    SYNC: ADMBaseX::dtlapse ADMBaseX::dtshift
+    WRITES: ADMBaseX::metric(everywhere)
+    WRITES: ADMBaseX::lapse(everywhere)
+    WRITES: ADMBaseX::shift(everywhere)
+    WRITES: ADMBaseX::curv(everywhere)
+    WRITES: ADMBaseX::dtlapse(everywhere)
+    WRITES: ADMBaseX::dtshift(everywhere)
 
   } "Set ADM variables for FM torus"
 
   schedule FishboneMoncrief_Set_Spacetime IN CCTK_POST_RECOVER_VARIABLES
   {
     LANG: C
-    WRITES: ADMBaseX::metric(interior)
-    WRITES: ADMBaseX::lapse(interior)
-    WRITES: ADMBaseX::shift(interior)
-    WRITES: ADMBaseX::curv(interior)
-    WRITES: ADMBaseX::dtlapse(interior)
-    WRITES: ADMBaseX::dtshift(interior)
-
-    SYNC: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
-    SYNC: ADMBaseX::dtlapse ADMBaseX::dtshift
+    WRITES: ADMBaseX::metric(everywhere)
+    WRITES: ADMBaseX::lapse(everywhere)
+    WRITES: ADMBaseX::shift(everywhere)
+    WRITES: ADMBaseX::curv(everywhere)
+    WRITES: ADMBaseX::dtlapse(everywhere)
+    WRITES: ADMBaseX::dtshift(everywhere)
 
   } "Set ADM variables for FM torus"
 }
@@ -76,10 +64,9 @@ if (seed_magnetic) {
 
     READS: HydroBaseX::press(everywhere) HydroBaseX::rho(everywhere)
 
-    WRITES: AsterX::Avec_x(interior)
-    WRITES: AsterX::Avec_y(interior)
-    WRITES: AsterX::Avec_z(interior)
+    WRITES: AsterX::Avec_x(everywhere)
+    WRITES: AsterX::Avec_y(everywhere)
+    WRITES: AsterX::Avec_z(everywhere)
 
-    SYNC: AsterX::Avec_x AsterX::Avec_y AsterX::Avec_z
   } "Set up initial conditions for the vector potential"
 }
