@@ -22,7 +22,7 @@ if(unit_test)
 
 if(local_estimate_error)
 {  
-  if(CCTK_EQUALS(recon_type, "fd_rho") == 1)
+  if(CCTK_EQUALS(regrid_data, "fd_rho") == 1)
   {
     SCHEDULE AsterX_Error_fd_rho IN ODESolvers_EstimateError
     {
@@ -32,7 +32,7 @@ if(local_estimate_error)
     } "Estimate regrid error using HydroBaseX::rho(everywhere) with the first derivative method"
   }
   
-  if(CCTK_EQUALS(recon_type, "sd_rho") == 1)
+  if(CCTK_EQUALS(regrid_data, "sd_rho") == 1)
   {
     SCHEDULE AsterX_Error_sd_rho IN ODESolvers_EstimateError
     {
@@ -42,7 +42,7 @@ if(local_estimate_error)
     } "Estimate regrid error using HydroBaseX::rho(everywhere) with the second derivative method"
   }
 
-  if(CCTK_EQUALS(recon_type, "sdn_rho") == 1)
+  if(CCTK_EQUALS(regrid_data, "sdn_rho") == 1)
   {
     SCHEDULE AsterX_Error_sdn_rho IN ODESolvers_EstimateError
     {
@@ -52,7 +52,7 @@ if(local_estimate_error)
     } "Estimate regrid error using HydroBaseX::rho(everywhere) with the second derivative norm method"
   }
 
-  if(CCTK_EQUALS(recon_type, "fg_rho") == 1)
+  if(CCTK_EQUALS(regrid_data, "fg_rho") == 1)
   {
     SCHEDULE AsterX_Error_fg_rho IN ODESolvers_EstimateError
     {
