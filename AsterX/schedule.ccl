@@ -24,7 +24,7 @@ if(local_estimate_error)
 {  
   if(CCTK_EQUALS(regrid_data, "fd_rho") == 1)
   {
-    SCHEDULE AsterX_Error_fd_rho IN ODESolvers_EstimateError
+    SCHEDULE AsterX_Error_fd_rho IN ODESolvers_EstimateError AS AsterX_EstimateError
     {
       LANG: C
       READS: HydroBaseX::rho(everywhere)
@@ -34,7 +34,7 @@ if(local_estimate_error)
   
   if(CCTK_EQUALS(regrid_data, "sd_rho") == 1)
   {
-    SCHEDULE AsterX_Error_sd_rho IN ODESolvers_EstimateError
+    SCHEDULE AsterX_Error_sd_rho IN ODESolvers_EstimateError AS AsterX_EstimateError
     {
       LANG: C
       READS: HydroBaseX::rho(everywhere)
@@ -44,7 +44,7 @@ if(local_estimate_error)
 
   if(CCTK_EQUALS(regrid_data, "sdn_rho") == 1)
   {
-    SCHEDULE AsterX_Error_sdn_rho IN ODESolvers_EstimateError
+    SCHEDULE AsterX_Error_sdn_rho IN ODESolvers_EstimateError AS AsterX_EstimateError
     {
       LANG: C
       READS: HydroBaseX::rho(everywhere)
@@ -54,7 +54,7 @@ if(local_estimate_error)
 
   if(CCTK_EQUALS(regrid_data, "fg_rho") == 1)
   {
-    SCHEDULE AsterX_Error_fg_rho IN ODESolvers_EstimateError
+    SCHEDULE AsterX_Error_fg_rho IN ODESolvers_EstimateError AS AsterX_EstimateError
     {
       LANG: C
       READS: HydroBaseX::rho(everywhere)
