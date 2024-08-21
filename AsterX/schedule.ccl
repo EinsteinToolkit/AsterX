@@ -18,20 +18,40 @@ if(unit_test)
   } "Self-test"
 }
 
+
+
 if(local_estimate_error)
 {  
-  SCHEDULE AsterX_EstimateError_Setup AT wragh
+  if(CCTK_EQUALS(regrid_data, "fd_rho") == 1)
   {
-    LANG: C
-    OPTIONS: GLOBAL
-  } "set up for calculating regrid error"
+    SCHEDULE AsterX_Error_fd_rho IN ODESolvers_EstimateError
+    {
+      LANG: C
+      READS: HydroBaseX::rho(everywhere)
+      WRITES: CarpetX::regrid_error(interior)
+    } "Estimate regrid error using HydroBaseX::rho(everywhere) with the first derivative method"
 
-  SCHEDULE AsterX_EstimateError IN ODESolvers_EstimateError
-  {
-    LANG: C
-    READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere)
-    WRITES: CarpetX::regrid_error(interior)
-  } "Estimate local error for regridding initial conditions"
+    SCHEDULE AsterX_Error_sd_rho IN ODESolvers_EstimateError
+    {
+      LANG: C
+      READS: HydroBaseX::rho(everywhere)
+      WRITES: CarpetX::regrid_error(interior)
+    } "Estimate regrid error using HydroBaseX::rho(everywhere) with the second derivative method"
+
+    SCHEDULE AsterX_Error_sdn_rho IN ODESolvers_EstimateError
+    {
+      LANG: C
+      READS: HydroBaseX::rho(everywhere)
+      WRITES: CarpetX::regrid_error(interior)
+    } "Estimate regrid error using HydroBaseX::rho(everywhere) with the second derivative norm method"
+
+    SCHEDULE AsterX_Error_fg_rho IN ODESolvers_EstimateError
+    {
+      LANG: C
+      READS: HydroBaseX::rho(everywhere)
+      WRITES: CarpetX::regrid_error(interior)
+    } "Estimate regrid error using HydroBaseX::rho(everywhere) with the first gradient method"
+  }
 }
 
 
