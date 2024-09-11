@@ -6,7 +6,8 @@ SRCS =	\
   2D_tests.cxx \
   3D_tests.cxx \
   atmosphere.cxx \
-  magtov.cxx 
+  magTOV.cxx \
+  magBNS.cxx  
 	
 
 # Subdirectories containing source files

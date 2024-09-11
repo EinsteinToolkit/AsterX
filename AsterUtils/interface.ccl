@@ -1,0 +1,8 @@
+# Interface definition for thorn AsterUtils
+
+IMPLEMENTS: AsterUtils
+
+USES INCLUDE HEADER: loop_device.hxx
+INCLUDES HEADER: aster_fd.hxx IN aster_fd.hxx
+INCLUDES HEADER: aster_interp.hxx IN aster_interp.hxx
+INCLUDES HEADER: aster_utils.hxx IN aster_utils.hxx

@@ -4,17 +4,23 @@
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
 
+#include <mat.hxx>
+#include <vec.hxx>
+#include <sum.hxx>
+#include <simd.hxx>
+
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <cmath>
 
-#include "utils.hxx"
+#include "eos.hxx"
+#include "eos_idealgas.hxx"
+
 #include "eigenvalues.hxx"
 #include "fluxes.hxx"
-#include <reconstruct.hxx>
-#include <eos.hxx>
-#include <eos_idealgas.hxx>
+#include "reconstruct.hxx"
+#include "aster_utils.hxx"
 
 namespace AsterX {
 using namespace std;
@@ -22,6 +28,7 @@ using namespace Loop;
 using namespace Arith;
 using namespace EOSX;
 using namespace ReconX;
+using namespace AsterUtils;
 
 enum class flux_t { LxF, HLLE };
 enum class eos_t { IdealGas, Hybrid, Tabulated };

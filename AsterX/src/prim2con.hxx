@@ -10,12 +10,14 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include "utils.hxx"
+
+#include "aster_utils.hxx"
 
 namespace AsterX {
 using namespace std;
 using namespace Loop;
 using namespace Arith;
+using namespace AsterUtils;
 
 struct prim {
   CCTK_REAL rho;

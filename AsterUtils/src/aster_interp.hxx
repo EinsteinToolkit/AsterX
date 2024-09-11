@@ -1,5 +1,5 @@
-#ifndef ASTERX_INTERP_HXX
-#define ASTERX_INTERP_HXX
+#ifndef ASTER_INTERP_HXX
+#define ASTER_INTERP_HXX
 
 #include <cctk.h>
 #include <cctk_Arguments.h>
@@ -14,7 +14,7 @@
 #include <array>
 #include <cmath>
 
-namespace AsterX {
+namespace AsterUtils {
 using namespace std;
 using namespace Loop;
 using namespace Arith;
@@ -147,6 +147,6 @@ CCTK_DEVICE CCTK_HOST
   return gf_avg / 3.0;
 }
 
-} // namespace AsterX
+} // namespace AsterUtils
 
-#endif // ASTERX_INTERP_HXX
+#endif // ASTER_INTERP_HXX

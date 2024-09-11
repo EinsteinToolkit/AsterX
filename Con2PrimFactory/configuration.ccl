@@ -1,5 +1,5 @@
 #Configuration definitions for thorn Con2PrimFactory
 
-REQUIRES Loop EOSX Algo
+REQUIRES Loop EOSX Algo AsterUtils
 PROVIDES Con2PrimFactory {
 }

@@ -12,17 +12,21 @@ c2p is effectively an interface to be used by different c2p implementations.
 #include <cctk.h>
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
-#include "c2p_utils.hxx"
-#include "eos.hxx"
-#include "eos_idealgas.hxx"
-
 #include <math.h>
+
 #include "prims.hxx"
 #include "cons.hxx"
 #include "atmo.hxx"
 #include "c2p_report.hxx"
 
+#include "eos.hxx"
+#include "eos_idealgas.hxx"
+
+#include "c2p_utils.hxx"
+
 namespace Con2PrimFactory {
+
+using namespace AsterUtils;
 
 constexpr CCTK_INT X = 0;
 constexpr CCTK_INT Y = 1;

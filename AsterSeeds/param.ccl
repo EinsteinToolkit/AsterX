@@ -26,6 +26,7 @@ KEYWORD test_case "Name of the testcase" STEERABLE=never
 
   "spherical shock"          :: ""
   "magTOV"                   :: ""
+  "magBNS"                   :: ""
 } "Balsara1"
 
 private:
@@ -114,17 +115,19 @@ REAL r0 "Characteristic radial offset" STEERABLE=ALWAYS
   *:*     :: "Anything"
 } 0.0
 
-REAL dipole_x "x-coordinate of dipole center" STEERABLE=ALWAYS
+# coordinates of dipole center, to be based on the location of maximum of rho
+
+REAL dipole_x[2] "x-coordinate of dipole center" STEERABLE=ALWAYS
 {
   *:*     :: "Anything"
 } 0.0
 
-REAL dipole_y "y-coordinate of the dipole center" STEERABLE=ALWAYS
+REAL dipole_y[2] "y-coordinate of the dipole center" STEERABLE=ALWAYS
 {
   *:*     :: "Anything"
 } 0.0
 
-REAL dipole_z "z-coordinate of the dipole center" STEERABLE=ALWAYS
+REAL dipole_z[2] "z-coordinate of the dipole center" STEERABLE=ALWAYS
 {
   *:*     :: "Anything"
 } 0.0

@@ -4,8 +4,9 @@
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
 
-#include "utils.hxx"
 #include <array>
+
+#include "aster_utils.hxx"
 
 struct metric {
   CCTK_REAL gxx, gxy, gxz, gyy, gyz, gzz;
@@ -14,6 +15,7 @@ struct metric {
 namespace AsterX {
 using namespace Loop;
 using namespace Arith;
+using namespace AsterUtils;
 
 template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBstagFromA;

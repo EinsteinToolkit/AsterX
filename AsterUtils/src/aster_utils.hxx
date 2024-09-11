@@ -1,5 +1,5 @@
-#ifndef ASTERX_UTILS_HXX
-#define ASTERX_UTILS_HXX
+#ifndef ASTER_UTILS_HXX
+#define ASTER_UTILS_HXX
 
 #include <cctk.h>
 #include <cctk_Arguments.h>
@@ -14,10 +14,10 @@
 #include <array>
 #include <cmath>
 
-#include <fd.hxx>
-#include <interp.hxx>
+#include "aster_fd.hxx"
+#include "aster_interp.hxx"
 
-namespace AsterX {
+namespace AsterUtils {
 using namespace std;
 using namespace Loop;
 using namespace Arith;
@@ -141,11 +141,6 @@ calc_wlorentz_zvec(const vec<T, D> &zvec_up, const vec<T, D> &zvec_dn) {
   return sqrt(1.0 + calc_contraction(zvec_up, zvec_dn));
 }
 
-template <typename T>
-CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T pow2(T x) {
-  return x * x;
-}
-
 template <typename T, int F>
 CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline vec<T, F>
 pow2(vec<T, F> x) {
@@ -169,6 +164,6 @@ calc_avg_neighbors(const vec<T, D> flag, const vec<T, D> u_nbs,
          CCTK_REAL(D);
 }
 
-} // namespace AsterX
+} // namespace AsterUtils
 
-#endif // ASTERX_UTILS_HXX
+#endif // ASTER_UTILS_HXX

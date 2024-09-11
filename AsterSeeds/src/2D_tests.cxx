@@ -5,15 +5,16 @@
 #include <cctk_Parameters.h>
 
 #include <cmath>
-#include <seeds_utils.hxx>
 
-#include <eos.hxx>
-#include <eos_idealgas.hxx>
+#include "eos.hxx"
+#include "eos_idealgas.hxx"
+#include "seeds_utils.hxx"
 
 namespace AsterSeeds {
 using namespace std;
 using namespace Loop;
 using namespace EOSX;
+using namespace AsterUtils;
 
 extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_Tests2D_Initialize;
@@ -29,9 +30,9 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
 
   // See Cipolletta et al (2020) and Del Zanna, Bucciantini, Londrillo (2003)
   if (CCTK_EQUALS(test_case, "magnetic rotor")) {
-    grid.loop_all_device<1, 1, 1>(
+    grid.loop_all<1, 1, 1>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        [=] CCTK_HOST(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           const CCTK_REAL r_cyl = sqrt(pow2(p.x) + pow2(p.y));
 
           if (r_cyl < 0.1) {
@@ -54,19 +55,19 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
                                                         dummy_ye);
         });
 
-    grid.loop_all_device<1, 0, 0>(
+    grid.loop_all<1, 0, 0>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
+        [=] CCTK_HOST(const PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.; });
 
-    grid.loop_all_device<0, 1, 0>(
+    grid.loop_all<0, 1, 0>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
+        [=] CCTK_HOST(const PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.; });
 
-    grid.loop_all_device<0, 0, 1>(
+    grid.loop_all<0, 0, 1>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
+        [=] CCTK_HOST(const PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = p.y; });
   }
 
@@ -93,9 +94,9 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
       CCTK_VERROR("Invalid loop advection type");
     }
 
-    grid.loop_all_device<1, 1, 1>(
+    grid.loop_all<1, 1, 1>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        [=] CCTK_HOST(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           rho(p.I) = 1.;
           press(p.I) = 3.;
           eps(p.I) = eos_th.eps_from_valid_rho_press_ye(rho(p.I), press(p.I),
@@ -105,19 +106,19 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
           velz(p.I) = axial_vel;
         });
 
-    grid.loop_all_device<1, 0, 0>(
+    grid.loop_all<1, 0, 0>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
+        [=] CCTK_HOST(const PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.; });
 
-    grid.loop_all_device<0, 1, 0>(
+    grid.loop_all<0, 1, 0>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
+        [=] CCTK_HOST(const PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.; });
 
-    grid.loop_all_device<0, 0, 1>(
+    grid.loop_all<0, 0, 1>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        [=] CCTK_HOST(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           const CCTK_REAL r_cyl = sqrt(pow2(p.x) + pow2(p.y));
           const CCTK_REAL R_loop = 0.3;
           const CCTK_REAL A_loop = 0.001;
@@ -131,9 +132,9 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
 
   // See Cipolletta et al (2020)
   else if (CCTK_EQUALS(test_case, "cylindrical blast")) {
-    grid.loop_all_device<1, 1, 1>(
+    grid.loop_all<1, 1, 1>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        [=] CCTK_HOST(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
           const CCTK_REAL r_cyl = sqrt(pow2(p.x) + pow2(p.y));
           const CCTK_REAL r_in = 0.8;
           const CCTK_REAL r_out = 1.0;
@@ -171,19 +172,19 @@ extern "C" void Tests2D_Initialize(CCTK_ARGUMENTS) {
                                                         dummy_ye);
         });
 
-    grid.loop_all_device<1, 0, 0>(
+    grid.loop_all<1, 0, 0>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
+        [=] CCTK_HOST(const PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_x(p.I) = 0.0; });
 
-    grid.loop_all_device<0, 1, 0>(
+    grid.loop_all<0, 1, 0>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
+        [=] CCTK_HOST(const PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_y(p.I) = 0.0; });
 
-    grid.loop_all_device<0, 0, 1>(
+    grid.loop_all<0, 0, 1>(
         grid.nghostzones,
-        [=] CCTK_DEVICE(const PointDesc &p)
+        [=] CCTK_HOST(const PointDesc &p)
             CCTK_ATTRIBUTE_ALWAYS_INLINE { Avec_z(p.I) = 0.1 * p.y; });
   }
 

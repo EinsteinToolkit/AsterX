@@ -5,6 +5,7 @@ INHERITS: HydroBaseX AsterX
 
 USES INCLUDE HEADER: loop_device.hxx
 USES INCLUDE HEADER: eos.hxx eos_idealgas.hxx
+USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx
 
 CCTK_REAL Avec_cent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
 {

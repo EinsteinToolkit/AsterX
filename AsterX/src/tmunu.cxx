@@ -1,19 +1,20 @@
-#include <loop_device.hxx>
-
 #include <cctk.h>
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
 
-#include "utils.hxx"
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <cmath>
+#include <loop_device.hxx>
+
+#include "aster_utils.hxx"
 
 namespace AsterX {
 using namespace std;
 using namespace Loop;
 using namespace Arith;
+using namespace AsterUtils;
 
 template <int interp_order> void Tmunu(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Tmunu;

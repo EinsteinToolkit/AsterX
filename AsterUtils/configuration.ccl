@@ -1,0 +1,6 @@
+# Configuration definitions for thorn AsterUtils
+
+REQUIRES Loop
+PROVIDES AsterUtils {
+}
+REQUIRES AsterUtils 

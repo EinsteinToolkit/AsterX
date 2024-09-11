@@ -274,6 +274,7 @@ SpacetimeX/Z4c
 !REPO_PATH= $2
 !CHECKOUT =
 AsterX/AsterSeeds
+AsterX/AsterUtils
 AsterX/AsterX
 AsterX/Con2PrimFactory
 AsterX/EOSX
