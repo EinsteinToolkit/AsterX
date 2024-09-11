@@ -32,23 +32,18 @@ BOOLEAN local_estimate_error "Use error estimation criteria of this thorn" STEER
 {
 } yes
 
-KEYWORD regrid_method "Regrid method" STEERABLE=always
+KEYWORD regrid_data "Sources and methods used for regridding" STEERABLE=always
 {
-  "first derivative" :: ""
-  "second derivative" :: ""
-  "second derivative norm" :: ""
-  "first gradient" :: ""
-} "first gradient"
+  "fd_rho" :: "Uses HydroBaseX::rho as the refinement source together with the first derivative method"
+  "sd_rho" :: "Uses HydroBaseX::rho as the refinement source together with the second derivative method"
+  "sdn_rho" :: "Uses HydroBaseX::rho as the refinement source together with the second derivative norm method"
+  "fg_rho" :: "Uses HydroBaseX::rho as the refinement source together with the first gradient method"
+} "fg_rho"
 
 CCTK_REAL epsilon_err "epsilon parameter in second derivative norm criterion (see Mignone+2011 eq. 50 arXiv:1110.0740)" STEERABLE=always
 {
   0:* :: "Larger than zero, default from Mignone+2011"
 } 0.01
-
-CCTK_STRING regrid_groups "Groups used for calculating regrid error" STEERABLE=always
-{
-  .* :: "List of full group names"
-} "HydroBaseX::rho"
 
 BOOLEAN debug_mode "Print debug information if set to yes" STEERABLE=always
 {

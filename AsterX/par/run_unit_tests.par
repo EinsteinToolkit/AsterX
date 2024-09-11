@@ -15,10 +15,10 @@ $ncells = 2
 
 Cactus::cctk_show_schedule = yes
 
-Cactus::presync_mode = "mixed-error"
+Cactus::presync_mode = "presync-only"
 
-Cactus::terminate = "time"
-Cactus::cctk_final_time = 0.0
+Cactus::terminate = "iteration"
+Cactus::cctk_itlast = 0
 
 ADMBaseX::initial_data            = "Cartesian Minkowski"
 ADMBaseX::initial_lapse           = "one"
