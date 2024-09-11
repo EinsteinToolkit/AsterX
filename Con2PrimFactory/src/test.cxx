@@ -3,17 +3,20 @@
 #include <cctk.h>
 #include <cctk_Arguments.h>
 
-#include "c2p_utils.hxx"
+#include "eos.hxx"
+#include "eos_idealgas.hxx"
+
 #include "c2p.hxx"
 #include "c2p_1DPalenzuela.hxx"
 #include "c2p_2DNoble.hxx"
-#include <eos.hxx>
-#include <eos_idealgas.hxx>
+
+#include "c2p_utils.hxx"
 
 namespace Con2PrimFactory {
 
 using namespace Arith;
 using namespace EOSX;
+using namespace AsterUtils;
 
 extern "C" void Con2PrimFactory_Test(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTS;

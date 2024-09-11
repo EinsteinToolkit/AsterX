@@ -1,22 +1,17 @@
-#include <loop_device.hxx>
-
 #include <cctk.h>
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
-
-#include <reconstruct.hxx>
-#include "utils.hxx"
-
-// #ifdef AMREX_USE_GPU
-// #include <AMReX_GpuDevice.H>
-// #endif
-
+#include <loop_device.hxx>
 #include <array>
+
+#include "reconstruct.hxx"
+#include "aster_utils.hxx"
 
 namespace AsterX {
 using namespace Loop;
 using namespace Arith;
 using namespace ReconX;
+using namespace AsterUtils;
 
 enum class vector_potential_gauge_t { algebraic, generalized_lorentz };
 

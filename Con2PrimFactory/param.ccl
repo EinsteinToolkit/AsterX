@@ -92,3 +92,24 @@ BOOLEAN thermal_eos_atmo "Whether to use the thermal (evolution) EOS for setting
 {
 }  "no"
 
+# Parameters for BH treatment
+
+CCTK_REAL alp_thresh "Lapse threshold below which primitives are modified for stability, specifically inside BH interior. Value should be set such that it is lesser than the lapse at the apparent horizon " STEERABLE=ALWAYS
+{
+  0.0:* :: ""
+} 0.0
+
+CCTK_REAL rho_BH " Maximum density allowed in regions where alp<alp_thresh" STEERABLE=ALWAYS
+{
+  0.0:* :: ""
+} 1.0e100
+
+CCTK_REAL eps_BH " Maximum eps allowed in regions where alp<alp_thresh" STEERABLE=ALWAYS
+{
+  0.0:* :: ""
+} 1.0e100
+
+CCTK_REAL vwlim_BH " Maximum zvec (v*w) allowed in regions where alp<alp_thresh" STEERABLE=ALWAYS
+{
+  0.0:* :: ""
+} 1.0e100

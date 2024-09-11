@@ -8,12 +8,14 @@
 #include <array>
 #include <cassert>
 #include <cmath>
-#include "utils.hxx"
+
+#include "aster_utils.hxx"
 
 namespace AsterX {
 using namespace std;
 using namespace Loop;
 using namespace Arith;
+using namespace AsterUtils;
 
 template <int FDORDER> void SourceTerms(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_SourceTerms;

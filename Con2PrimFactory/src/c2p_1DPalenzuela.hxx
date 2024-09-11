@@ -3,6 +3,7 @@
 
 #include "c2p.hxx"
 #include "roots.hxx"
+
 namespace Con2PrimFactory {
 
 class c2p_1DPalenzuela : public c2p {

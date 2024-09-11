@@ -8,6 +8,8 @@
 #include "prims.hxx"
 #include "cons.hxx"
 
+#include "aster_utils.hxx"
+
 namespace Con2PrimFactory {
 
 /// Class representing an artificial atmosphere.

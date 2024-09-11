@@ -123,6 +123,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
 {
   LANG: C
   READS: ADMBaseX::metric(interior)
+  READS: ADMBaseX::lapse(everywhere)
   READS: dens(interior) tau(interior) mom(interior) dB(interior)
   READS: saved_prims(interior)
   READS: Avec_x(interior) Avec_y(interior) Avec_z(interior)

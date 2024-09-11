@@ -743,6 +743,7 @@ SpacetimeX/Z4c
 !TYPE     = ignore
 !CHECKOUT =
 AsterX/AsterSeeds
+AsterX/AsterUtils
 AsterX/AsterX
 AsterX/Con2PrimFactory
 AsterX/EOSX
