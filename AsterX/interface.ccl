@@ -2,7 +2,7 @@
 
 IMPLEMENTS: AsterX
 
-INHERITS: CarpetX ADMBaseX HydroBaseX TmunuBaseX
+INHERITS: CarpetXRegrid ADMBaseX HydroBaseX TmunuBaseX
 
 USES INCLUDE HEADER: fixmath.hxx
 USES INCLUDE HEADER: loop_device.hxx
@@ -10,6 +10,7 @@ USES INCLUDE HEADER: eos_1p.hxx eos_polytropic.hxx
 USES INCLUDE HEADER: eos.hxx eos_idealgas.hxx
 USES INCLUDE HEADER: c2p.hxx c2p_2DNoble.hxx c2p_1DPalenzuela.hxx
 USES INCLUDE HEADER: reconstruct.hxx
+USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx
 
 PUBLIC:
 
@@ -98,6 +99,16 @@ CCTK_REAL saved_prims TYPE=gf CENTERING={ccc}
   saved_velx saved_vely saved_velz
   saved_eps
 } "Saved primitive variables as initial guesses for con2prim"
+
+CCTK_REAL zvec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+  zvec_x, zvec_y, zvec_z
+} ""
+
+CCTK_REAL svec TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+  svec_x, svec_y, svec_z
+} ""
 
 #grid functions required for upwindCT computation of electric field
 

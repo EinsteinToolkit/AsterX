@@ -26,9 +26,26 @@ KEYWORD test_case "Name of the testcase" STEERABLE=never
 
   "spherical shock"          :: ""
   "magTOV"                   :: ""
+  "magBNS"                   :: ""
 } "Balsara1"
 
 private:
+
+# parameters for rotating intial data
+REAL rotate_angle_x "Rotation angle about x-axis (in units of pi)" STEERABLE=never
+{
+  *:* :: ""
+} 0.0
+
+REAL rotate_angle_y "Rotation angle about y-axis (in units of pi)" STEERABLE=never
+{
+  *:* :: ""
+} 0.0
+
+REAL rotate_angle_z "Rotation angle about z-axis (in units of pi)" STEERABLE=never
+{
+  *:* :: ""
+} 0.0
 
 # parameters for atmosphere
 
@@ -54,6 +71,7 @@ KEYWORD shock_dir "Shock direction" STEERABLE=never
   "x" :: "Parallel to x axis"
   "y" :: "Parallel to y axis"
   "z" :: "Parallel to z axis"
+  "angle" :: "use rotate_angle_[x/y/z] instead"
 } "x"
 
 # parameters for 2D tests
@@ -114,17 +132,19 @@ REAL r0 "Characteristic radial offset" STEERABLE=ALWAYS
   *:*     :: "Anything"
 } 0.0
 
-REAL dipole_x "x-coordinate of dipole center" STEERABLE=ALWAYS
+# coordinates of dipole center, to be based on the location of maximum of rho
+
+REAL dipole_x[2] "x-coordinate of dipole center" STEERABLE=ALWAYS
 {
   *:*     :: "Anything"
 } 0.0
 
-REAL dipole_y "y-coordinate of the dipole center" STEERABLE=ALWAYS
+REAL dipole_y[2] "y-coordinate of the dipole center" STEERABLE=ALWAYS
 {
   *:*     :: "Anything"
 } 0.0
 
-REAL dipole_z "z-coordinate of the dipole center" STEERABLE=ALWAYS
+REAL dipole_z[2] "z-coordinate of the dipole center" STEERABLE=ALWAYS
 {
   *:*     :: "Anything"
 } 0.0

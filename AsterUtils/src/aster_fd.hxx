@@ -1,5 +1,5 @@
-#ifndef ASTERX_FD_HXX
-#define ASTERX_FD_HXX
+#ifndef ASTER_FD_HXX
+#define ASTER_FD_HXX
 
 #include <cctk.h>
 #include <cctk_Arguments.h>
@@ -15,7 +15,7 @@
 #include <cmath>
 #include <type_traits>
 
-namespace AsterX {
+namespace AsterUtils {
 using namespace std;
 using namespace Loop;
 using namespace Arith;
@@ -109,6 +109,6 @@ CCTK_DEVICE CCTK_HOST
   return 0.25 * (dgf1 + dgf2 + dgf3 + dgf4);
 }
 
-} // namespace AsterX
+} // namespace AsterUtils
 
-#endif // ASTERX_FD_HXX
+#endif // ASTER_FD_HXX

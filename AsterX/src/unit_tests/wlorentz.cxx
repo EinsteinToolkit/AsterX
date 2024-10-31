@@ -4,12 +4,12 @@
 #include <cctk_Arguments.h>
 
 #include "../test.hxx"
-#include "../utils.hxx"
+#include "aster_utils.hxx"
 
 // Value must be bounded
 void AsterXTests::test_wlorentz(std::mt19937_64 &engine, int repetitions) {
   using namespace Arith;
-  using namespace AsterX;
+  using namespace AsterUtils;
   using std::sqrt;
   using std::uniform_real_distribution;
 

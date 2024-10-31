@@ -1,0 +1,9 @@
+Cactus Code Thorn AsterUtils
+Author(s)    : Jay Kalinani <jaykalinani@gmail.com>, Liwei Ji <ljsma@rit.edu>
+Maintainer(s): Jay Kalinani <jaykalinani@gmail.com>, Liwei Ji <ljsma@rit.edu>
+Licence      : LGPL
+--------------------------------------------------------------------------
+
+1. Purpose
+
+Provides utility functions for interpolations, finite differencing and more

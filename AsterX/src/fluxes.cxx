@@ -4,17 +4,23 @@
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
 
+#include <mat.hxx>
+#include <vec.hxx>
+#include <sum.hxx>
+#include <simd.hxx>
+
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <cmath>
 
-#include "utils.hxx"
+#include "eos.hxx"
+#include "eos_idealgas.hxx"
+
 #include "eigenvalues.hxx"
 #include "fluxes.hxx"
-#include <reconstruct.hxx>
-#include <eos.hxx>
-#include <eos_idealgas.hxx>
+#include "reconstruct.hxx"
+#include "aster_utils.hxx"
 
 namespace AsterX {
 using namespace std;
@@ -22,9 +28,11 @@ using namespace Loop;
 using namespace Arith;
 using namespace EOSX;
 using namespace ReconX;
+using namespace AsterUtils;
 
 enum class flux_t { LxF, HLLE };
 enum class eos_t { IdealGas, Hybrid, Tabulated };
+enum class rec_var_t { v_vec, z_vec, s_vec };
 
 // Calculate the fluxes in direction `dir`. This function is more
 // complex because it has to handle any direction, but as reward,
@@ -45,6 +53,8 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
   const vec<GF3D2<CCTK_REAL>, dim> fluxBzs{fxBz, fyBz, fzBz};
   /* grid functions */
   const vec<GF3D2<const CCTK_REAL>, dim> gf_vels{velx, vely, velz};
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_zvec{zvec_x, zvec_y, zvec_z};
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_svec{svec_x, svec_y, svec_z};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Bvecs{Bvecx, Bvecy, Bvecz};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_dBstags{dBx_stag, dBy_stag, dBz_stag};
   const vec<GF3D2<const CCTK_REAL>, dim> gf_beta{betax, betay, betaz};
@@ -58,6 +68,17 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
   const vec<GF3D2<CCTK_REAL>, dim> amin{amin_xface, amin_yface, amin_zface};
 
   static_assert(dir >= 0 && dir < 3, "");
+
+  rec_var_t rec_var;
+  if (CCTK_EQUALS(recon_type, "v_vec")) {
+    rec_var = rec_var_t::v_vec;
+  } else if (CCTK_EQUALS(recon_type, "z_vec")) {
+    rec_var = rec_var_t::z_vec;
+  } else if (CCTK_EQUALS(recon_type, "s_vec")) {
+    rec_var = rec_var_t::s_vec;
+  } else {
+    CCTK_ERROR("Unknown value for parameter \"recon_type\"");
+  }
 
   reconstruction_t reconstruction;
   if (CCTK_EQUALS(reconstruction_method, "Godunov"))
@@ -174,9 +195,22 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
           [2]>(grid.nghostzones, [=] CCTK_DEVICE(
                                      const PointDesc
                                          &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+
     /* Reconstruct primitives from the cells on left (indice 0) and right
      * (indice 1) side of this face rc = reconstructed variables or
      * computed from reconstructed variables */
+
+    /* Interpolate metric components from vertices to faces */
+    const CCTK_REAL alp_avg = calc_avg_v2f(alp, p, dir);
+    const vec<CCTK_REAL, 3> betas_avg(
+        [&](int i) ARITH_INLINE { return calc_avg_v2f(gf_beta(i), p, dir); });
+    const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
+      return calc_avg_v2f(gf_g(i, j), p, dir);
+    });
+
+    /* determinant of spatial metric */
+    const CCTK_REAL detg_avg = calc_det(g_avg);
+    const CCTK_REAL sqrtg = sqrt(detg_avg);
 
     vec<CCTK_REAL, 2> rho_rc{reconstruct_pt(rho, p, true, true)};
 
@@ -188,9 +222,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
       rho_rc(1) = rho_abs_min;
     }
 
-    const vec<vec<CCTK_REAL, 2>, 3> vels_rc([&](int i) ARITH_INLINE {
-      return vec<CCTK_REAL, 2>{reconstruct_pt(gf_vels(i), p, false, false)};
-    });
     vec<CCTK_REAL, 2> press_rc{reconstruct_pt(press, p, false, true)};
     // TODO: Correctly reconstruct Ye
     const vec<CCTK_REAL, 2> ye_rc{ye_min, ye_max};
@@ -206,28 +237,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
           eos_th.press_from_valid_rho_eps_ye(rho_rc(1), eps_min, ye_rc(1));
     }
 
-    /* Interpolate metric components from vertices to faces */
-    const CCTK_REAL alp_avg = calc_avg_v2f(alp, p, dir);
-    const vec<CCTK_REAL, 3> betas_avg(
-        [&](int i) ARITH_INLINE { return calc_avg_v2f(gf_beta(i), p, dir); });
-    const smat<CCTK_REAL, 3> g_avg([&](int i, int j) ARITH_INLINE {
-      return calc_avg_v2f(gf_g(i, j), p, dir);
+    const vec<CCTK_REAL, 2> eps_rc([&](int f) ARITH_INLINE {
+      return eos_th.eps_from_valid_rho_press_ye(rho_rc(f), press_rc(f),
+                                                ye_rc(f));
     });
 
-    /* determinant of spatial metric */
-    const CCTK_REAL detg_avg = calc_det(g_avg);
-    const CCTK_REAL sqrtg = sqrt(detg_avg);
-    /* co-velocity measured by Eulerian observer: v_j */
-    const vec<vec<CCTK_REAL, 2>, 3> vlows_rc = calc_contraction(g_avg, vels_rc);
-    /* vtilde^i = alpha * v^i - beta^i */
-    const vec<vec<CCTK_REAL, 2>, 3> vtildes_rc([&](int i) ARITH_INLINE {
-      return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
-        return alp_avg * vels_rc(i)(f) - betas_avg(i);
-      });
-    });
-    /* Lorentz factor: W = 1 / sqrt(1 - v^2) */
-    const vec<CCTK_REAL, 2> w_lorentz_rc([&](int f) ARITH_INLINE {
-      return 1 / sqrt(1 - calc_contraction(vlows_rc, vels_rc)(f));
+    const vec<CCTK_REAL, 2> rhoh_rc([&](int f) ARITH_INLINE {
+      return rho_rc(f) + rho_rc(f)*eps_rc(f) + press_rc(f);
     });
 
     // Introduce reconstructed Bs
@@ -249,6 +265,78 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
 
     // End of setting Bs
 
+    vec<vec<CCTK_REAL, 2>, 3> vels_rc;
+    vec<vec<CCTK_REAL, 2>, 3> vlows_rc;
+    vec<CCTK_REAL, 2> w_lorentz_rc;
+    array<CCTK_REAL,2> vels_rc_dummy; // note: can't copy array<,2> to vec<,2>, only construct
+    switch (rec_var) {
+    case rec_var_t::v_vec : {
+
+      for(int i = 0; i <= 2; ++i) { // loop over components
+	      vels_rc_dummy = reconstruct_pt(gf_vels(i), p, false, false);
+	      vels_rc(i)(0) = vels_rc_dummy[0];
+	      vels_rc(i)(1) = vels_rc_dummy[1];
+      }
+
+      /* co-velocity measured by Eulerian observer: v_j */
+      vlows_rc = calc_contraction(g_avg, vels_rc);
+
+      /* Lorentz factor: W = 1 / sqrt(1 - v^2) */
+      w_lorentz_rc(0) = 1 / sqrt(1 - calc_contraction(vlows_rc, vels_rc)(0));
+      w_lorentz_rc(1) = 1 / sqrt(1 - calc_contraction(vlows_rc, vels_rc)(1));
+      break;
+
+    };
+    case rec_var_t::z_vec : {
+    
+      const vec<vec<CCTK_REAL, 2>, 3> zvec_rc([&](int i) ARITH_INLINE {
+         return vec<CCTK_REAL, 2>{reconstruct_pt(gf_zvec(i), p, false, false)};
+      });
+
+      const vec<vec<CCTK_REAL, 2>, 3> zveclow_rc = calc_contraction(g_avg, zvec_rc);
+
+      w_lorentz_rc(0) = sqrt(1 + calc_contraction(zveclow_rc, zvec_rc)(0));
+      w_lorentz_rc(1) = sqrt(1 + calc_contraction(zveclow_rc, zvec_rc)(1));
+
+      for(int i = 0; i <= 2; ++i) { // loop over components
+	      for(int j = 0; j <= 1; ++j) { // loop over left and right state
+		      vels_rc(i)(j) = zvec_rc(i)(j)/w_lorentz_rc(j);
+		      vlows_rc(i)(j) = zveclow_rc(i)(j)/w_lorentz_rc(j);
+	       }
+      }
+      break;
+
+    };
+    case rec_var_t::s_vec : {
+
+      const vec<vec<CCTK_REAL, 2>, 3> svec_rc([&](int i) ARITH_INLINE {
+         return vec<CCTK_REAL, 2>{reconstruct_pt(gf_svec(i), p, false, false)};
+      });
+
+      const vec<vec<CCTK_REAL, 2>, 3> sveclow_rc = calc_contraction(g_avg, svec_rc);
+
+      w_lorentz_rc(0) = sqrt(0.5+sqrt(0.25+calc_contraction(sveclow_rc, svec_rc)(0)/rhoh_rc(0)/rhoh_rc(0)));
+      w_lorentz_rc(1) = sqrt(0.5+sqrt(0.25+calc_contraction(sveclow_rc, svec_rc)(1)/rhoh_rc(1)/rhoh_rc(1)));
+
+      //printf("  wlor = %16.8e, %16.8e\n", w_lorentz_rc(0), w_lorentz_rc(1));
+
+      for(int i = 0; i <= 2; ++i) { // loop over components
+	      for(int j = 0; j <= 1; ++j) { // loop over left and right state
+		      vels_rc(i)(j) = svec_rc(i)(j)/w_lorentz_rc(j)/w_lorentz_rc(j)/rhoh_rc(j);
+		      vlows_rc(i)(j) = sveclow_rc(i)(j)/w_lorentz_rc(j)/w_lorentz_rc(j)/rhoh_rc(j);
+	       }
+      }
+      break;
+
+    };
+    }
+
+    /* vtilde^i = alpha * v^i - beta^i */
+    const vec<vec<CCTK_REAL, 2>, 3> vtildes_rc([&](int i) ARITH_INLINE {
+      return vec<CCTK_REAL, 2>([&](int f) ARITH_INLINE {
+        return alp_avg * vels_rc(i)(f) - betas_avg(i);
+      });
+    });
 
     /* alpha * b0 = W * B^i * v_i */
     const vec<CCTK_REAL, 2> alp_b0_rc([&](int f) ARITH_INLINE {
@@ -281,11 +369,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType &eos_th) {
     // vars
 
     // Ideal gas case {
-    /* eps for ideal gas EOS */
-    const vec<CCTK_REAL, 2> eps_rc([&](int f) ARITH_INLINE {
-      return eos_th.eps_from_valid_rho_press_ye(rho_rc(f), press_rc(f),
-                                                ye_rc(f));
-    });
     /* cs2 for ideal gas EOS */
     const vec<CCTK_REAL, 2> cs2_rc([&](int f) ARITH_INLINE {
       return eos_th.csnd_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f), ye_rc(f)) *

@@ -4,14 +4,14 @@
 #include <cctk_Arguments.h>
 
 #include "../test.hxx"
-#include "../utils.hxx"
+#include "aster_utils.hxx"
 
 #include <random>
 
 void AsterXTests::test_contraction_upvec_downvec(std::mt19937_64 &engine,
                                                  int repetitions) {
   using namespace Arith;
-  using namespace AsterX;
+  using namespace AsterUtils;
   using std::uniform_real_distribution;
 
   uniform_real_distribution<CCTK_REAL> distrib{-1.0, 1.0};

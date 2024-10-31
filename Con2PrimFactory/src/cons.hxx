@@ -9,6 +9,8 @@
 
 namespace Con2PrimFactory {
 
+using namespace AsterUtils;
+
 // Structure to represent conserved variables for mhd
 struct cons_vars {
   CCTK_REAL dens;
