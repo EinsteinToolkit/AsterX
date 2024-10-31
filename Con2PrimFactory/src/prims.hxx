@@ -9,6 +9,8 @@
 
 namespace Con2PrimFactory {
 
+using namespace AsterUtils;
+
 struct prim_vars {
   CCTK_REAL rho;
   CCTK_REAL eps;

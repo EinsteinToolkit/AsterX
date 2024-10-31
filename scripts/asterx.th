@@ -703,6 +703,7 @@ CarpetX/Algo
 CarpetX/Arith
 CarpetX/BoxInBox
 CarpetX/CarpetX
+CarpetX/CarpetXRegrid
 CarpetX/CoordinatesX
 CarpetX/Derivs
 CarpetX/ErrorEstimator
@@ -743,6 +744,7 @@ SpacetimeX/Z4c
 !TYPE     = ignore
 !CHECKOUT =
 AsterX/AsterSeeds
+AsterX/AsterUtils
 AsterX/AsterX
 AsterX/Con2PrimFactory
 AsterX/EOSX

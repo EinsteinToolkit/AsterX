@@ -21,6 +21,13 @@ KEYWORD flux_type "Flux solver" STEERABLE=always
   "HLLE" :: ""
 } "LxF"
 
+KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
+{
+  "v_vec" :: "Eulerian 3-velocity"
+  "z_vec" :: "Lorentz factor x Eulerian 3-velocity"
+  "s_vec" :: "Purely hydrodynamic part of conserved momentum without volume factor"
+} "v_vec"
+
 BOOLEAN local_estimate_error "Use error estimation criteria of this thorn" STEERABLE=always
 {
 } yes
@@ -116,6 +123,10 @@ USES CCTK_REAL r_atmo
 USES CCTK_REAL n_rho_atmo
 USES CCTK_REAL n_press_atmo
 USES BOOLEAN thermal_eos_atmo
+USES CCTK_REAL alp_thresh
+USES CCTK_REAL rho_BH
+USES CCTK_REAL eps_BH
+USES CCTK_REAL vwlim_BH
 
 SHARES: ReconX
 USES KEYWORD reconstruction_method

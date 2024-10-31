@@ -2,7 +2,7 @@
 
 IMPLEMENTS: TOVSolverX
 
-INHERITS: CarpetX ADMBaseX HydroBaseX
+INHERITS: CarpetXRegrid ADMBaseX HydroBaseX
 
 USES INCLUDE HEADER: fixmath.hxx
 USES INCLUDE HEADER: loop_device.hxx

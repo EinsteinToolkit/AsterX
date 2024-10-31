@@ -1,10 +1,9 @@
-#include "prim2con.hxx"
-
-#include <loop_device.hxx>
-
 #include <cctk.h>
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
+#include <loop_device.hxx>
+
+#include "prim2con.hxx"
 
 namespace AsterX {
 using namespace Loop;
@@ -50,6 +49,19 @@ extern "C" void AsterX_Prim2Con_Initial(CCTK_ARGUMENTS) {
         saved_vely(p.I) = pv.vel(1);
         saved_velz(p.I) = pv.vel(2);
         saved_eps(p.I) = pv.eps;
+
+	const vec<CCTK_REAL, 3> v_up{pv.vel(0),pv.vel(1),pv.vel(2)};
+        const vec<CCTK_REAL, 3> v_low = calc_contraction(g, v_up);
+        CCTK_REAL wlor = calc_wlorentz(v_low, v_up);
+
+	zvec_x(p.I) = wlor * pv.vel(0);
+	zvec_y(p.I) = wlor * pv.vel(1);
+	zvec_z(p.I) = wlor * pv.vel(2);
+
+	svec_x(p.I) = (pv.rho+pv.rho*pv.eps+pv.press)*wlor*wlor*pv.vel(0);
+	svec_y(p.I) = (pv.rho+pv.rho*pv.eps+pv.press)*wlor*wlor*pv.vel(1);
+	svec_z(p.I) = (pv.rho+pv.rho*pv.eps+pv.press)*wlor*wlor*pv.vel(2);
+
       });
 
   /* Initilaize Psi to 0.0 */

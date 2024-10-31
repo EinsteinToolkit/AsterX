@@ -1,28 +1,27 @@
+#include <loop_device.hxx>
+
 #include <cctk.h>
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
-
-#include <loop_device.hxx>
-
 #include <cmath>
 
 #include "c2p.hxx"
 #include "c2p_1DPalenzuela.hxx"
 #include "c2p_2DNoble.hxx"
 
-#include <eos_1p.hxx>
-#include <eos_polytropic.hxx>
+#include "eos_1p.hxx"
+#include "eos_polytropic.hxx"
+#include "eos.hxx"
+#include "eos_idealgas.hxx"
 
-#include <eos.hxx>
-#include <eos_idealgas.hxx>
-
-#include "utils.hxx"
+#include "aster_utils.hxx"
 
 namespace AsterX {
 using namespace std;
 using namespace Loop;
 using namespace EOSX;
 using namespace Con2PrimFactory;
+using namespace AsterUtils;
 
 enum class eos_t { IdealGas, Hybrid, Tabulated };
 enum class c2p_first_t { Noble, Palenzuela };
@@ -130,6 +129,32 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType &eos_cold,
       atmo.set(pv_seeds);
     }
 
+    // Modifying primitive seeds within BH interiors before C2Ps are called
+    // NOTE: By default, alp_thresh=0 so the if condition below is never
+    // triggered. One must be very careful when using this functionality and
+    // must correctly set alp_thresh, rho_BH, eps_BH and vwlim_BH in the parfile
+
+    if (alp(p.I) < alp_thresh) {
+      if ((pv_seeds.rho > rho_BH) || (pv_seeds.eps > eps_BH)) {
+        pv_seeds.rho = rho_BH; // typically set to 0.01% to 1% of rho_max of
+                               // initial NS or disk
+        pv_seeds.eps = eps_BH;
+        pv_seeds.Ye = Ye_atmo;
+        pv_seeds.press =
+            eos_th.press_from_valid_rho_eps_ye(rho_BH, eps_BH, Ye_atmo);
+        // check on velocities
+        CCTK_REAL wlim_BH = sqrt(1.0 + vwlim_BH * vwlim_BH);
+        CCTK_REAL vlim_BH = vwlim_BH / wlim_BH;
+        CCTK_REAL sol_v =
+            sqrt((pv_seeds.w_lor * pv_seeds.w_lor - 1.0)) / pv_seeds.w_lor;
+        if (sol_v > vlim_BH) {
+          pv_seeds.vel *= vlim_BH / sol_v;
+          pv_seeds.w_lor = wlim_BH;
+        }
+        cv.from_prim(pv_seeds, glo);
+      }
+    }
+
     // Construct error report object:
     c2p_report rep_first;
     c2p_report rep_second;
@@ -170,6 +195,33 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType &eos_cold,
     if (rep_first.failed() && rep_second.failed()) {
       printf("Second C2P failed too :( :( \n");
       rep_second.debug_message();
+
+      // Treatment for BH interiors after C2P failures
+      // NOTE: By default, alp_thresh=0 so the if condition below is never
+      // triggered. One must be very careful when using this functionality and
+      // must correctly set alp_thresh, rho_BH, eps_BH and vwlim_BH in the
+      // parfile
+      if (alp(p.I) < alp_thresh) {
+        if ((pv_seeds.rho > rho_BH) || (pv_seeds.eps > eps_BH)) {
+          pv.rho = rho_BH; // typically set to 0.01% to 1% of rho_max of initial
+                           // NS or disk
+          pv.eps = eps_BH;
+          pv.Ye = Ye_atmo;
+          pv.press =
+              eos_th.press_from_valid_rho_eps_ye(rho_BH, eps_BH, Ye_atmo);
+          // check on velocities
+          CCTK_REAL wlim_BH = sqrt(1.0 + vwlim_BH * vwlim_BH);
+          CCTK_REAL vlim_BH = vwlim_BH / wlim_BH;
+          CCTK_REAL sol_v = sqrt((pv.w_lor * pv.w_lor - 1.0)) / pv.w_lor;
+          if (sol_v > vlim_BH) {
+            pv.vel *= vlim_BH / sol_v;
+            pv.w_lor = wlim_BH;
+          }
+          cv.from_prim(pv, glo);
+          rep_first.set_atmo = 0;
+          rep_second.set_atmo = 0;
+        }
+      }
       con2prim_flag(p.I) = 0;
     }
 
@@ -218,6 +270,17 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType &eos_cold,
     // Write back pv
     pv.scatter(rho(p.I), eps(p.I), dummy_Ye, press(p.I), velx(p.I), vely(p.I),
                velz(p.I), wlor, Bvecx(p.I), Bvecy(p.I), Bvecz(p.I), Ex, Ey, Ez);
+
+    zvec_x(p.I) = wlor * pv.vel(0);
+    zvec_y(p.I) = wlor * pv.vel(1);
+    zvec_z(p.I) = wlor * pv.vel(2);
+
+    svec_x(p.I) =
+        (pv.rho + pv.rho * pv.eps + pv.press) * wlor * wlor * pv.vel(0);
+    svec_y(p.I) =
+        (pv.rho + pv.rho * pv.eps + pv.press) * wlor * wlor * pv.vel(1);
+    svec_z(p.I) =
+        (pv.rho + pv.rho * pv.eps + pv.press) * wlor * wlor * pv.vel(2);
 
     // Write back cv
     cv.scatter(dens(p.I), momx(p.I), momy(p.I), momz(p.I), tau(p.I), dummy_Ye,
