@@ -37,7 +37,7 @@ if(local_estimate_error)
 
 
 
-SCHEDULE GROUP AsterX_InitialGroup AT initial AFTER HydroBaseX_PostInitial
+SCHEDULE GROUP AsterX_InitialGroup AT initial IN ODESolvers_Initial AFTER HydroBaseX_PostInitial 
 {
 } "Initialize conservative variables"
 
