@@ -27,6 +27,8 @@ extern "C" void AsterX_Test(CCTK_ARGUMENTS) {
 
     test_mp5(engine, repetitions);
 
+    test_ppm(engine, repetitions);
+
   } else {
     CCTK_INFO("Skipping unit tests");
   }
