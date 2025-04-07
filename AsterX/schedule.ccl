@@ -27,10 +27,20 @@ if(local_estimate_error)
     OPTIONS: GLOBAL
   } "set up for calculating regrid error"
 
+  SCHEDULE AsterX_Analysis IN ODESolvers_EstimateError BEFORE AsterX_EstimateError
+  {
+    LANG: C
+    READS: ADMBaseX::metric(interior) ADMBaseX::lapse(interior) ADMBaseX::shift(interior)
+    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::Bvec(interior)
+    WRITES: analysis_quantities(interior)
+    SYNC: analysis_quantities
+  } "Compute analysis quantities"
+
   SCHEDULE AsterX_EstimateError IN ODESolvers_EstimateError
   {
     LANG: C
     READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere)
+    READS: analysis_quantities(everywhere)
     WRITES: CarpetXRegrid::regrid_error(interior)
   } "Estimate local error for regridding initial conditions"
 }
@@ -81,26 +91,6 @@ SCHEDULE AsterX_CheckPrims IN AsterX_InitialGroup AFTER AsterX_ComputeBFromdB
   SYNC: zvec
   SYNC: svec
 } "Enforce limits on primitive variables"
-
-if(local_estimate_error)
-{
-  SCHEDULE AsterX_Analysis IN ODESolvers_EstimateError BEFORE AsterX_EstimateError
-  {
-    LANG: C
-    READS: ADMBaseX::metric(interior) ADMBaseX::lapse(interior) ADMBaseX::shift(interior)
-    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::Bvec(interior)
-    WRITES: analysis_quantities(interior)
-    SYNC: analysis_quantities
-  } "Compute analysis quantities"
-
-  SCHEDULE AsterX_EstimateError IN ODESolvers_EstimateError
-  {
-    LANG: C
-    READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::press(everywhere)
-    READS: analysis_quantities(everywhere)
-    WRITES: CarpetXRegrid::regrid_error(interior)
-  } "Estimate local error for regridding initial conditions"
-}
 
 SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_CheckPrims
 {
