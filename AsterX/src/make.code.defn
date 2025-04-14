@@ -2,11 +2,14 @@
 
 # Source files in this directory
 SRCS = \
+  calc_r_ent.cxx \
   computeBfromA.cxx \
   con2prim.cxx \
   estimate_error.cxx \
   fluxes.cxx \
+  flux_corrections.cxx \
   check_prims.cxx \
+  init_entropy_tls.cxx \
   prim2con.cxx \
   rhs.cxx \
   sync.cxx \

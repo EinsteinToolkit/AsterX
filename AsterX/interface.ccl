@@ -6,6 +6,7 @@ INHERITS: CarpetXRegrid ADMBaseX HydroBaseX TmunuBaseX
 
 USES INCLUDE HEADER: fixmath.hxx
 USES INCLUDE HEADER: loop_device.hxx
+USES INCLUDE HEADER: derivs.hxx
 USES INCLUDE HEADER: eos_1p.hxx eos_polytropic.hxx
 USES INCLUDE HEADER: eos.hxx eos_idealgas.hxx
 USES INCLUDE HEADER: c2p.hxx c2p_2DNoble.hxx c2p_1DPalenzuela.hxx c2p_1DEntropy.hxx
@@ -35,6 +36,9 @@ CCTK_REAL tau TYPE=gf CENTERING={ccc} TAGS='rhs="taurhs" dependents="HydroBaseX:
 # the "evolved" quantities. 
 CCTK_REAL DEnt TYPE=gf CENTERING={ccc} TAGS='rhs="DEntrhs" dependents="HydroBaseX::entropy AsterX::flux_x AsterX::flux_y AsterX::flux_z"' "Advected entropy density"
 
+CCTK_REAL volform TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "sqrt(detg)"
+CCTK_REAL w_lorentz TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Fluid Lorentz factor"
+
 CCTK_REAL flux_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
 {
   fxdens
@@ -43,6 +47,14 @@ CCTK_REAL flux_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
   fxDEnt
   fxBx fxBy fxBz
 } "Fluxes in x direction"
+
+CCTK_REAL fluxLO_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+{
+  fLOxdens
+  fLOxmomx fLOxmomy fLOxmomz
+  fLOxtau
+  fLOxDEnt
+} "Low order fluxes in x direction for PP limiter"
 
 CCTK_REAL flux_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
 {
@@ -53,6 +65,14 @@ CCTK_REAL flux_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
   fyBx fyBy fyBz
 } "Fluxes in y direction"
 
+CCTK_REAL fluxLO_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+{
+  fLOydens
+  fLOymomx fLOymomy fLOymomz
+  fLOytau
+  fLOyDEnt
+} "Low order fluxes in x direction for PP limiter"
+
 CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
 {
   fzdens
@@ -61,6 +81,48 @@ CCTK_REAL flux_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
   fzDEnt
   fzBx fzBy fzBz
 } "Fluxes in z direction"
+
+CCTK_REAL fluxLO_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+{
+  fLOzdens
+  fLOzmomx fLOzmomy fLOzmomz
+  fLOztau
+  fLOzDEnt
+} "Low order fluxes in x direction for PP limiter"
+
+CCTK_REAL thetas TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"'
+{
+	theta_x, theta_y, theta_z
+}
+
+CCTK_REAL r_ent TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Entropy residual for EFL"
+CCTK_REAL phys_ent TYPE=gf CENTERING={ccc} "Physical entropy (as opposed to evolved)"
+CCTK_REAL ent_m1 TYPE=gf CENTERING={ccc} "Prev entropy timelevel"
+CCTK_REAL ent_m2 TYPE=gf CENTERING={ccc} "Prev-prev entropy timelevel"
+
+CCTK_REAL fluxHO_x TYPE=gf CENTERING={vcc} TAGS='checkpoint="no"'
+{
+  fHOxdens
+  fHOxmomx fHOxmomy fHOxmomz
+  fHOxtau
+  fHOxDEnt
+} "Higher order flux corrections in x direction"
+
+CCTK_REAL fluxHO_y TYPE=gf CENTERING={cvc} TAGS='checkpoint="no"'
+{
+  fHOydens
+  fHOymomx fHOymomy fHOymomz
+  fHOytau
+  fHOyDEnt
+} "Higher order flux corrections in y direction"
+
+CCTK_REAL fluxHO_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"'
+{
+  fHOzdens
+  fHOzmomx fHOzmomy fHOzmomz
+  fHOztau
+  fHOzDEnt
+} "Higher order flux corrections in z direction"
 
 CCTK_REAL densrhs TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Conserved rest mass density RHS"
 

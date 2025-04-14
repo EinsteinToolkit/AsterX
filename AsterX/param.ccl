@@ -25,6 +25,34 @@ KEYWORD flux_type "Flux solver" STEERABLE=always
   "HLLE" :: ""
 } "LxF"
 
+BOOLEAN use_pplim "Use positivity-preserving limiter?" STEERABLE=always
+{
+} "no"
+
+BOOLEAN use_efl "Use entropy flux limiter?" STEERABLE=always
+{
+} "no"
+
+CCTK_INT efl_deriv_order "Order of entropy spatial finite differencing for EFL" STEERABLE=always
+{
+  2 :: "Second order finite difference"
+  4 :: "Fourth order finite difference"
+  6 :: "Sixth order finite difference"
+  8 :: "Eighth order finite difference"
+} 4
+
+CCTK_INT correction_order "Order of accuracy to check if higher order corrections are to be applied" STEERABLE=never
+{
+  2 :: "Second order accurate"
+  4 :: "Fourth order accurate"
+  6 :: "Sixth order accurate"
+} 2
+
+CCTK_REAL efl_ce "Scaling of entropy residual for EFL" STEERABLE=always
+{
+  0:* :: "Should be positive"
+} 1.0
+
 KEYWORD recon_type "Vector field used in reconstruction" STEERABLE=always
 {
   "v_vec" :: "Eulerian 3-velocity"

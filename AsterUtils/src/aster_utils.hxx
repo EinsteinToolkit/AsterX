@@ -164,6 +164,27 @@ calc_avg_neighbors(const vec<T, D> flag, const vec<T, D> u_nbs,
          CCTK_REAL(D);
 }
 
+// Higher order corrections
+template <typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline T
+higher_order_correction(const GF3D2<T> &gf, const PointDesc &p, int dir,
+                        int correction_order) {
+  T correction;
+  correction = 0.0;
+  if (correction_order == 4) {
+    correction = (13.0 / 12.0) * gf(p.I) -
+                 (1.0 / 24.0) * (gf(p.I - p.DI[dir]) + gf(p.I + p.DI[dir]));
+  } else if (correction_order == 6) {
+    correction =
+        (1067.0 / 960.0) * gf(p.I) -
+        (29.0 / 480.0) * (gf(p.I - p.DI[dir]) + gf(p.I + p.DI[dir])) +
+        (3.0 / 640.0) * (gf(p.I - 2 * p.DI[dir]) + gf(p.I + 2 * p.DI[dir]));
+  } else {
+    correction = gf(p.I);
+  }
+  return correction;
+}
+
 } // namespace AsterUtils
 
 #endif // ASTER_UTILS_HXX
