@@ -1,7 +1,11 @@
 # Schedule definitions for thorn AsterX
 
 STORAGE: dens mom tau DEnt dB Psi HydroBaseX::Bvec dBx_stag dBy_stag dBz_stag
+STORAGE: volform w_lorentz
 STORAGE: flux_x flux_y flux_z
+STORAGE: fluxLO_x fluxLO_y fluxLO_z thetas
+STORAGE: r_ent phys_ent ent_m1 ent_m2
+STORAGE: fluxHO_x fluxHO_y fluxHO_z
 STORAGE: densrhs momrhs taurhs DEntrhs Avec_x_rhs Avec_y_rhs Avec_z_rhs Psi_rhs
 STORAGE: ADMBaseX::metric ADMBaseX::lapse ADMBaseX::shift ADMBaseX::curv
 STORAGE: Aux_in_RHSof_A_Psi
@@ -81,6 +85,13 @@ SCHEDULE AsterX_CheckPrims IN AsterX_InitialGroup AFTER AsterX_ComputeBFromdB
   SYNC: svec
 } "Enforce limits on primitive variables"
 
+SCHEDULE AsterX_InitEntropyTLs IN AsterX_InitialGroup AFTER AsterX_CheckPrims
+{
+  LANG: C
+  READS: HydroBaseX::entropy(everywhere)
+  WRITES: r_ent(everywhere) phys_ent(everywhere) ent_m1(everywhere) ent_m2(everywhere)
+} "Initialize previos entropy timelevels for EFL"
+
 SCHEDULE AsterX_Prim2Con_Initial IN AsterX_InitialGroup AFTER AsterX_CheckPrims
 {
   LANG: C
@@ -151,6 +162,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   WRITES: zvec(interior)
   WRITES: svec(interior)
   WRITES: dens(interior) tau(interior) DEnt(interior) mom(interior) dB(interior)
+  WRITES: volform(interior) w_lorentz(interior)
   SYNC: con2prim_flag
   SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press HydroBaseX::Bvec 
   SYNC: HydroBaseX::entropy
@@ -158,6 +170,7 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
   SYNC: zvec
   SYNC: svec
   SYNC: dens tau DEnt mom dB
+  SYNC: volform w_lorentz
 } "Calculate primitive variables from conservative variables"
 
 
@@ -165,6 +178,27 @@ SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBsta
 SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
 {
 } "Calculate AsterX RHS"
+
+if(use_efl)
+{
+  SCHEDULE AsterX_CalcPhysEntropy IN AsterX_RHSGroup BEFORE AsterX_CalcEntropyResidual
+  {
+    LANG: C
+    READS: HydroBaseX::entropy(everywhere)
+    WRITES: phys_ent(everywhere)
+  } "Calcuate physical from evolved entropy"
+
+  SCHEDULE AsterX_CalcEntropyResidual IN AsterX_RHSGroup BEFORE AsterX_Fluxes
+  {
+    LANG: C
+    READS: ADMBaseX::lapse(everywhere)
+    READS: ADMBaseX::shift(everywhere)
+    READS: HydroBaseX::vel(everywhere)
+    READS: phys_ent(everywhere) ent_m1(everywhere) ent_m2(everywhere)
+    WRITES: r_ent(interior) ent_m1(interior) ent_m2(interior)
+    SYNC: r_ent phys_ent ent_m1 ent_m2
+  } "Calculate local entropy gain for EFL"
+}
 
 SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
 {
@@ -180,7 +214,11 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   READS: zvec_x(everywhere) zvec_y(everywhere) zvec_z(everywhere)
   READS: svec_x(everywhere) svec_y(everywhere) svec_z(everywhere)
   READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
+  READS: volform(everywhere) w_lorentz(everywhere)
+  READS: r_ent(interior)
   WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
+  WRITES: fluxLO_x(interior) fluxLO_y(interior) fluxLO_z(interior)
+  WRITES: thetas(interior)
   WRITES: Aux_in_RHSof_A_Psi(interior)
   WRITES: vtilde_xface(interior) vtilde_yface(interior) vtilde_zface(interior)
   WRITES: a_xface(interior) a_yface(interior) a_zface(interior)
@@ -189,7 +227,16 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   SYNC: vtilde_xface vtilde_yface vtilde_zface a_xface a_yface a_zface
 } "Calculate the hydro fluxes"
 
-SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
+SCHEDULE AsterX_Flux_Corrections IN AsterX_RHSGroup AFTER AsterX_Fluxes
+{
+  LANG: C
+  READS: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
+  WRITES: fluxHO_x(interior) fluxHO_y(interior) fluxHO_z(interior)
+  WRITES: flux_x(interior) flux_y(interior) flux_z(interior)
+  SYNC: flux_x flux_y flux_z
+} "Computes the higher order corrections to fluxes and updates them"
+
+SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes_Corrections
 {
   LANG: C
   READS: ADMBaseX::metric(everywhere)

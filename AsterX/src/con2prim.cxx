@@ -345,6 +345,10 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType &eos_cold,
     saved_velz(p.I) = velz(p.I);
     saved_eps(p.I) = eps(p.I);
 
+    // Update auxillary GFs
+    volform(p.I) = sqrt_detg;
+    w_lorentz(p.I) = wlor;
+
   }); // Loop
 }
 
