@@ -375,6 +375,20 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     status = ROOTSTAT::NOT_CONVERGED;
   }
   */
+
+  // Error out if rho is negative or zero
+  if (pv.rho <= 0.0) {
+    // set status to rho is out of range
+    rep.set_range_rho(cv.dens, pv.rho);
+    cv.dens *= sqrt_detg;
+    cv.tau *= sqrt_detg;
+    cv.mom *= sqrt_detg;
+    cv.dBvec *= sqrt_detg;
+    cv.DYe *= sqrt_detg;
+    cv.DEnt *= sqrt_detg;
+    return;
+  }
+
   if (abs(result.first - result.second) >
       tolerance_0 * min(abs(result.first), abs(result.second))) {
 

@@ -1,0 +1,6 @@
+# Parameter definitions for thorn AsterMasks
+
+BOOLEAN mask_storage_vc "Allocate storage for VC mask and initialize to true" STEERABLE=always
+{
+} "yes"
+

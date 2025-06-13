@@ -227,7 +227,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     }
 
     // Reconstruct entropy and Ye
-    vec<CCTK_REAL, 2> entropy_rc{reconstruct_pt(entropy, p, true, true)};
+    vec<CCTK_REAL, 2> entropy_rc{reconstruct_pt(entropy, p, false, false)};
     const vec<CCTK_REAL, 2> Ye_rc{reconstruct_pt(Ye, p, false, false)};
 
     // Initialize variables for eps, pressure, and temperature

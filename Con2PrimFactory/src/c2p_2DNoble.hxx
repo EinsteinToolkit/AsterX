@@ -475,9 +475,6 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
     x[0] += dx[0];
     x[1] += dx[1];
 
-    // calculate the convergence criterion
-    errx = (x[0] == 0.) ? fabs(dx[0]) : fabs(dx[0] / x[0]);
-
     /* make sure that the new x[] is physical */
     if (x[1] < 0.0) {
       x[1] = 0.0;
@@ -497,6 +494,9 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
         x[0] = x_old[0];
       }
     }
+
+    // calculate the convergence criterion
+    errx = (x[0] == 0.) ? fabs(dx[0]) : fabs(dx[0] / x[0]);
 
     if (fabs(errx) <= tolerance) {
       break;
@@ -541,6 +541,33 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
 
   /* Write prims if C2P succeeded */
   WZ2Prim(Z_Sol, vsq_Sol, Bsq, BiSi, eos_3p, pv, cv, gup, glo);
+
+  // Error out if rho is negative or zero
+  if (pv.rho <= 0.0) {
+    // set status to rho is out of range
+    rep.set_range_rho(cv.dens, pv.rho);
+    cv.dens *= sqrt_detg;
+    cv.tau *= sqrt_detg;
+    cv.mom *= sqrt_detg;
+    cv.dBvec *= sqrt_detg;
+    cv.DYe *= sqrt_detg;
+    cv.DEnt *= sqrt_detg;
+    return;
+  }
+
+  // Error out if eps is negative or zero
+  if (pv.eps <= 0.0) {
+    // set status to eps is out of range
+    rep.set_range_eps(pv.eps);
+    cv.dens *= sqrt_detg;
+    cv.tau *= sqrt_detg;
+    cv.mom *= sqrt_detg;
+    cv.dBvec *= sqrt_detg;
+    cv.DYe *= sqrt_detg;
+    cv.DEnt *= sqrt_detg;
+    return;
+  }
+
   // Conserved entropy must be consistent with new prims
   cv.DEnt = cv.dens * pv.entropy;
 

@@ -152,13 +152,20 @@ c2p_1DPalenzuela::xPalenzuelaToPrim(CCTK_REAL xPalenzuela_Sol, CCTK_REAL Ssq,
   const CCTK_REAL tPalenzuela = BiSi / pow(cv.dens, 3. / 2.);
 
   // (i)
+  /*
+  CCTK_REAL Wminus2 =
+      1.0 -
+      (rPalenzuela +
+       (2.0 * xPalenzuela_Sol + sPalenzuela) * tPalenzuela * tPalenzuela / ( xPalenzuela_Sol * xPalenzuela_Sol ) ) /
+          ( (xPalenzuela_Sol + sPalenzuela) * (xPalenzuela_Sol + sPalenzuela) );
+  */
   CCTK_REAL Wminus2 =
       1.0 -
       (xPalenzuela_Sol * xPalenzuela_Sol * rPalenzuela +
        (2.0 * xPalenzuela_Sol + sPalenzuela) * tPalenzuela * tPalenzuela) /
           (xPalenzuela_Sol * xPalenzuela_Sol * (xPalenzuela_Sol + sPalenzuela) *
            (xPalenzuela_Sol + sPalenzuela));
-  Wminus2 = fmin(fmax(Wminus2, 1e-10), 1 - 1e-10);
+  Wminus2 = fmin(fmax(Wminus2, 1e-10), 1);
   const CCTK_REAL W_sol = pow(Wminus2, -0.5);
 
   // (ii)
@@ -263,11 +270,18 @@ c2p_1DPalenzuela::funcRoot_1DPalenzuela(CCTK_REAL Ssq, CCTK_REAL Bsq,
   const CCTK_REAL tPalenzuela = BiSi / pow(cv.dens, 3. / 2.);
 
   // (i)
+  /*
+  CCTK_REAL Wminus2 =
+      1.0 -
+      (rPalenzuela +
+       (2.0 * x + sPalenzuela) * tPalenzuela * tPalenzuela / ( x * x ) ) /
+          ( (x + sPalenzuela) * (x + sPalenzuela) );
+  */
   CCTK_REAL Wminus2 =
       1.0 - (x * x * rPalenzuela +
              (2.0 * x + sPalenzuela) * tPalenzuela * tPalenzuela) /
                 (x * x * (x + sPalenzuela) * (x + sPalenzuela));
-  Wminus2 = fmin(fmax(Wminus2, 1e-10), 1 - 1e-10);
+  Wminus2 = fmin(fmax(Wminus2, 1e-10), 1);
   const CCTK_REAL W_loc = pow(Wminus2, -0.5);
 
   // (ii)
@@ -431,6 +445,32 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   //}
 
   xPalenzuelaToPrim(xPalenzuela_Sol, Ssq, Bsq, BiSi, eos_3p, pv, cv, gup, glo);
+
+  // Error out if rho is negative or zero
+  if (pv.rho <= 0.0) {
+    // set status to rho is out of range
+    rep.set_range_rho(cv.dens, pv.rho);
+    cv.dens *= sqrt_detg;
+    cv.tau *= sqrt_detg;
+    cv.mom *= sqrt_detg;
+    cv.dBvec *= sqrt_detg;
+    cv.DYe *= sqrt_detg;
+    cv.DEnt *= sqrt_detg;
+    return;
+  }
+
+  // Error out if eps is negative or zero
+  if (pv.eps <= 0.0) {
+    // set status to eps is out of range
+    rep.set_range_eps(pv.eps);
+    cv.dens *= sqrt_detg;
+    cv.tau *= sqrt_detg;
+    cv.mom *= sqrt_detg;
+    cv.dBvec *= sqrt_detg;
+    cv.DYe *= sqrt_detg;
+    cv.DEnt *= sqrt_detg;
+    return;
+  }
 
   // General comment:
   // One could think of expressing the following condition

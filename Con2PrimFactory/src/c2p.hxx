@@ -75,6 +75,11 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
   bh_interior_fail(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
                    const smat<CCTK_REAL, 3> &glo) const;
+
+  template <typename EOSType>
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
+  cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv, 
+                           const smat<CCTK_REAL, 3> &glo) const;
 };
 
 template <typename EOSType>
@@ -214,6 +219,47 @@ c2p::bh_interior_fail(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   }
   cv.from_prim(pv, glo);
 }
+
+template <typename EOSType>
+CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
+c2p::cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv, 
+                              const smat<CCTK_REAL, 3> &glo) const {
+
+  // Limit conservative variables
+  // Note that conservatives are densitized
+
+  const CCTK_REAL spatial_detg = calc_det(glo);
+  const CCTK_REAL sqrt_detg = sqrt(spatial_detg);
+
+  const smat<CCTK_REAL, 3> gup = calc_inv(glo, spatial_detg);
+
+  // Lower limit on tau/conserved internal energy
+  // Based on Appendix A of https://arxiv.org/pdf/1112.0568
+
+  // Compute Bsq
+  vec<CCTK_REAL, 3> B_low  = calc_contraction(glo, cv.dBvec);
+  const CCTK_REAL BsqL = calc_contraction(B_low, cv.dBvec);
+  const CCTK_REAL tau_lim = 0.5*BsqL/sqrt_detg;
+
+  if (cv.tau <= tau_lim) {
+    cv.tau = tau_lim;
+  }
+
+  // Dominant energy condition 
+  // (A5) from https://arxiv.org/pdf/1505.01607
+
+  vec<CCTK_REAL, 3> mom_up  = calc_contraction(gup, cv.mom);
+  const CCTK_REAL mom2L = calc_contraction(cv.mom, mom_up);
+
+  const CCTK_REAL slim  = cv.dens + cv.tau;
+  const CCTK_REAL slim2 = slim*slim;
+
+  if (mom2L > slim2) {
+   // (A51) from https://arxiv.org/pdf/1112.0568
+   cv.mom = cv.mom * sqrt(slim2/mom2L);
+  }
+
+};
 
 } // namespace Con2PrimFactory
 

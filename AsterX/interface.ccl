@@ -2,7 +2,7 @@
 
 IMPLEMENTS: AsterX
 
-INHERITS: CarpetXRegrid ADMBaseX HydroBaseX TmunuBaseX
+INHERITS: CarpetXRegrid ADMBaseX HydroBaseX TmunuBaseX AsterMasks
 
 USES INCLUDE HEADER: fixmath.hxx
 USES INCLUDE HEADER: loop_device.hxx

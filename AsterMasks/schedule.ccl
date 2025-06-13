@@ -1,0 +1,9 @@
+#Schedule definitions for thorn AsterMasks
+if (mask_storage_vc) {
+  STORAGE: aster_mask_vc
+
+  SCHEDULE AsterMasks_Initialize IN CCTK_INITIAL BEFORE ODESolvers_Initial {
+  LANG: C
+  WRITES: aster_mask_vc(everywhere)
+  } "Initialize VC mask to true"
+}

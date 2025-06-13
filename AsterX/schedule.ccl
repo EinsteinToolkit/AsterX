@@ -139,6 +139,7 @@ SCHEDULE AsterX_ComputedBFromdBstag IN AsterX_Con2PrimGroup AFTER AsterX_Compute
 SCHEDULE AsterX_Con2Prim IN AsterX_Con2PrimGroup AFTER AsterX_ComputedBFromdBstag
 {
   LANG: C
+  READS: AsterMasks::aster_mask_vc(interior)
   READS: ADMBaseX::metric(interior)
   READS: ADMBaseX::lapse(everywhere)
   READS: dens(interior) tau(interior) DEnt(interior) mom(interior) DYe(interior) dB(interior)

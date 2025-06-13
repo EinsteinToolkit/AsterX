@@ -1,0 +1,8 @@
+# Main make.code.defn file for thorn HydroToyGPU
+
+# Source files in this directory
+SRCS =	\
+  InitializeMasks.cxx
+
+# Subdirectories containing source files
+SUBDIRS = 

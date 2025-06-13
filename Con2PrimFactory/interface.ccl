@@ -1,6 +1,7 @@
 #Interface definition for thorn Con2PrimFactory
 
 implements: Con2PrimFactory 
+
 INCLUDES HEADER: atmo.hxx IN atmo.hxx 
 INCLUDES HEADER: prims.hxx IN prims.hxx 
 INCLUDES HEADER: cons.hxx IN cons.hxx 
