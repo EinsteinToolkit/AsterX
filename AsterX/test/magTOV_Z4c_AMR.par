@@ -126,6 +126,7 @@ Con2PrimFactory::B_lim = 1e8
 Con2PrimFactory::vw_lim = 1e8
 Con2PrimFactory::Ye_lenient = "yes"
 Con2PrimFactory::use_z = "yes"
+Con2PrimFactory::thermal_eos_atmo = "no"
 
 EOSX::evolution_eos = "IdealGas"
 EOSX::gl_gamma = 2.0

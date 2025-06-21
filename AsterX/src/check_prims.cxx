@@ -14,7 +14,8 @@ using namespace std;
 
 enum class eos_3param { IdealGas, Hybrid, Tabulated };
 
-template <typename EOSType> void CheckPrims(CCTK_ARGUMENTS, EOSType *eos_3p) {
+template <typename EOSIDType, typename EOSType>
+void CheckPrims(CCTK_ARGUMENTS, EOSIDType *eos_1p, EOSType *eos_3p) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_CheckPrims;
   DECLARE_CCTK_PARAMETERS;
 
@@ -22,12 +23,6 @@ template <typename EOSType> void CheckPrims(CCTK_ARGUMENTS, EOSType *eos_3p) {
   grid.loop_int_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        CCTK_REAL rhomin = eos_3p->rgrho.min;
-        CCTK_REAL rhomax = eos_3p->rgrho.max;
-        CCTK_REAL tempmin = eos_3p->rgtemp.min;
-        CCTK_REAL tempmax = eos_3p->rgtemp.max;
-        CCTK_REAL epsmin = eos_3p->rgeps.min;
-        CCTK_REAL epsmax = eos_3p->rgeps.max;
 
         // Interpolate metric terms from vertices to center
         const smat<CCTK_REAL, 3> g{calc_avg_v2c(gxx, p), calc_avg_v2c(gxy, p),
@@ -42,6 +37,54 @@ template <typename EOSType> void CheckPrims(CCTK_ARGUMENTS, EOSType *eos_3p) {
         CCTK_REAL entropyL = entropy(p.I);
         CCTK_REAL YeL = Ye(p.I);
         CCTK_REAL tempL = temperature(p.I);
+
+        // Setting up atmosphere
+        CCTK_REAL rho_atm = 0.0;   // dummy initialization
+        CCTK_REAL press_atm = 0.0; // dummy initialization
+        CCTK_REAL eps_atm = 0.0;   // dummy initialization
+        CCTK_REAL temp_atm = 0.0;  // dummy initialization
+        auto rgeps = eos_3p->range_eps_from_valid_rho_ye(rhoL, YeL);
+
+        CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+
+        // Grading rho
+        rho_atm =
+            (radial_distance > r_atmo)
+                ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
+                : rho_abs_min;
+        rho_atm = std::max(eos_3p->rgrho.min, rho_atm);
+
+        // Grading pressure based on either cold or thermal EOS
+        if (thermal_eos_atmo) {
+          // rho_atm = max(rho_atm, eos_3p->interptable->xmin<0>());
+          temp_atm = (radial_distance > r_atmo)
+                         ? (t_atmo * pow(r_atmo / radial_distance, n_temp_atmo))
+                         : t_atmo;
+          temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
+          // temp_atm = max(temp_atm, eos_3p->interptable->xmin<1>());
+          press_atm =
+              eos_3p->press_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
+          eps_atm =
+              eos_3p->eps_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
+          // eps_atm should be kept consistent with temp_atm, so we do not use
+          // the setting below
+          // eps_atm =
+          //    std::min(std::max(eos_3p->rgeps.min, eps_atm),
+          //    eos_3p->rgeps.max);
+        } else {
+          const CCTK_REAL gm1 = eos_1p->gm1_from_valid_rho(rho_atm);
+          eps_atm = eos_1p->sed_from_valid_gm1(gm1);
+          eps_atm =
+              std::min(std::max(eos_3p->rgeps.min, eps_atm), eos_3p->rgeps.max);
+          press_atm =
+              eos_3p->press_from_valid_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+        }
+        const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
+
+        CCTK_REAL rhomax = eos_3p->rgrho.max;
+        CCTK_REAL tempmax = eos_3p->rgtemp.max;
+        CCTK_REAL epsmax = rgeps.max;
+
 
         // Lower velocity
         vec<CCTK_REAL, 3> v_low = calc_contraction(g, v_up);
@@ -80,10 +123,10 @@ template <typename EOSType> void CheckPrims(CCTK_ARGUMENTS, EOSType *eos_3p) {
           entropyL = eos_3p->kappa_from_valid_rho_eps_ye(rhoL, epsL, YeL);
         }
 
-        if (rhoL < rho_abs_min * (1 + atmo_tol)) {
+        if (rhoL < rho_atmo_cut) {
 
           // add mass
-          rhoL = rho_abs_min;
+          rhoL = rho_atm;
 
           if (use_temperature) {
             epsL = eos_3p->eps_from_valid_rho_temp_ye(rhoL, tempL, YeL);
@@ -107,8 +150,8 @@ template <typename EOSType> void CheckPrims(CCTK_ARGUMENTS, EOSType *eos_3p) {
             pressL = eos_3p->press_from_valid_rho_temp_ye(rhoL, tempL, YeL);
             entropyL = eos_3p->kappa_from_valid_rho_eps_ye(rhoL, epsL, YeL);
           }
-          if (tempL < tempmin) {
-            tempL = tempmin;
+          if (tempL < temp_atm) {
+            tempL = temp_atm;
             epsL = eos_3p->eps_from_valid_rho_temp_ye(rhoL, tempL, YeL);
             pressL = eos_3p->press_from_valid_rho_temp_ye(rhoL, tempL, YeL);
             entropyL = eos_3p->kappa_from_valid_rho_eps_ye(rhoL, epsL, YeL);
@@ -128,9 +171,9 @@ template <typename EOSType> void CheckPrims(CCTK_ARGUMENTS, EOSType *eos_3p) {
           pressL = eos_3p->press_from_valid_rho_eps_ye(rhoL, epsL, YeL);
           entropyL = eos_3p->kappa_from_valid_rho_eps_ye(rhoL, epsL, YeL);
 
-        } else if (epsL < epsmin) {
+        } else if (epsL < eps_atm) {
 
-          epsL = epsmin;
+          epsL = eps_atm;
           tempL = eos_3p->temp_from_valid_rho_eps_ye(rhoL, epsL, YeL);
           pressL = eos_3p->press_from_valid_rho_eps_ye(rhoL, epsL, YeL);
           entropyL = eos_3p->kappa_from_valid_rho_eps_ye(rhoL, epsL, YeL);
@@ -192,23 +235,26 @@ extern "C" void AsterX_CheckPrims(CCTK_ARGUMENTS) {
   switch (eos_3p_type) {
   case eos_3param::IdealGas: {
     // Get local eos object
+    auto eos_1p_poly = global_eos_1p_poly;
     auto eos_3p_ig = global_eos_3p_ig;
 
-    CheckPrims(cctkGH, eos_3p_ig);
+    CheckPrims(cctkGH, eos_1p_poly, eos_3p_ig);
     break;
   }
   case eos_3param::Hybrid: {
     // Get local eos object
+    auto eos_1p_poly = global_eos_1p_poly;
     auto eos_3p_hyb = global_eos_3p_hyb;
 
-    CheckPrims(cctkGH, eos_3p_hyb);
+    CheckPrims(cctkGH, eos_1p_poly, eos_3p_hyb);
     break;
   }
   case eos_3param::Tabulated: {
     // Get local eos object
+    auto eos_1p_poly = global_eos_1p_poly;
     auto eos_3p_tab3d = global_eos_3p_tab3d;
 
-    CheckPrims(cctkGH, eos_3p_tab3d);
+    CheckPrims(cctkGH, eos_1p_poly, eos_3p_tab3d);
     break;
   }
   default:

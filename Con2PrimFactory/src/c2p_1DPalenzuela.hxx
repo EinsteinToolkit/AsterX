@@ -171,7 +171,7 @@ c2p_1DPalenzuela::xPalenzuelaToPrim(CCTK_REAL xPalenzuela_Sol, CCTK_REAL Ssq,
                         (2 * xPalenzuela_Sol * xPalenzuela_Sol) +
                     sPalenzuela / (2.0 * W_sol * W_sol));
 
-  pv.eps = std::max(pv.eps, eos_3p->rgeps.min); // check on lower bound
+  pv.eps = std::max(pv.eps, atmo.eps_atmo); // check on lower bound
   pv.eps = std::min(pv.eps, eos_3p->rgeps.max); // check on upper bound
 
   // (iv)
@@ -280,7 +280,7 @@ c2p_1DPalenzuela::funcRoot_1DPalenzuela(CCTK_REAL Ssq, CCTK_REAL Bsq,
                                tPalenzuela * tPalenzuela / (2 * x * x) +
                                sPalenzuela / (2 * W_loc * W_loc));
 
-  eps_loc = std::max(eps_loc, eos_3p->rgeps.min); // check on lower bound
+  eps_loc = std::max(eps_loc, atmo.eps_atmo); // check on lower bound
   eps_loc = std::min(eps_loc, eos_3p->rgeps.max); // check on upper bound
 
   // (iv)

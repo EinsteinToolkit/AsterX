@@ -73,13 +73,13 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     CCTK_REAL press_atm = 0.0; // dummy initialization
     CCTK_REAL eps_atm = 0.0;   // dummy initialization
     CCTK_REAL temp_atm = 0.0;  // dummy initialization
-    CCTK_REAL local_eps_BH = eps_BH;
     CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
 
     // Grading rho
     rho_atm = (radial_distance > r_atmo)
                   ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
                   : rho_abs_min;
+    rho_atm = std::max(eos_3p->rgrho.min, rho_atm);
 
     // Grading pressure based on either cold or thermal EOS
     if (thermal_eos_atmo) {
@@ -87,12 +87,15 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
       temp_atm = (radial_distance > r_atmo)
                      ? (t_atmo * pow(r_atmo / radial_distance, n_temp_atmo))
                      : t_atmo;
+      temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
       // temp_atm = max(temp_atm, eos_3p->interptable->xmin<1>());
       press_atm =
           eos_3p->press_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
       eps_atm = eos_3p->eps_from_valid_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
-      eps_atm =
-          std::min(std::max(eos_3p->rgeps.min, eps_atm), eos_3p->rgeps.max);
+      // eps_atm should be kept consistent with temp_atm, so we do not use
+      // the setting below
+      // eps_atm =
+      //    std::min(std::max(eos_3p->rgeps.min, eps_atm), eos_3p->rgeps.max);
     } else {
       const CCTK_REAL gm1 = eos_1p->gm1_from_valid_rho(rho_atm);
       eps_atm = eos_1p->sed_from_valid_gm1(gm1);
@@ -126,7 +129,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
     // ----------
 
-    /* Get lapse */  
+    /* Get lapse */
     const CCTK_REAL alp_avg = calc_avg_v2c(alp, p);
 
     /* Get covariant metric */
@@ -166,7 +169,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
                  DEnt(p.I), {dBx(p.I), dBy(p.I), dBz(p.I)}};
 
     // Undensitized magnetic fields
-    const vec<CCTK_REAL, 3> Bup{cv.dBvec(0) / sqrt_detg, cv.dBvec(1) / sqrt_detg,
+    const vec<CCTK_REAL, 3> Bup{cv.dBvec(0) / sqrt_detg,
+                                cv.dBvec(1) / sqrt_detg,
                                 cv.dBvec(2) / sqrt_detg};
 
     prim_vars pv;
@@ -207,11 +211,10 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     if (excise) {
 
       if (mask_local != 1.0) {
-        c2p_Noble.bh_interior<EOSType,false>(eos_3p,pv_seeds,cv,glo);
+        c2p_Noble.bh_interior<EOSType, false>(eos_3p, pv_seeds, cv, glo);
         pv = pv_seeds;
         call_c2p = false;
       }
-
     }
 
     // Construct error report object:
@@ -224,72 +227,120 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
     // ----- ----- C2P ----- -----
 
-  if (call_c2p) {
+    if (call_c2p) {
 
-    // Calling the first C2P
-    switch (c2p_fir) {
-    case c2p_first_t::Noble: {
-      c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, glo, rep_first);
-      break;
-    }
-    case c2p_first_t::Palenzuela: {
-      c2p_Pal.solve(eos_3p, pv, cv, glo, rep_first);
-      break;
-    }
-    case c2p_first_t::Entropy: {
-      c2p_Ent.solve(eos_3p, pv, cv, glo, rep_first);
-      break;
-    }
-    case c2p_first_t::None: {
-      // solve not called, pv remains unwritten
-      break;
-    }
-    default:
-      assert(0);
-    }
-
-    if (rep_first.failed()) {
-      if (debug_mode) {
-        printf("First C2P failed :( \n");
-        rep_first.debug_message();
-        printf("Calling the back up C2P.. \n");
-      }
-      // Calling the second C2P
-      switch (c2p_sec) {
-      case c2p_second_t::Noble: {
-        c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, glo, rep_second);
+      // Calling the first C2P
+      switch (c2p_fir) {
+      case c2p_first_t::Noble: {
+        c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, glo, rep_first);
         break;
       }
-      case c2p_second_t::Palenzuela: {
-        c2p_Pal.solve(eos_3p, pv, cv, glo, rep_second);
+      case c2p_first_t::Palenzuela: {
+        c2p_Pal.solve(eos_3p, pv, cv, glo, rep_first);
         break;
       }
-      case c2p_second_t::Entropy: {
-        c2p_Ent.solve(eos_3p, pv, cv, glo, rep_second);
+      case c2p_first_t::Entropy: {
+        c2p_Ent.solve(eos_3p, pv, cv, glo, rep_first);
         break;
       }
-      case c2p_second_t::None: {
+      case c2p_first_t::None: {
         // solve not called, pv remains unwritten
         break;
       }
       default:
         assert(0);
       }
-    }
 
-    if (rep_first.failed() && rep_second.failed()) {
+      if (rep_first.failed()) {
+        if (debug_mode) {
+          printf("First C2P failed :( \n");
+          rep_first.debug_message();
+          printf("Calling the back up C2P.. \n");
+        }
+        // Calling the second C2P
+        switch (c2p_sec) {
+        case c2p_second_t::Noble: {
+          c2p_Noble.solve(eos_3p, pv, pv_seeds, cv, glo, rep_second);
+          break;
+        }
+        case c2p_second_t::Palenzuela: {
+          c2p_Pal.solve(eos_3p, pv, cv, glo, rep_second);
+          break;
+        }
+        case c2p_second_t::Entropy: {
+          c2p_Ent.solve(eos_3p, pv, cv, glo, rep_second);
+          break;
+        }
+        case c2p_second_t::None: {
+          // solve not called, pv remains unwritten
+          break;
+        }
+        default:
+          assert(0);
+        }
+      }
 
-      if (use_entropy_fix) {
+      if (rep_first.failed() && rep_second.failed()) {
 
-        c2p_Ent.solve(eos_3p, pv, cv, glo, rep_ent);
+        if (use_entropy_fix) {
 
-        if (rep_ent.failed()) {
+          c2p_Ent.solve(eos_3p, pv, cv, glo, rep_ent);
+
+          if (rep_ent.failed()) {
+
+            c2p_flag_local = false;
+
+            if (debug_mode) {
+              printf("Entropy C2P failed. Setting point to atmosphere.\n");
+              rep_ent.debug_message();
+              printf("WARNING: \n"
+                     "C2Ps failed. Printing cons and saved prims before set to "
+                     "atmo: \n"
+                     "cctk_iteration = %i \n "
+                     "x, y, z = %26.16e, %26.16e, %26.16e \n "
+                     "dens = %26.16e \n tau = %26.16e \n momx = %26.16e \n "
+                     "momy = %26.16e \n momz = %26.16e \n dBx = %26.16e \n "
+                     "dBy = %26.16e \n dBz = %26.16e \n "
+                     "saved_rho = %26.16e \n saved_eps = %26.16e \n press= "
+                     "%26.16e "
+                     "\n "
+                     "saved_velx = %26.16e \n saved_vely = %26.16e \n "
+                     "saved_velz = "
+                     "%26.16e \n "
+                     "Bvecx = %26.16e \n Bvecy = %26.16e \n "
+                     "Bvecz = %26.16e \n "
+                     "Avec_x = %26.16e \n Avec_y = %26.16e \n Avec_z = %26.16e "
+                     "\n ",
+                     cctk_iteration, p.x, p.y, p.z, dens(p.I), tau(p.I),
+                     momx(p.I), momy(p.I), momz(p.I), dBx(p.I), dBy(p.I),
+                     dBz(p.I), pv.rho, pv.eps, pv.press, pv.vel(0), pv.vel(1),
+                     pv.vel(2), pv.Bvec(0), pv.Bvec(1), pv.Bvec(2),
+                     // rho(p.I), eps(p.I), press(p.I), velx(p.I), vely(p.I),
+                     // velz(p.I), Bvecx(p.I), Bvecy(p.I), Bvecz(p.I),
+                     Avec_x(p.I), Avec_y(p.I), Avec_z(p.I));
+            }
+
+            if (mask_local != 1.0) {
+              // Failure inside mask
+              c2p_Noble.bh_interior<EOSType, false>(eos_3p, pv_seeds, cv, glo);
+              pv = pv_seeds;
+            } else {
+              // Failure outside, set to atmo
+              cv.dBvec(0) = sqrt_detg * Bup(0);
+              cv.dBvec(1) = sqrt_detg * Bup(1);
+              cv.dBvec(2) = sqrt_detg * Bup(2);
+              pv.Bvec = Bup;
+              atmo.set(pv, cv, glo);
+            }
+          }
+
+        } else {
 
           c2p_flag_local = false;
 
           if (debug_mode) {
-            printf("Entropy C2P failed. Setting point to atmosphere.\n");
-            rep_ent.debug_message();
+            printf("Second C2P failed too :( :( \n");
+            rep_second.debug_message();
             printf(
                 "WARNING: \n"
                 "C2Ps failed. Printing cons and saved prims before set to "
@@ -317,7 +368,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
           if (mask_local != 1.0) {
             // Failure inside mask
-            c2p_Noble.bh_interior<EOSType,false>(eos_3p,pv_seeds,cv,glo);
+            c2p_Noble.bh_interior<EOSType, false>(eos_3p, pv_seeds, cv, glo);
             pv = pv_seeds;
           } else {
             // Failure outside, set to atmo
@@ -327,62 +378,14 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
             pv.Bvec = Bup;
             atmo.set(pv, cv, glo);
           }
-
         }
+      }
 
-      } else {
-
-        c2p_flag_local = false;
-
-        if (debug_mode) {
-          printf("Second C2P failed too :( :( \n");
-          rep_second.debug_message();
-          printf(
-              "WARNING: \n"
-              "C2Ps failed. Printing cons and saved prims before set to "
-              "atmo: \n"
-              "cctk_iteration = %i \n "
-              "x, y, z = %26.16e, %26.16e, %26.16e \n "
-              "dens = %26.16e \n tau = %26.16e \n momx = %26.16e \n "
-              "momy = %26.16e \n momz = %26.16e \n dBx = %26.16e \n "
-              "dBy = %26.16e \n dBz = %26.16e \n "
-              "saved_rho = %26.16e \n saved_eps = %26.16e \n press= %26.16e \n "
-              "saved_velx = %26.16e \n saved_vely = %26.16e \n saved_velz = "
-              "%26.16e \n "
-              "Bvecx = %26.16e \n Bvecy = %26.16e \n "
-              "Bvecz = %26.16e \n "
-              "Avec_x = %26.16e \n Avec_y = %26.16e \n Avec_z = %26.16e \n ",
-              cctk_iteration, p.x, p.y, p.z, dens(p.I), tau(p.I), momx(p.I),
-              momy(p.I), momz(p.I), dBx(p.I), dBy(p.I), dBz(p.I), pv.rho,
-              pv.eps, pv.press, pv.vel(0), pv.vel(1), pv.vel(2), pv.Bvec(0),
-              pv.Bvec(1), pv.Bvec(2),
-              // rho(p.I), eps(p.I), press(p.I), velx(p.I), vely(p.I),
-              // velz(p.I), Bvecx(p.I), Bvecy(p.I), Bvecz(p.I),
-              Avec_x(p.I), Avec_y(p.I), Avec_z(p.I));
-        }
-
-        if (mask_local != 1.0) {
-          // Failure inside mask
-          c2p_Noble.bh_interior<EOSType,false>(eos_3p,pv_seeds,cv,glo);
-          pv = pv_seeds;
-        } else {
-          // Failure outside, set to atmo
-          cv.dBvec(0) = sqrt_detg * Bup(0);
-          cv.dBvec(1) = sqrt_detg * Bup(1);
-          cv.dBvec(2) = sqrt_detg * Bup(2);
-          pv.Bvec = Bup; 
-          atmo.set(pv, cv, glo);
-        }
-
+      // Inside mask, C2P success
+      if ((mask_local != 1.0) && c2p_flag_local) {
+        c2p_Noble.bh_interior<EOSType, true>(eos_3p, pv, cv, glo);
       }
     }
-
-    // Inside mask, C2P success
-    if ( (mask_local != 1.0) && c2p_flag_local ) {
-      c2p_Noble.bh_interior<EOSType,true>(eos_3p, pv, cv, glo);
-    }
-
-  }
 
     con2prim_flag(p.I) = c2p_flag_local;
 

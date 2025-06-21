@@ -158,6 +158,7 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
 
   // check the validity of the computed eps
   auto rgeps = eos_3p->range_eps_from_valid_rho_ye(pv.rho, pv.Ye);
+  
   if (pv.eps > rgeps.max) {
     // printf("(pv.eps > rgeps.max) is true, adjusting cons.. \n");
     // if (pv.rho >= rho_strict) {
@@ -172,7 +173,7 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
     pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
     rep.adjust_cons = true;
-  } else if (pv.eps < rgeps.min) {
+  } else if (pv.eps < atmo.eps_atmo) {
     /*
     printf(
         "(pv.eps < rgeps.min) is true! pv.eps, rgeps.min: %26.16e, %26.16e
@@ -181,7 +182,7 @@ c2p::prims_floors_and_ceilings(const EOSType *eos_3p, prim_vars &pv,
     printf(" Not adjusting cons.. \n");
     */
     // rep.set_range_eps(rgeps.min); // sets adjust_cons to true
-    pv.eps = rgeps.min;
+    pv.eps = atmo.eps_atmo;
     pv.temperature = eos_3p->temp_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
     pv.press = eos_3p->press_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
     pv.entropy = eos_3p->kappa_from_valid_rho_eps_ye(pv.rho, pv.eps, pv.Ye);

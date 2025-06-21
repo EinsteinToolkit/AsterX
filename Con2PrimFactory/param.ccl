@@ -95,7 +95,7 @@ CCTK_REAL n_temp_atmo "Exponential of the radial power law atmosphere prescripti
 
 BOOLEAN thermal_eos_atmo "Whether to use the thermal (evolution) EOS for setting pressure in the atmosphere. If set to no, cold (initial data) EOS is used instead." STEERABLE=ALWAYS
 {
-}  "no"
+}  "yes"
 
 # Parameters for BH treatment
 

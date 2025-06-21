@@ -219,11 +219,11 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
     vec<CCTK_REAL, 2> rho_rc{reconstruct_pt(rho, p, true, true)};
 
     // set to atmo if reconstructed rho is less than atmo or is negative
-    if (rho_rc(0) < rho_abs_min) {
-      rho_rc(0) = rho_abs_min;
+    if (rho_rc(0) <= 0.0) {
+      rho_rc(0) = eos_3p->rgrho.min;
     }
-    if (rho_rc(1) < rho_abs_min) {
-      rho_rc(1) = rho_abs_min;
+    if (rho_rc(1) <= 0.0) {
+      rho_rc(1) = eos_3p->rgrho.min;
     }
 
     // Reconstruct entropy and Ye
@@ -243,6 +243,13 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       // Reconstruct temperature
       temp_rc_dummy = reconstruct_pt(temperature, p, false, false);
 
+      if (temp_rc_dummy[0] < 0) {
+        temp_rc_dummy[0] = eos_3p->rgtemp.min;
+      }
+      if (temp_rc_dummy[1] < 0) {
+        temp_rc_dummy[0] = eos_3p->rgtemp.min;
+      }
+
       // Compute eps_rc and press_rc using lambdas
       for (int f = 0; f < 2; ++f) {
         temp_rc(f) = temp_rc_dummy[f];
@@ -256,6 +263,18 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
       // Reconstruct pressure
       press_rc_dummy = reconstruct_pt(press, p, false, true);
 
+      // TODO: currently sets negative reconstructed pressure to 0 since
+      // eps_min=0 for ideal gas
+
+      if (press_rc_dummy[0] < 0) {
+        press_rc_dummy[0] =
+            eos_3p->press_from_valid_rho_eps_ye(rho_rc(0), eos_3p->rgeps.min, Ye_rc(0));
+      }
+      if (press_rc_dummy[1] < 0) {
+        press_rc_dummy[1] =
+            eos_3p->press_from_valid_rho_eps_ye(rho_rc(1), eos_3p->rgeps.min, Ye_rc(1));
+      }
+
       // Compute eps_rc and temp_rc using lambdas
       for (int f = 0; f < 2; ++f) {
         press_rc(f) = press_rc_dummy[f];
@@ -265,17 +284,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
             eos_3p->temp_from_valid_rho_eps_ye(rho_rc(f), eps_rc(f), Ye_rc(f));
         temp_rc(f) = temp_rc_dummy[f];
       }
-    }
-
-    // TODO: currently sets negative reconstructed pressure to 0 since eps_min=0
-    // for ideal gas
-    if (press_rc(0) < 0) {
-      press_rc(0) = eos_3p->press_from_valid_rho_eps_ye(
-          rho_rc(0), eos_3p->rgeps.min, Ye_rc(0));
-    }
-    if (press_rc(1) < 0) {
-      press_rc(1) = eos_3p->press_from_valid_rho_eps_ye(
-          rho_rc(1), eos_3p->rgeps.min, Ye_rc(1));
     }
 
     const vec<CCTK_REAL, 2> rhoh_rc([&](int f) ARITH_INLINE {

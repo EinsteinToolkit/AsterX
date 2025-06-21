@@ -97,7 +97,7 @@ CCTK_HOST
 
   // Derived
   GammaIdealFluid = eos_3p->gamma;
-  Zmin = eos_3p->rgrho.min;
+  Zmin = atmo.rho_atmo;
 }
 
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -375,7 +375,7 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
   // timestep
   pv_seeds.rho = cv.dens / pv_seeds.w_lor;
 
-  CCTK_REAL eps_last = max({pv_seeds.eps, eos_3p->rgeps.min});
+  CCTK_REAL eps_last = max({pv_seeds.eps, atmo.eps_atmo});
 
   /* get pressure seed from updated pv_seeds.rho */
   pv_seeds.press =

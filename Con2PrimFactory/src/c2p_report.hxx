@@ -233,7 +233,7 @@ public:
       printf("Density out of range, dens = %16.8e, rho = %16.8e \n", dens, rho);
       break;
     case RANGE_EPS:
-      printf("Specific energy was out of range! eps readjusted to = %16.8e \n",
+      printf("Specific energy was out of range! eps = %16.8e \n",
              eps);
       break;
     case SPEED_LIMIT:
