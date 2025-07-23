@@ -52,7 +52,7 @@ CarpetX::max_num_levels = $nlevels
 CarpetX::regrid_every = 128000
 CarpetX::regrid_error_threshold = 0.9
 
-CarpetX::ghost_size = 3
+CarpetX::ghost_size = 5
 CarpetX::dtfac = 0.35
 
 CarpetX::prolongation_type = "poly-cons3lfb"
