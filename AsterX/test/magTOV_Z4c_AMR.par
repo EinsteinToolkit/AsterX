@@ -19,7 +19,7 @@ ActiveThorns = "
 "
 
 $nlevels	= 2
-$ncells 	=  24
+$ncells 	=  32
 
 CarpetX::verbose = no
 Cactus::presync_mode = "mixed-error"
@@ -29,13 +29,13 @@ CarpetX::poison_undefined_values = no
 # To have a symmetric grid along 0, we have odd number of points (257) 
 # along each direction going from -20.078125 to +20.078125 for the finest level
 
-CarpetX::xmin = -12
-CarpetX::ymin = -12
-CarpetX::zmin = -12
+CarpetX::xmin = -16
+CarpetX::ymin = -16
+CarpetX::zmin = -16
 
-CarpetX::xmax = 12
-CarpetX::ymax = 12
-CarpetX::zmax = 12
+CarpetX::xmax = 16
+CarpetX::ymax = 16
+CarpetX::zmax = 16
 
 CarpetX::ncells_x = $ncells
 CarpetX::ncells_y = $ncells
@@ -55,9 +55,9 @@ CarpetX::regrid_error_threshold = 0.9
 CarpetX::ghost_size = 3
 CarpetX::dtfac = 0.35
 
-CarpetX::prolongation_type = "ddf" #"poly-cons3lfb"
-#CarpetX::prolongation_order = 5
-#CarpetX::interpolation_order = 1
+CarpetX::prolongation_type = "poly-cons3lfb"
+CarpetX::prolongation_order = 5
+CarpetX::interpolation_order = 1
 
 CarpetX::blocking_factor_x = 1
 CarpetX::blocking_factor_y = 1
@@ -67,7 +67,7 @@ BoxInBox::num_regions = 1
 # Region 1
 BoxInBox::shape_1 = "cube"
 BoxInBox::num_levels_1 = $nlevels 
-BoxInBox::radius_1 = [ -1.0, 3 ]
+BoxInBox::radius_1 = [ -1.0, 5 ]
 
 
 #ADMBaseX::set_adm_variables_during_evolution = "yes"
