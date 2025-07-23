@@ -114,6 +114,8 @@ CCTK_REAL Aux_in_RHSof_A_Psi TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
 
 CCTK_REAL con2prim_flag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Flag indicating failure of con2prim"
 
+# saved_prims are computed only once at the beginning of the simulation
+# at the outer physical boundary because they are not needed afterwards 
 CCTK_REAL saved_prims TYPE=gf CENTERING={ccc}
 {
   saved_rho

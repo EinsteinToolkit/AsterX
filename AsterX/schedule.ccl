@@ -147,7 +147,12 @@ SCHEDULE AsterX_Sync IN ODESolvers_PostStep
   SYNC: dens tau mom DEnt DYe Avec_x Avec_y Avec_z Psi
 } "Synchronize"
 
-
+SCHEDULE AsterX_Sync AT post_recover_variables BEFORE ODESolvers_PostStep AFTER AsterX_TouchNonEvolVarsGroup
+{
+  LANG: C
+  OPTIONS: global
+  SYNC: saved_prims
+} "Synchronize"
 
 SCHEDULE GROUP AsterX_Con2PrimGroup IN ODESolvers_PostStep BEFORE TmunuBaseX_SetTmunuVars AFTER AsterX_Sync
 {
