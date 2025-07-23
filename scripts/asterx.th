@@ -743,10 +743,7 @@ SpacetimeX/Z4c
 
 # AsterX thorns
 !TARGET   = $ARR
-!TYPE     = git
-!URL      = https://github.com/EinsteinToolkit/AsterX.git
-!REPO_BRANCH = development
-!REPO_PATH= $2
+!TYPE     = ignore
 !CHECKOUT =
 AsterX/AsterSeeds
 AsterX/AsterUtils
