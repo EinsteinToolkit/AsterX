@@ -41,6 +41,7 @@ public:
     XP = 15,     // "Xp"
     ABAR = 16,   // "Abar"
     ZBAR = 17,   // "Zbar"
+    GAMMA = 18,  // "Gamma"
     NUM_VARS
   };
 
@@ -89,15 +90,17 @@ public:
         ntemp * sizeof(CCTK_REAL));
     CCTK_REAL *yes =
         (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(nye * sizeof(CCTK_REAL));
+    CCTK_REAL *alltables_tmp = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
+        npoints * NTABLES * sizeof(CCTK_REAL));
     CCTK_REAL *alltables = (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(
         npoints * NTABLES * sizeof(CCTK_REAL));
     energy_shift =
         (CCTK_REAL *)amrex::The_Managed_Arena()->alloc(sizeof(CCTK_REAL));
 
     static const char *dnames[NTABLES] = {
-        "logpress", "logenergy", "entropy", "munu", "cs2",  "dedt",
-        "dpdrhoe",  "dpderho",   "muhat",   "mu_e", "mu_p", "mu_n",
-        "Xa",       "Xh",        "Xn",      "Xp",   "Abar", "Zbar"};
+        "logpress", "logenergy", "entropy", "munu", "cs2",  "dedt", "dpdrhoe",
+        "dpderho",  "muhat",     "mu_e",    "mu_p", "mu_n", "Xa",   "Xh",
+        "Xn",       "Xp",        "Abar",    "Zbar", "gamma"};
 
 #ifdef H5_HAVE_PARALLEL
     get_hdf5_real_dset(file_id, "logrho", nrho, logrho);
@@ -106,8 +109,21 @@ public:
     get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift);
     for (int iv = 0; iv < NTABLES; iv++) {
       get_hdf5_real_dset(file_id, dnames[iv], npoints,
-                         &alltables[iv * npoints]);
+                         &alltables_tmp[iv * npoints]);
     }
+
+    // change ordering of alltables array so that
+    // the table kind is the fastest changing index
+    for (int iv = 0; iv < NTABLES; iv++)
+      for (int k = 0; k < nye; k++)
+        for (int j = 0; j < ntemp; j++)
+          for (int i = 0; i < nrho; i++) {
+            int indold = i + nrho * (j + ntemp * (k + nye * iv));
+            int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
+            alltables[indnew] = alltables_temp[indold];
+          }
+    amrex::The_Managed_Arena()->free(alltables_temp);
+
     CHECK_ERROR(H5Fclose(file_id));
     CHECK_ERROR(H5Pclose(fapl_id));
 #else
@@ -118,10 +134,23 @@ public:
       get_hdf5_real_dset(file_id, "energy_shift", 1, energy_shift);
       for (int iv = 0; iv < NTABLES; iv++) {
         get_hdf5_real_dset(file_id, dnames[iv], npoints,
-                           &alltables[iv * npoints]);
+                           &alltables_tmp[iv * npoints]);
       }
       CHECK_ERROR(H5Fclose(file_id));
+
+      // change ordering of alltables array so that
+      // the table kind is the fastest changing index
+      for (int iv = 0; iv < NTABLES; iv++)
+        for (int k = 0; k < nye; k++)
+          for (int j = 0; j < ntemp; j++)
+            for (int i = 0; i < nrho; i++) {
+              int indold = i + nrho * (j + ntemp * (k + nye * iv));
+              int indnew = iv + NTABLES * (i + nrho * (j + ntemp * k));
+              alltables[indnew] = alltables_tmp[indold];
+            }
     }
+    amrex::The_Managed_Arena()->free(alltables_tmp);
+
     MPI_Bcast(logrho, nrho, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(logtemp, ntemp, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(yes, nye, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -333,6 +362,7 @@ public:
       eps_min = std::fmin(eps_min, val);
       eps_max = std::fmax(eps_max, val);
     }
+    eps_min = std::fmax(eps_min, 1e-15); // Force eps positive
     return range{eps_min, eps_max};
   }
 

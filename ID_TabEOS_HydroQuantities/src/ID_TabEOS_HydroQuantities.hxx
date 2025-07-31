@@ -4,19 +4,7 @@
 #include "string.h"
 
 #include "AMReX.H"
-
-//------ EOS_Omni stuff ------
-// namespace nuc_eos {
-//  extern double eos_yemin, eos_yemax;
-//  extern double eos_rhomin, eos_rhomax;
-//  extern double eos_tempmin, eos_tempmax;
-//}
-//
-// namespace nuc_eos_private {
-//  extern int nrho;
-//  extern double *restrict logrho;
-//}
-//----------------------------
+#include <array>
 
 // EOSX Stuff
 #include "setup_eos.hxx"
@@ -31,10 +19,6 @@ private:
   double *rho_arr;
   FILE *in1D;
   int nrho;
-
-  // Interpolation Helpers
-  double *rho_sample;
-  double *l_i_of_r;
 
 public:
   bool interp_err{false};
@@ -56,12 +40,6 @@ public:
 
     // Init Y_e array
     read_1dfile__set_array();
-
-    // Init Interpolation Helpers
-    rho_sample =
-        (double *)The_Managed_Arena()->alloc(stencil_size * sizeof(double));
-    l_i_of_r =
-        (double *)The_Managed_Arena()->alloc(stencil_size * sizeof(double));
 
     return;
   }
@@ -86,11 +64,11 @@ public:
     free(line);
   }
 
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   interpolate_1d_quantity_as_function_of_rho(const int interp_stencil_size,
                                              const int numlines_in_file,
-                                             const CCTK_REAL rho,
-                                             CCTK_REAL *restrict f_of_rho) {
+                                             const CCTK_REAL rho) {
+    // CCTK_REAL *restrict f_of_rho) {
 
     // First find the central interpolation stencil index:
     int idx = bisection_idx_finder(rho, numlines_in_file, rho_arr);
@@ -109,6 +87,9 @@ public:
     idxmin = MIN(idxmin, numlines_in_file - interp_stencil_size);
 
     // Now perform the Lagrange polynomial interpolation:
+    assert(interp_stencil_size == 5);
+    array<CCTK_REAL, 5> rho_sample;
+    array<CCTK_REAL, 5> l_i_of_r;
 
     // First set the interpolation coefficients:
     for (int i = idxmin; i < idxmin + interp_stencil_size; i++) {
@@ -129,10 +110,11 @@ public:
     }
 
     // Then perform the interpolation:
-    *f_of_rho = 0.0;
+    CCTK_REAL f_of_rho = 0.0;
     for (int i = idxmin; i < idxmin + interp_stencil_size; i++) {
-      *f_of_rho += l_i_of_r[i - idxmin] * Ye_rho_arr[i];
+      f_of_rho += l_i_of_r[i - idxmin] * Ye_rho_arr[i];
     }
+    return f_of_rho;
   }
 
   // Find interpolation index using Bisection root-finding algorithm:
