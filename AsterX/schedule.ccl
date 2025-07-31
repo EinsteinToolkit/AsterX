@@ -224,12 +224,13 @@ if (CCTK_EQUALS(vector_potential_gauge, "generalized Lorentz")) {
   SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_SourceTerms
   {
     LANG: C
-    READS: ADMBaseX::metric(everywhere)
-    READS: ADMBaseX::lapse(everywhere)
-    READS: ADMBaseX::shift(everywhere)
-    READS: Avec_x(everywhere) Avec_y(everywhere) Avec_z(everywhere) Psi(everywhere)
-    READS: Aux_in_RHSof_A_Psi(everywhere)
-    WRITES: Aux_in_RHSof_A_Psi(everywhere)
+    READS: ADMBaseX::metric(interior)
+    READS: ADMBaseX::lapse(interior)
+    READS: ADMBaseX::shift(interior)
+    READS: Avec_x(interior) Avec_y(interior) Avec_z(interior) Psi(interior)
+    READS: Aux_in_RHSof_A_Psi(interior)
+    WRITES: Aux_in_RHSof_A_Psi(interior)
+    SYNC: Aux_in_RHSof_A_Psi
   } "Calculate the auxiliary terms for the rhs of Avec and Psi"
 }
 
