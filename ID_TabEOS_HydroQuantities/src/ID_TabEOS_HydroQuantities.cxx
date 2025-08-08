@@ -17,8 +17,10 @@ using namespace amrex;
 using namespace EOSX;
 using namespace Loop;
 
-extern "C" void ID_TabEOS_HydroQuantities__initial_Y_e(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities__initial_Y_e;
+enum class TS_ID_t { Temperature, Entropy };
+
+extern "C" void ID_TabEOS_HydroQuantities_initial_Y_e(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities_initial_Y_e;
   DECLARE_CCTK_PARAMETERS;
 
   CCTK_VInfo(CCTK_THORNSTRING, "Y_e initialization is ENABLED!");
@@ -51,7 +53,14 @@ extern "C" void ID_TabEOS_HydroQuantities__initial_Y_e(CCTK_ARGUMENTS) {
     grid.loop_all_device<1, 1, 1>(
         grid.nghostzones,
         [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-          if (rho(p.I) > rho_abs_min * (1 + atmo_tol)) {
+          CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+          CCTK_REAL rho_atm =
+              (radial_distance > r_atmo)
+                  ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
+                  : rho_abs_min;
+          rho_atm = std::max(eos_3p_tab3d->rgrho.min, rho_atm);
+
+          if (rho(p.I) > rho_atm * (1 + atmo_tol)) {
             // Interpolate Y_e(rho_i) at gridpoint i
             const CCTK_REAL Y_eL =
                 id_ye_reader->interpolate_1d_quantity_as_function_of_rho(
@@ -69,15 +78,24 @@ extern "C" void ID_TabEOS_HydroQuantities__initial_Y_e(CCTK_ARGUMENTS) {
 }
 
 // Set initial temperature to be constant everywhere (TODO: add other options)
-extern "C" void ID_TabEOS_HydroQuantities__initial_temperature(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities__initial_temperature;
+extern "C" void ID_TabEOS_HydroQuantities_initial_temp_ent(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities_initial_temp_ent;
   DECLARE_CCTK_PARAMETERS;
 
-  CCTK_VInfo(CCTK_THORNSTRING, "Temperature initialization is ENABLED!");
+  CCTK_VInfo(CCTK_THORNSTRING,
+             "Temperature and entropy initialization is ENABLED!");
 
   auto eos_3p_tab3d = global_eos_3p_tab3d;
 
-  const CCTK_REAL Tmin = eos_3p_tab3d->interptable->xmin<1>();
+  TS_ID_t ts_ID;
+
+  if (CCTK_EQUALS(id_temp_ent_type, "constant temperature")) {
+    ts_ID = TS_ID_t::Temperature;
+  } else if (CCTK_EQUALS(id_temp_ent_type, "constant entropy")) {
+    ts_ID = TS_ID_t::Entropy;
+  } else {
+    CCTK_ERROR("Unknown value for parameter \"id_temp_ent_type\"");
+  }
 
   // Loop over the grid, initializing the temperature
   grid.loop_all_device<1, 1, 1>(
@@ -89,9 +107,44 @@ extern "C" void ID_TabEOS_HydroQuantities__initial_temperature(CCTK_ARGUMENTS) {
             (radial_distance > r_atmo)
                 ? (t_atmo * std::pow(r_atmo / radial_distance, n_temp_atmo))
                 : t_atmo;
+        temp_atm = std::max(eos_3p_tab3d->rgtemp.min, temp_atm);
+        CCTK_REAL rho_atm =
+            (radial_distance > r_atmo)
+                ? (rho_abs_min *
+                   std::pow((r_atmo / radial_distance), n_rho_atmo))
+                : rho_abs_min;
+        rho_atm = std::max(eos_3p_tab3d->rgrho.min, rho_atm);
 
-        const CCTK_REAL Tval = std::max(temp_atm, Tmin);
-        temperature(p.I) = Tval;
+        CCTK_REAL rhoL = rho(p.I);
+        CCTK_REAL yeL = Ye(p.I);
+
+        switch (ts_ID) {
+        case TS_ID_t::Temperature: {
+          temperature(p.I) = temp_atm;
+          CCTK_REAL ent_val =
+              eos_3p_tab3d->entropy_from_valid_rho_temp_ye(rhoL, temp_atm, yeL);
+          entropy(p.I) = ent_val;
+          break;
+        }
+        case TS_ID_t::Entropy: {
+          const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
+          if (rhoL > rho_atmo_cut) {
+            CCTK_REAL ent_val = id_entropy;
+            CCTK_REAL temp_val = eos_3p_tab3d->temp_from_valid_rho_entropy_ye(
+                rhoL, ent_val, yeL);
+            entropy(p.I) = ent_val;
+            temperature(p.I) = temp_val;
+          } else {
+            temperature(p.I) = temp_atm;
+            CCTK_REAL ent_val = eos_3p_tab3d->entropy_from_valid_rho_temp_ye(
+                rhoL, temp_atm, yeL);
+            entropy(p.I) = ent_val;
+          }
+          break;
+        }
+        default:
+          assert(0);
+        }
 
         if (temperature(p.I) < 0.0) {
           printf("Negative input for temperature at I=%d (x=%.5e y=%.5e "
@@ -103,20 +156,9 @@ extern "C" void ID_TabEOS_HydroQuantities__initial_temperature(CCTK_ARGUMENTS) {
 
 // Now recompute all HydroQuantities, to ensure consistent initial data
 extern "C" void
-ID_TabEOS_HydroQuantities__recompute_HydroBase_variables(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities__recompute_HydroBase_variables;
+ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_ID_TabEOS_HydroQuantities_recompute_HydroBase_variables;
   DECLARE_CCTK_PARAMETERS;
-
-  // Check whether or not we want to initialize the entropy in this thorn
-  bool initialize_entropy;
-  if (!CCTK_EQUALS(id_entropy_type, "none")) {
-    CCTK_VInfo(CCTK_THORNSTRING, "Entropy initialization is ENABLED! Only "
-                                 "Table-based ID type is supported ATM.");
-    initialize_entropy = true;
-  } else {
-    CCTK_VInfo(CCTK_THORNSTRING, "Entropy initialization is DISABLED!");
-    initialize_entropy = false;
-  }
 
   CCTK_VInfo(CCTK_THORNSTRING, "Recomputing all HydroBase quantities ...");
 

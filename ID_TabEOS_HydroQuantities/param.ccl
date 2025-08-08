@@ -21,6 +21,18 @@
 #   "ID_TabEOS_HydroQuantities" :: "Initial hydro vars"
 # }
 
+#----------------- Initial data type ------------------
+KEYWORD id_temp_ent_type "Method to initialize temperature and entropy"
+{
+  "constant temperature"  :: "Set to atmosphere values from Con2PrimFactory"
+  "constant entropy" :: "Set constant entropy, calculate temperature"
+} "constant temperature"
+
+CCTK_REAL id_entropy "constant entropy value"
+{
+  0:* :: ""
+} 1.0
+
 #----------------- Initial data files -----------------
 restricted:
 CCTK_STRING Y_e_filename "Initial data file for electron fraction"
@@ -28,29 +40,6 @@ CCTK_STRING Y_e_filename "Initial data file for electron fraction"
   ".+" :: "Any nonempty string"
   ""   :: "Forbidden value"
 } ""
-
-restricted:
-CCTK_STRING temperature_filename "Initial data file for temperature"
-{
-  ".+" :: "Any nonempty string"
-  ""   :: "Forbidden value"
-} ""
-
-#----------------- Initial data type ------------------
-restricted:
-CCTK_STRING id_temperature_type "Type of initial temperature"
-{
-  "constant"  :: "Constant initial temperature"
-  "from file" :: "Read initial temperature from file (as a function of density)"
-} "constant"
-
-restricted:
-CCTK_STRING id_entropy_type "Type of initial entropy"
-{
-  "none"   :: "entropy not set"
-  "constant"   :: "Constant initial entropy"
-  "from table" :: "Set initial entropy from (rho,Ye,T) using the EOS table"
-} "from table"
 
 SHARES: Con2PrimFactory
 USES CCTK_REAL rho_abs_min
