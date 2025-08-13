@@ -344,7 +344,7 @@ public:
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
   mu_lepton_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                                  const CCTK_REAL ye) const {
-    CCTK_REAL mup, mun, mue
+    CCTK_REAL mup, mun, mue;
     mu_pne_from_valid_rho_temp_ye(rho, temp, ye, mup, mun, mue);
     return mue + mup - mun;
   }
