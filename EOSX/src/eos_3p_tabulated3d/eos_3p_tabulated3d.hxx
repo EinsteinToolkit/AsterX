@@ -341,6 +341,14 @@ public:
     mue = interptable->interpolate<EV::MU_E>(lr, lt, ye)[0];
   }
 
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  mu_lepton_from_valid_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+                                 const CCTK_REAL ye) const {
+    CCTK_REAL mup, mun, mue;
+    mu_pne_from_valid_rho_temp_ye(rho, temp, ye, mup, mun, mue);
+    return mue + mup - mun;
+  }
+
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   press_from_valid_rho_kappa_ye(const CCTK_REAL rho,
                                 const CCTK_REAL kappa, // kappa=entropy
