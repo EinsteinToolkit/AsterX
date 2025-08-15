@@ -20,7 +20,7 @@ void CheckPrims(CCTK_ARGUMENTS, EOSIDType *eos_1p, EOSType *eos_3p) {
   DECLARE_CCTK_PARAMETERS;
 
   // Loop over the entire grid (0 to n-1 cells in each direction)
-  grid.loop_int_device<1, 1, 1>(
+  grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
 

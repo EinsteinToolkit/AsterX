@@ -29,7 +29,7 @@ template <int dir> void ComputeStaggeredB(CCTK_ARGUMENTS) {
 
   constexpr array<int, dim> face_centred = {!(dir == 0), !(dir == 1),
                                             !(dir == 2)};
-  grid.loop_int_device<face_centred[0], face_centred[1], face_centred[2]>(
+  grid.loop_all_device<face_centred[0], face_centred[1], face_centred[2]>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         // Neighbouring "plus" and "minus" cell indices
@@ -68,7 +68,7 @@ extern "C" void AsterX_ComputedBFromdBstag(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputedBFromdBstag;
   DECLARE_CCTK_PARAMETERS;
 
-  grid.loop_int_device<1, 1, 1>(
+  grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         // Neighbouring "plus" and "minus" cell indices
@@ -88,7 +88,7 @@ extern "C" void AsterX_ComputeBFromdB(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_ComputeBFromdB;
   DECLARE_CCTK_PARAMETERS;
 
-  grid.loop_int_device<1, 1, 1>(
+  grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
         /* Interpolate metric terms from vertices to center */

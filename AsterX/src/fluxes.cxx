@@ -795,36 +795,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p) {
   });
 }
 
-void CalcAuxForAvecPsi(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_Fluxes;
-  DECLARE_CCTK_PARAMETERS;
-
-  const vec<GF3D2<const CCTK_REAL>, dim> gf_Avecs{Avec_x, Avec_y, Avec_z};
-  grid.loop_int_device<0, 0, 0>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        /* interpolate A to vertices */
-        const vec<CCTK_REAL, 3> A_vert([&](int i) ARITH_INLINE {
-          return calc_avg_e2v(gf_Avecs(i), p, i);
-        });
-        const smat<CCTK_REAL, 3> g{gxx(p.I), gxy(p.I), gxz(p.I),
-                                   gyy(p.I), gyz(p.I), gzz(p.I)};
-        const vec<CCTK_REAL, 3> betas{betax(p.I), betay(p.I), betaz(p.I)};
-        const CCTK_REAL detg = calc_det(g);
-        const CCTK_REAL sqrtg = sqrt(detg);
-        const smat<CCTK_REAL, 3> ug = calc_inv(g, detg);
-        const vec<CCTK_REAL, 3> Aup = calc_contraction(ug, A_vert);
-
-        Fx(p.I) = alp(p.I) * sqrtg * Aup(0);
-        Fy(p.I) = alp(p.I) * sqrtg * Aup(1);
-        Fz(p.I) = alp(p.I) * sqrtg * Aup(2);
-        Fbetax(p.I) = betas(0) * Psi(p.I);
-        Fbetay(p.I) = betas(1) * Psi(p.I);
-        Fbetaz(p.I) = betas(2) * Psi(p.I);
-        G(p.I) = alp(p.I) * Psi(p.I) / sqrtg - calc_contraction(betas, A_vert);
-      });
-}
-
 extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTS_AsterX_Fluxes;
   DECLARE_CCTK_PARAMETERS;
@@ -872,9 +842,41 @@ extern "C" void AsterX_Fluxes(CCTK_ARGUMENTS) {
   default:
     assert(0);
   }
+}
 
-  /* Set auxiliary variables for the rhs of A and Psi  */
-  CalcAuxForAvecPsi(cctkGH);
+extern "C" void AsterX_CalcAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
+  DECLARE_CCTK_ARGUMENTSX_AsterX_CalcAuxTermsForAvecPsiRHS;
+  DECLARE_CCTK_PARAMETERS;
+
+  const vec<GF3D2<const CCTK_REAL>, dim> gf_Avecs{Avec_x, Avec_y, Avec_z};
+  grid.loop_allm1_device<0, 0, 0>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
+        /* interpolate A to vertices */
+        const vec<CCTK_REAL, 3> A_vert([&](int i) ARITH_INLINE {
+          return calc_avg_e2v(gf_Avecs(i), p, i);
+        });
+        const smat<CCTK_REAL, 3> g{gxx(p.I), gxy(p.I), gxz(p.I),
+                                   gyy(p.I), gyz(p.I), gzz(p.I)};
+        const vec<CCTK_REAL, 3> betas{betax(p.I), betay(p.I), betaz(p.I)};
+        const CCTK_REAL detg = calc_det(g);
+        const CCTK_REAL sqrtg = sqrt(detg);
+        const smat<CCTK_REAL, 3> ug = calc_inv(g, detg);
+        const vec<CCTK_REAL, 3> Aup = calc_contraction(ug, A_vert);
+
+        Fx(p.I) = alp(p.I) * sqrtg * Aup(0);
+        Fy(p.I) = alp(p.I) * sqrtg * Aup(1);
+        Fz(p.I) = alp(p.I) * sqrtg * Aup(2);
+        G(p.I) = alp(p.I) * Psi(p.I) / sqrtg - calc_contraction(betas, A_vert);
+      });
+
+  grid.loop_all_device<0, 0, 0>(grid.nghostzones,
+                                [=] CCTK_DEVICE(const PointDesc &p)
+                                    CCTK_ATTRIBUTE_ALWAYS_INLINE {
+                                      Fbetax(p.I) = betax(p.I) * Psi(p.I);
+                                      Fbetay(p.I) = betay(p.I) * Psi(p.I);
+                                      Fbetaz(p.I) = betaz(p.I) * Psi(p.I);
+                                    });
 }
 
 } // namespace AsterX

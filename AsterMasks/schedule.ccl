@@ -14,7 +14,7 @@ WRITES: aster_mask_vc(everywhere)
 WRITES: aster_mask_cc(everywhere)
 } "Initialize VC and CC mask to true"
 
-SCHEDULE AsterMasks_Initialize IN CCTK_POST_RECOVER_VARIABLES {
+SCHEDULE AsterMasks_Initialize IN CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep {
 LANG: C
 WRITES: aster_mask_vc(everywhere)
 WRITES: aster_mask_cc(everywhere)
