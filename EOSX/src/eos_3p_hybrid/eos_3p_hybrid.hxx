@@ -11,6 +11,7 @@
 
 using namespace std;
 
+// Remember to define umass_
 namespace EOSX {
 
 template <class ColdEOS> class eos_3p_hybrid : public eos_3p {
