@@ -174,7 +174,7 @@ extern "C" void EOSX_Setup_EOS(CCTK_ARGUMENTS) {
               sizeof *global_eos_3p_hyb_pwpoly);
       assert(global_eos_3p_hyb_pwpoly);
       new (global_eos_3p_hyb_pwpoly) eos_3p_hybrid_pwpoly(
-          global_eos_1p_pwpoly, gamma_th, rgeps, rgrho, rgye);
+          global_eos_1p_pwpoly, gamma_th, particle_mass, rgeps, rgrho, rgye);
     } else {
       global_eos_3p_hyb_poly = (eos_3p_hybrid_poly *)The_Managed_Arena()->alloc(
           sizeof *global_eos_3p_hyb_poly);
