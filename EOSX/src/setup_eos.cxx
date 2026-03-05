@@ -180,7 +180,7 @@ extern "C" void EOSX_Setup_EOS(CCTK_ARGUMENTS) {
           sizeof *global_eos_3p_hyb_poly);
       assert(global_eos_3p_hyb_poly);
       new (global_eos_3p_hyb_poly)
-          eos_3p_hybrid_poly(global_eos_1p_poly, gamma_th, rgeps, rgrho, rgye);
+          eos_3p_hybrid_poly(global_eos_1p_poly, gamma_th, particle_mass, rgeps, rgrho, rgye);
     }
 
     break;

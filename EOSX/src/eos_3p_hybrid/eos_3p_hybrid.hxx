@@ -18,13 +18,14 @@ template <class ColdEOS> class eos_3p_hybrid : public eos_3p {
 public:
   CCTK_REAL gamma;            // dummy
   CCTK_REAL gamma_th, gm1_th; // thermal gamma and gamma-1
+  CCTK_REAL temp_over_eps_th; // ratio between the temperature and the thermal part of the internal energy
   range rgeps;                // eps range parameters (allows eps_min sentinel)
   ColdEOS *eos_c;             // cold EOS (polytrope or piecewise-polytrope)
 
   // constructor
   CCTK_HOST
   CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline eos_3p_hybrid(
-      ColdEOS *eos_c_, CCTK_REAL gamma_th_, const range &rgeps_,
+      ColdEOS *eos_c_, CCTK_REAL gamma_th_, CCTK_REAL umass_, const range &rgeps_,
       const range &rgrho_, const range &rgye_)
       : rgeps(rgeps_), eos_c(eos_c_), gamma_th(gamma_th_) {
 
@@ -43,7 +44,9 @@ public:
 
     set_range_rho(rgrho_);
     set_range_ye(rgye_);
-    set_range_temp(range(0, 0)); // TODO: Implement temperature;
+    temp_over_eps_th = gm1_th * umass_;
+    //Strictly speaking should probably convert eps range to eps_th range?
+    set_range_temp(range(temp_over_eps_th * rgeps.min, temp_over_eps_th * rgeps.max)); // TODO: Implement temperature;
   }
 
   // cold helpers
@@ -108,17 +111,22 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   csnd_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                         const CCTK_REAL ye) const {
-    printf("eos_3p_hybrid: sound speed not implemented\n");
+    const CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);
+    return csnd_from_rho_eps_ye(rho, eps, ye);
+    /*printf("eos_3p_hybrid: sound speed not implemented\n");
     assert(false);
-    return CCTK_REAL(0.0);
+    return CCTK_REAL(0.0);*/
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   temp_from_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                        const CCTK_REAL ye) const {
-    printf("eos_3p_hybrid: temperature not implemented\n");
+    const CCTK_REAL eps_c = eps_cold(rho);  
+    const CCTK_REAL eps_th = eps - eps_c;
+    return temp_over_eps_th * eps_th;
+    /*printf("eos_3p_hybrid: temperature not implemented\n");
     assert(false);
-    return CCTK_REAL(0.0);
+    return CCTK_REAL(0.0);*/
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -155,9 +163,11 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   entropy_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                            const CCTK_REAL ye) const {
-    printf("EOS: entropy from temperature not implemented for eos_3p_hybrid.\n");
+    const CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);
+    return entropy_from_rho_eps_ye(rho, eps, ye);
+    /*printf("EOS: entropy from temperature not implemented for eos_3p_hybrid.\n");
     assert(false);
-    return CCTK_REAL(0.0);
+    return CCTK_REAL(0.0);*/
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -170,17 +180,21 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   eps_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                        const CCTK_REAL ye) const {
-    printf("EOS: eps from temperature not implemented for eos_3p_hybrid.\n");
+    const CCTK_REAL eps_c = eps_cold(rho);
+    return temp / temp_over_eps_th + eps_c;
+    /* printf("EOS: eps from temperature not implemented for eos_3p_hybrid.\n");
     assert(false);
-    return CCTK_REAL(0.0);
+    return CCTK_REAL(0.0); */
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   press_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                          const CCTK_REAL ye) const {
-    printf("EOS: press from temperature not implemented for eos_3p_hybrid.\n");
+    const CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);    
+    return press_from_rho_eps_ye(rho, eps, ye);
+    /*printf("EOS: press from temperature not implemented for eos_3p_hybrid.\n");
     assert(false);
-    return CCTK_REAL(0.0);
+    return CCTK_REAL(0.0);*/
   }
 
   // kappa is the evolved entropy-like quantity.
