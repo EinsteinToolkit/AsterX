@@ -111,7 +111,7 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   csnd_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                         const CCTK_REAL ye) const {
-    const CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);
+    CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);
     return csnd_from_rho_eps_ye(rho, eps, ye);
     /*printf("eos_3p_hybrid: sound speed not implemented\n");
     assert(false);
@@ -190,7 +190,7 @@ public:
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   press_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
                          const CCTK_REAL ye) const {
-    const CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);    
+    CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);    
     return press_from_rho_eps_ye(rho, eps, ye);
     /*printf("EOS: press from temperature not implemented for eos_3p_hybrid.\n");
     assert(false);
