@@ -238,10 +238,17 @@ public:
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   temp_from_gm1(const CCTK_REAL gm1) const {
-    // Not implemented for cold EOS
-    assert(false);
-    return CCTK_REAL(0.0);
+    const eos_poly_piece &seg = segment_for_gm1(gm1);
+
+    // For each polytropic segment:
+    //   gm1 - dsed = (n+1) * P/rho
+    // so assuming ideal-gas closure:
+    //   theta = mu * P/rho = mu * (gm1 - dsed)/(n+1)
+    const CCTK_REAL mu = CCTK_REAL(1.0);
+
+    return mu * (gm1 - seg.dsed) / seg.np1;
   }
+  
 };
 
 } // namespace EOSX

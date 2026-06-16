@@ -2,7 +2,8 @@
 #$Header : $
 
 #Source files in this directory
-SRCS = setup_eos.cxx
+SRCS = setup_eos.cxx \
+    test_eos.cxx
 
 #Subdirectories containing source files
            SUBDIRS =
