@@ -351,19 +351,12 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     return funcRoot_1DEntropy(Ssq, Bsq, BiSi, x, eos_3p, cv);
   };
 
-  // Important!
-  // Algo::brent terminates if the following accuracy is achieved
-  // abs(x - y) <= eps * min(abs(x), abs(y)),
-  // where x and y are the values of the bracket and
-  // eps = std::ldexp(1, -minbits) = 1 * 2^{-minbits}
-  // This should probably be changed in Algo::brent
-
-  // We want to set the tolerance to its correct parameter
+  // Algo::brent terminates once the bracket satisfies
+  //   abs(x - y) <= eps * min(abs(x), abs(y)),   eps = 2^{1-minbits}
+  // so express the requested tolerance in bits. The +1 accounts for the
+  // exponent offset, and reproduces the eps this code used to compute by hand.
   const CCTK_REAL log2 = std::log(2.0);
-  const CCTK_INT minbits = int(abs(std::log(tolerance)) / log2);
-  const CCTK_REAL tolerance_0 = std::ldexp(double(1.0), -minbits);
-  // Old code:
-  // const CCTK_INT minbits = std::numeric_limits<CCTK_REAL>::digits - 4;
+  const CCTK_INT minbits = int(abs(std::log(tolerance)) / log2) + 1;
   const CCTK_INT maxiters = maxIterations;
 
   const CCTK_REAL f_a0 = fn(a);
@@ -372,7 +365,9 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     status = ROOTSTAT::NOT_BRACKETED;
   }
 
-  auto result = Algo::brent(fn, a, b, minbits, maxiters, rep.iters);
+  bool root_failed;
+  auto result =
+      Algo::brent(fn, a, b, minbits, maxiters, rep.iters, root_failed);
 
   CCTK_REAL xEntropy_Sol = 0.5 * (result.first + result.second);
 
@@ -381,8 +376,7 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   // Check solution and calculate primitives
   //  if (rep.iters < maxiters && abs(fn(xEntropy_Sol)) < tolerance) {
   /*
-  if (abs(result.first - result.second) <=
-      tolerance_0 * min(abs(result.first), abs(result.second))) {
+  if (!root_failed) {
     rep.status = c2p_report::SUCCESS;
     status = ROOTSTAT::SUCCESS;
   } else {
@@ -401,9 +395,7 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   }
 
   const CCTK_REAL root_width = abs(result.first - result.second);
-  const CCTK_REAL strict_width_tol =
-      tolerance_0 * min(abs(result.first), abs(result.second));
-  if (root_width > strict_width_tol) {
+  if (root_failed) {
     bool accept_soft = false;
     if (soft_root_convergence) {
       const CCTK_REAL scale =
