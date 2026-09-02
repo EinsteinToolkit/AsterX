@@ -316,13 +316,11 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
 
-if(!use_subcycling) {
 SCHEDULE AsterX_RestrictFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
 {
   LANG: C
   OPTIONS: global
 } "Apply CarpetX boundary conditions on flux variables"
-}
 
 SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_SourceTerms
 {
@@ -343,13 +341,11 @@ SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes
   WRITES: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
 } "Calculate the auxiliary terms for the rhs of Avec and Psi"
 
-if(!use_subcycling) {
 SCHEDULE AsterX_RestrictAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_CalcAuxTermsForAvecPsiRHS BEFORE AsterX_SourceTerms
 {
   LANG: C
   OPTIONS: global
 } "Restrict the auxiliary terms for the rhs of Avec and Psi"
-}
 
 SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
 {
