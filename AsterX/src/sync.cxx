@@ -72,7 +72,12 @@ extern "C" void AsterX_RestrictFluxes(CCTK_ARGUMENTS) {
       CCTK_GroupIndex("AsterX::flux_z")};
 
   active_levels->loop_fine_to_coarse([&](const auto &leveldata) {
-    if (leveldata.level < ghext->num_levels() - 1)
+    // Only restrict from a child level that is inside the active window
+    // [min_level, max_level), i.e. one that is time-aligned with this level.
+    // Under subcycling a coarse-only batch has no active child, so nothing
+    // is restricted; without subcycling every level is active, so this is
+    // the same as restricting from every level but the finest.
+    if (leveldata.level + 1 < active_levels->max_level)
       RestrictNoPoison(cctkGH, leveldata.level, restrict_groups);
   });
 }
@@ -83,7 +88,12 @@ extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
       CCTK_GroupIndex("AsterX::Ey"), CCTK_GroupIndex("AsterX::Ez")};
 
   active_levels->loop_fine_to_coarse([&](const auto &leveldata) {
-    if (leveldata.level < ghext->num_levels() - 1)
+    // Only restrict from a child level that is inside the active window
+    // [min_level, max_level), i.e. one that is time-aligned with this level.
+    // Under subcycling a coarse-only batch has no active child, so nothing
+    // is restricted; without subcycling every level is active, so this is
+    // the same as restricting from every level but the finest.
+    if (leveldata.level + 1 < active_levels->max_level)
       RestrictNoPoison(cctkGH, leveldata.level, restrict_groups);
   });
 }

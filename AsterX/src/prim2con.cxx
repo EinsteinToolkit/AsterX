@@ -61,24 +61,4 @@ extern "C" void AsterX_PsiZero_Initial(CCTK_ARGUMENTS) {
                             CCTK_ATTRIBUTE_ALWAYS_INLINE { Psi(p.I) = 0.0; });
 }
 
-extern "C" void AsterX_FluxAuxZero_Initial(CCTK_ARGUMENTS) {
-  DECLARE_CCTK_ARGUMENTSX_AsterX_FluxAuxZero_Initial;
-  DECLARE_CCTK_PARAMETERS;
-
-  grid.loop_all_device<1, 0, 0>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p)
-          CCTK_ATTRIBUTE_ALWAYS_INLINE { Fx_stag(p.I) = 0.0; });
-
-  grid.loop_all_device<0, 1, 0>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p)
-          CCTK_ATTRIBUTE_ALWAYS_INLINE { Fy_stag(p.I) = 0.0; });
-
-  grid.loop_all_device<0, 0, 1>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p)
-          CCTK_ATTRIBUTE_ALWAYS_INLINE { Fz_stag(p.I) = 0.0; });
-}
-
 } // namespace AsterX

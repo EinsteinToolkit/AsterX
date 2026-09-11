@@ -1407,6 +1407,12 @@ template <int i> void CalcFstag(CCTK_ARGUMENTS) {
   const vec<GF3D2<const CCTK_REAL>, dim> gf_Avecs{Avec_x, Avec_y, Avec_z};
   const smat<GF3D2<const CCTK_REAL>, dim> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
+  // initialize to zero: loop_mix below skips the transverse ghost edges
+  grid.loop_all_device<i == 0, i == 1, i == 2>(
+      grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p)
+          CCTK_ATTRIBUTE_ALWAYS_INLINE { gf_Fstag(i)(p.I) = 0; });
+
   grid.loop_mix_device<i == 0, i == 1, i == 2>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {

@@ -130,46 +130,6 @@ if (zero_psi) {
   } "Set Psi, time component of 4-vector potential, to zero initially"
 }
 
-################################################################################
-# For bypassing CarpetX NaN guard only:
-#   1. which can be removed if we add new 'where' type corresponding to the new
-#      loops used in CalcAuxTermsForAvecPsiRHS, Fluxes, etc.
-#   2. values set here are meaning less, they should be set somewhere fully
-#      (AsterX_CalcAuxTermsForAvecPsiRHS, Fluxes, etc)
-################################################################################
-
-SCHEDULE GROUP AsterX_TouchNonEvolVarsGroup IN AsterX_InitialGroup AFTER AsterX_Prim2Con_Initial
-{
-} "Touch Non-Evolution Variables to Bypass CarpetX NaN guard"
-
-SCHEDULE GROUP AsterX_TouchNonEvolVarsGroup AT postregrid
-{
-} "Touch Non-Evolution Variables to Bypass CarpetX NaN guard"
-
-SCHEDULE GROUP AsterX_TouchNonEvolVarsGroup AT post_recover_variables
-{
-} "Touch Non-Evolution Variables to Bypass CarpetX NaN guard"
-
-SCHEDULE AsterX_FluxAuxZero_Initial IN AsterX_TouchNonEvolVarsGroup
-{
-  LANG: C
-
-  #######################################################################
-  # Suppose to be constructed fully in AsterX_CalcAuxTermsForAvecPsiRHS #
-  #######################################################################
-  WRITES: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
- 
-  ####################################################
-  # Suppose to be constructed fully in AsterX_Fluxes #
-  ####################################################
-  #WRITES: flux_x(everywhere) flux_y(everywhere) flux_z(everywhere)
-  #WRITES: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
-  #WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
-} "Set Fluxes and Auxiliary variables to zero initially"
-
-################################################################################
-
-
 SCHEDULE AsterX_Sync AT postregrid
 {
   LANG: C
@@ -186,7 +146,7 @@ SCHEDULE AsterX_Sync IN ODESolvers_PostStep
   SYNC: cons_vector Avec_x Avec_y Avec_z Psi
 } "Synchronize"
 
-SCHEDULE AsterX_Sync AT post_recover_variables BEFORE ODESolvers_PostStep AFTER AsterX_TouchNonEvolVarsGroup
+SCHEDULE AsterX_Sync AT post_recover_variables BEFORE ODESolvers_PostStep
 {
   LANG: C
   OPTIONS: global
@@ -262,15 +222,42 @@ SCHEDULE AsterX_ApplyOuterBCOnPrim IN AsterX_Con2PrimGroup AFTER AsterX_Con2Prim
   OPTIONS: global
 } "Apply CarpetX boundary conditions on primitive variables"
 
-SCHEDULE AsterX_InitLOFlag IN CCTK_PRESTEP 
+if(!freeze_evolution) {
+
+SCHEDULE GROUP AsterX_FluxGroup IN ODESolvers_PostStep AFTER AsterX_Con2PrimGroup BEFORE TmunuBaseX_SetTmunuVars
 {
-	LANG: C
-	WRITES: LOflag(everywhere)
+} "Calculate fluxes and auxiliary terms for the RHS"
+
+if(interpolate_failed_c2p)
+{
+  SCHEDULE AsterX_Con2Prim_Interpolate_Failed IN AsterX_FluxGroup BEFORE AsterX_Fluxes
+  {
+    LANG: C
+    READS: ADMBaseX::metric(interior)
+    READS: con2prim_flag(interior)
+    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
+    READS: saved_prims(interior)
+    READS: cons_vector(interior)
+    WRITES: con2prim_flag(interior)
+    WRITES: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior)
+    WRITES: saved_prims(interior)
+    WRITES: cons_vector(interior)
+    SYNC: con2prim_flag
+    SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press
+    SYNC: saved_prims
+    SYNC: cons_vector
+  } "Interpolate those grid points where con2prim failed"
+}
+
+SCHEDULE AsterX_InitLOFlag IN AsterX_FluxGroup BEFORE AsterX_Fluxes
+{
+  LANG: C
+  WRITES: LOflag(everywhere)
 } "Init this flag to 0"
 
 if (use_deriv_shock_detector)
 {
-  SCHEDULE AsterX_SetLOFlag IN CCTK_PRESTEP AFTER AsterX_InitLOFlag 
+  SCHEDULE AsterX_SetLOFlag IN AsterX_FluxGroup AFTER AsterX_InitLOFlag BEFORE AsterX_Fluxes
   {
     LANG: C
     READS: ADMBaseX::metric(interior)
@@ -280,22 +267,7 @@ if (use_deriv_shock_detector)
   } "Detect shocks, flag for low-order recon fallback"
 }
 
-if(freeze_evolution) {
-SCHEDULE AsterX_FreezeEvolutionRHS IN ODESolvers_RHS
-{
-  LANG: C
-  WRITES: rhs_vector(interior)
-  WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
-} "Set AsterX RHS to zero when freeze_evolution is enabled"
-}
-
-if(!freeze_evolution) {
-
-SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
-{
-} "Calculate AsterX RHS"
-
-SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
+SCHEDULE AsterX_Fluxes IN AsterX_FluxGroup
 {
   LANG: C
   READS: ADMBaseX::metric(everywhere)
@@ -317,15 +289,15 @@ SCHEDULE AsterX_Fluxes IN AsterX_RHSGroup
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
 
-if(!use_subcycling) {
-SCHEDULE AsterX_RestrictFluxes IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_RHS
+if(restrict_fluxes) {
+SCHEDULE AsterX_RestrictFluxes IN AsterX_FluxGroup AFTER AsterX_Fluxes
 {
   LANG: C
   OPTIONS: global
-} "Apply CarpetX boundary conditions on flux variables"
+} "Restrict the hydro fluxes fine-to-coarse on time-aligned levels"
 }
 
-SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes BEFORE AsterX_SourceTerms
+SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_FluxGroup AFTER AsterX_Fluxes
 {
   LANG: C
   READS: ADMBaseX::metric(everywhere)
@@ -337,22 +309,38 @@ SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_Fluxes
   READS: dBx_stag(everywhere) dBy_stag(everywhere) dBz_stag(everywhere)
   READS: vbar_xface(everywhere) vbar_yface(everywhere) vbar_zface(everywhere)
   READS: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
-  READS: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
   WRITES: Ex(interior) Ey(interior) Ez(interior)
   WRITES: G(everywhere)
   WRITES: Fbeta(everywhere)
   WRITES: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
 } "Calculate the auxiliary terms for the rhs of Avec and Psi"
 
-if(!use_subcycling) {
-SCHEDULE AsterX_RestrictAuxTermsForAvecPsiRHS IN AsterX_RHSGroup AFTER AsterX_CalcAuxTermsForAvecPsiRHS BEFORE AsterX_SourceTerms
+if(restrict_fluxes) {
+SCHEDULE AsterX_RestrictAuxTermsForAvecPsiRHS IN AsterX_FluxGroup AFTER AsterX_CalcAuxTermsForAvecPsiRHS
 {
   LANG: C
   OPTIONS: global
 } "Restrict the auxiliary terms for the rhs of Avec and Psi"
 }
 
-SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_Fluxes
+} # end of if(!freeze_evolution)
+
+if(freeze_evolution) {
+SCHEDULE AsterX_FreezeEvolutionRHS IN ODESolvers_RHS
+{
+  LANG: C
+  WRITES: rhs_vector(interior)
+  WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
+} "Set AsterX RHS to zero when freeze_evolution is enabled"
+}
+
+if(!freeze_evolution) {
+
+SCHEDULE GROUP AsterX_RHSGroup IN ODESolvers_RHS
+{
+} "Calculate AsterX RHS"
+
+SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup
 {
   LANG: C
   READS: ADMBaseX::metric(everywhere)
@@ -385,29 +373,6 @@ SCHEDULE AsterX_RHS IN AsterX_RHSGroup AFTER AsterX_SourceTerms
   WRITES: Avec_x_rhs(interior) Avec_y_rhs(interior) Avec_z_rhs(interior) Psi_rhs(interior)
 } "Update the RHS of the hydro equations with the flux contributions"
 
-
-
-if(interpolate_failed_c2p)
-{
-  SCHEDULE AsterX_Con2Prim_Interpolate_Failed IN AsterX_RHSGroup BEFORE AsterX_Fluxes
-  {
-    LANG: C
-    READS: ADMBaseX::metric(interior)
-    READS: con2prim_flag(interior)
-    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
-    READS: saved_prims(interior)
-    READS: cons_vector(interior)
-    WRITES: con2prim_flag(interior)
-    WRITES: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior)
-    WRITES: saved_prims(interior)
-    WRITES: cons_vector(interior)
-    SYNC: con2prim_flag
-    SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press
-    SYNC: saved_prims
-    SYNC: cons_vector
-  } "Interpolate those grid points where con2prim failed"
-}
-  
 if(update_tmunu){
   SCHEDULE AsterX_Tmunu IN TmunuBaseX_AddToTmunu
   {

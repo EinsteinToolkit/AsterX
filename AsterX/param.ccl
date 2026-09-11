@@ -23,6 +23,10 @@ BOOLEAN prolongate_dbstag "Shall we prolongate dBstag?" STEERABLE=always
 {
 } "no"
 
+BOOLEAN restrict_fluxes "Restrict fluxes and the E/G auxiliary terms fine-to-coarse after each PostStep on time-aligned levels" STEERABLE=always
+{
+} "yes"
+
 KEYWORD flux_type "Flux solver" STEERABLE=always
 {
   "LxF" :: ""
