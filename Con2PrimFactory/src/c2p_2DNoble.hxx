@@ -564,14 +564,6 @@ c2p_2DNoble::solve(const EOSType *eos_3p, prim_vars &pv, prim_vars &pv_seeds,
     return;
   }
 
-  // Error out if eps is negative or zero
-  if (pv.eps <= 0.0) {
-    // set status to eps is out of range
-    rep.set_range_eps(pv.eps);
-    cv = cv_const;
-    return;
-  }
-
   // set to atmo if computed rho is below floor density
   // and atmo obeys magnetic field limits
   const CCTK_REAL b2_atm = calc_norm(pv.Bvec, glo);

@@ -467,14 +467,6 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     return;
   }
 
-  // Error out if eps is negative or zero
-  if (pv.eps <= 0.0) {
-    // set status to eps is out of range
-    rep.set_range_eps(pv.eps);
-    cv = cv_const;
-    return;
-  }
-
   if (ye_clipped) {
     rep.adjust_cons = true;
   }
