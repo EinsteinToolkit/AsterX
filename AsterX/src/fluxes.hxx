@@ -2,6 +2,7 @@
 #define ASTERX_FLUXES_HXX
 
 #include <loop_device.hxx>
+#include <vec.hxx>
 
 #include <cctk.h>
 #include <cctk_Arguments.h>
@@ -15,6 +16,15 @@
 namespace AsterX {
 using namespace std;
 using namespace Arith;
+
+// Fastest right- and left-going wave speeds over the two faces that share an
+// edge. ap and am are non-negative one-sided speed magnitudes.
+template <typename T>
+CCTK_DEVICE CCTK_HOST CCTK_ATTRIBUTE_ALWAYS_INLINE inline vec<T, 2>
+uct_edge_speed_envelope(const T ap0, const T am0, const T ap1,
+                        const T am1) noexcept {
+  return {fmax(ap0, ap1), fmax(am0, am1)};
+}
 
 // c = 1 Lax-Friedrichs solver for PP limiter
 inline CCTK_DEVICE CCTK_HOST CCTK_REAL laxf_simple(vec<CCTK_REAL, 2> var,

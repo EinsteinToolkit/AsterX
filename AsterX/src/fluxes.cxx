@@ -1362,14 +1362,19 @@ void CalcE_impl(CCTK_ARGUMENTS, const reconstruction_t reconstruction,
           const CCTK_REAL vjL = vbar_j_kface_jrc(0);
           const CCTK_REAL vjR = vbar_j_kface_jrc(1);
 
-          const CCTK_REAL ap_k = ap_face(k)(p.I);
-          const CCTK_REAL am_k = am_face(k)(p.I);
-          const CCTK_REAL ap_j = ap_face(j)(p.I);
-          const CCTK_REAL am_j = am_face(j)(p.I);
+          // Each edge is shared by two k-faces separated in the j direction
+          // and two j-faces separated in the k direction. Use the fastest
+          // one-sided signal speed from both adjacent faces in each HLL solve.
+          const auto a_k = uct_edge_speed_envelope(
+              ap_face(k)(p.I), am_face(k)(p.I),
+              ap_face(k)(p.I - p.DI[j]), am_face(k)(p.I - p.DI[j]));
+          const auto a_j = uct_edge_speed_envelope(
+              ap_face(j)(p.I), am_face(j)(p.I),
+              ap_face(j)(p.I - p.DI[k]), am_face(j)(p.I - p.DI[k]));
 
           gf_E(i)(p.I) =
-              hll_upwind(BjL, BjR, vkL * BjL, vkR * BjR, ap_k, am_k) -
-              hll_upwind(BkL, BkR, vjL * BkL, vjR * BkR, ap_j, am_j);
+              hll_upwind(BjL, BjR, vkL * BjL, vkR * BjR, a_k(0), a_k(1)) -
+              hll_upwind(BkL, BkR, vjL * BkL, vjR * BkR, a_j(0), a_j(1));
         });
   } else { // flux-CT
     grid.loop_int_device<i == 0, i == 1, i == 2>(
