@@ -159,6 +159,9 @@ CCTK_INT timelevels "Number of time levels for the state" STEERABLE=recover
   0:4 :: ""
 } 1
 
+BOOLEAN c2p_off_floor_strict "Shall we strictly always turn off the C2P for rho < rho_atm?" STEERABLE=always
+{
+} "yes"
 
 SHARES: EOSX
 USES CCTK_REAL poly_gamma

@@ -429,11 +429,7 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   }
 
   // set to atmo if computed rho is below floor density
-  // and atmo obeys magnetic field limits
-  const CCTK_REAL b2_atm = calc_norm(pv.Bvec, glo);
-  if (pv.rho < atmo.rho_cut &&
-      (b2_atm / atmo.rho_atmo <= sigma_max &&
-       b2_atm / (2.0 * atmo.press_atmo) <= inv_beta_max)) {
+  if (pv.rho < atmo.rho_cut) {
     rep.set_atmo_set();
     atmo.set(pv, cv, glo);
     return;
