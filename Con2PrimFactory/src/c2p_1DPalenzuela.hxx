@@ -395,19 +395,12 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   // const CCTK_INT minbits = std::numeric_limits<CCTK_REAL>::digits - 4;
   // const CCTK_INT maxiters = maxIterations;
 
-  // Important!
-  // Algo::brent terminates if the following accuracy is achieved
-  // abs(x - y) <= eps * min(abs(x), abs(y)),
-  // where x and y are the values of the bracket and
-  // eps = std::ldexp(1, -minbits) = 1 * 2^{-minbits}
-  // This should probably be changed in Algo::brent
-
-  // We want to set the tolerance to its correct parameter
+  // Algo::brent terminates once the bracket satisfies
+  //   abs(x - y) <= eps * min(abs(x), abs(y)),   eps = 2^{1-minbits}
+  // so express the requested tolerance in bits. The +1 accounts for the
+  // exponent offset, and reproduces the eps this code used to compute by hand.
   const CCTK_REAL log2 = std::log(2.0);
-  const CCTK_INT minbits = int(abs(std::log(tolerance)) / log2);
-  const CCTK_REAL tolerance_0 = std::ldexp(double(1.0), -minbits);
-  // Old code:
-  // const CCTK_INT minbits = std::numeric_limits<CCTK_REAL>::digits - 4;
+  const CCTK_INT minbits = int(abs(std::log(tolerance)) / log2) + 1;
   const CCTK_INT maxiters = maxIterations;
 
   CCTK_REAL qPalenzuela = cv.tau / cv.dens;
@@ -438,7 +431,9 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     status = ROOTSTAT::NOT_BRACKETED;
   }
 
-  auto result = Algo::brent(fn, a, b, minbits, maxiters, rep.iters);
+  bool root_failed;
+  auto result =
+      Algo::brent(fn, a, b, minbits, maxiters, rep.iters, root_failed);
 
   // Legacy endpoint-preference selector kept for reference; below we use the
   // midpoint rule for xPalenzuela_Sol.
@@ -479,26 +474,14 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     rep.adjust_cons = true;
   }
 
-  // General comment:
-  // One could think of expressing the following condition
-  // in a way that is "safe" against NaNs and infs. First, this only makes
-  // sense if we want these values to be considered as failures which should
-  // be treated as "not converged".
-  //
-  // inf: Since inf behaves like a large valid number nothing special needs
-  // to be done except of rewriting the argument of the if condition such that
-  // possible infs are present only on one side of the comparison, eg
-  // abs(difference)/abs(normalization) > tolerance_0
-  //
-  // NaN: If the argument of if (...) is NaN, it usually evaluates to false.
-  // Here, we would need to rewrite the logic a little bit.
-
-  // TODO: have an explicit check on max_iters, e.g.:
-  // if (rep.iters >= maxiters || abs(fn(xPalenzuela_Sol)) > tolerance) {
+  // `root_failed` covers both a bracket that never converged and one that ran
+  // out of iterations, so the max_iters check that used to be wanted here is
+  // no longer needed. It also avoids re-deriving brent's convergence test from
+  // its bracket, which was both a duplicate of the tolerance in Algo and
+  // awkward to make safe against NaN and inf operands. The soft-convergence
+  // fallback below is unchanged.
   const CCTK_REAL root_width = abs(result.first - result.second);
-  const CCTK_REAL strict_width_tol =
-      tolerance_0 * min(abs(result.first), abs(result.second));
-  if (root_width > strict_width_tol) {
+  if (root_failed) {
     bool accept_soft = false;
     if (soft_root_convergence) {
       const CCTK_REAL scale =
