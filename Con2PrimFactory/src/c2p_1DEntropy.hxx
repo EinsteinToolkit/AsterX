@@ -368,8 +368,22 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
 
   const CCTK_REAL f_a0 = fn(a);
   const CCTK_REAL f_b0 = fn(b);
-  if ((!isfinite(f_a0)) || (!isfinite(f_b0)) || (f_a0 * f_b0 > 0.0)) {
+  // Sign test rather than f_a0*f_b0 > 0: the product can underflow to +0 for
+  // two tiny same-sign endpoints, which would slip past the guard and let
+  // brent run on an unbracketed interval. An exact zero endpoint is a root
+  // and stays accepted.
+  const bool not_bracketed = (!isfinite(f_a0)) || (!isfinite(f_b0)) ||
+                             ((f_a0 > 0.0) && (f_b0 > 0.0)) ||
+                             ((f_a0 < 0.0) && (f_b0 < 0.0));
+  if (not_bracketed) {
+    // The root is not bracketed on [a, b]. Algo::brent asserts fa*fb <= 0,
+    // and on GPU that assert is a device-side abort which terminates the
+    // whole job, so it must not be entered. Report the bracketing failure
+    // and let the caller fall back, as c2p_1DRePrimAnd_rootfinder does.
     status = ROOTSTAT::NOT_BRACKETED;
+    rep.set_root_bracket();
+    cv = cv_const;
+    return;
   }
 
   auto result = Algo::brent(fn, a, b, minbits, maxiters, rep.iters);
