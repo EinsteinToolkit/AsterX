@@ -102,12 +102,43 @@ extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
   ApplyOuterBC(CCTK_PASS_CTOC, groups);
 }
 
+// Same-level ghost exchange of `groups` on every active level, without
+// applying outer boundary conditions: ghost points that lie outside the domain
+// or beyond a refinement boundary keep their locally computed values, only the
+// ghost points covered by a neighbouring box are refreshed from its interior.
+static void FillGhostsFromNeighbours(const cGH *const cctkGH,
+                                     const std::vector<int> &groups) {
+  assert(active_levels);
+  for (const int gi : groups) {
+    active_levels->loop_serially([&](auto &restrict leveldata) {
+      auto &restrict groupdata = *leveldata.groupdata.at(gi);
+      const int ntls = groupdata.mfab.size();
+      const int sync_tl = ntls > 1 ? ntls - 1 : ntls;
+      const auto &geom =
+          ghext->patchdata.at(leveldata.patch).amrcore->Geom(leveldata.level);
+      for (int tl = 0; tl < sync_tl; ++tl) {
+        auto &mfab = *groupdata.mfab.at(tl);
+        mfab.FillBoundary(0, mfab.nComp(), mfab.nGrowVect(),
+                          geom.periodicity());
+      }
+    });
+  }
+  synchronize();
+}
+
 extern "C" void AsterX_RestrictFluxes(CCTK_ARGUMENTS) {
   static const std::vector<int> restrict_groups = {
       CCTK_GroupIndex("AsterX::flux_x"), CCTK_GroupIndex("AsterX::flux_y"),
       CCTK_GroupIndex("AsterX::flux_z")};
 
   RestrictFromAlignedChildren(cctkGH, restrict_groups);
+  // The restriction only rewrites the coarse valid regions. At
+  // hydro_correction_order > 2 the flux-difference stencil in AsterX_RHS reads
+  // one face beyond each box's interior, so refresh the same-level ghost copies
+  // from the (now restricted) neighbouring interiors; otherwise a cell next to
+  // an interprocess boundary sees a restricted flux on one side and the stale
+  // unrestricted coarse flux on the other.
+  FillGhostsFromNeighbours(cctkGH, restrict_groups);
 }
 
 extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
@@ -116,6 +147,10 @@ extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
       CCTK_GroupIndex("AsterX::Ey"), CCTK_GroupIndex("AsterX::Ez")};
 
   RestrictFromAlignedChildren(cctkGH, restrict_groups);
+  // Same as in AsterX_RestrictFluxes: at mag_correction_order > 2 the D_i G
+  // stencil in CalcRHSofAvec_impl reads one ghost vertex of G, so its ghost
+  // copies must match the restricted interiors of the neighbouring boxes.
+  FillGhostsFromNeighbours(cctkGH, restrict_groups);
 }
 
 extern "C" void AsterX_ProlongatedBstag(CCTK_ARGUMENTS) {
