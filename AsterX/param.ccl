@@ -23,7 +23,7 @@ BOOLEAN prolongate_dbstag "Shall we prolongate dBstag?" STEERABLE=always
 {
 } "no"
 
-BOOLEAN restrict_fluxes "Restrict the fluxes and the E/G auxiliary terms fine-to-coarse at every RHS stage before the coarse RHS uses them. Only scheduled without subcycling, where every level is at the same time inside ODESolvers_RHS; under subcycling nothing is restricted and the parameter has no effect" STEERABLE=always
+BOOLEAN restrict_fluxes "Restrict the fluxes and the E/G auxiliary terms fine-to-coarse at every RHS stage before the coarse RHS uses them. Only scheduled without subcycling, where every level is at the same time inside ODESolvers_RHS; under subcycling nothing is restricted and the parameter has no effect. Under subcycling the conservative coupling of cons_vector across refinement boundaries is instead provided by the driver's flux register (CarpetX::do_reflux, on by default), which cons_vector opts into through its fluxes= tag" STEERABLE=always
 {
 } "yes"
 

@@ -119,6 +119,81 @@
 
 \subsection{Special Behaviour}
 
+\paragraph{Conservation across refinement boundaries.}
+The conserved variables \texttt{cons\_vector} are updated with the divergence
+of the face fluxes \texttt{flux\_x/y/z}, evaluated at every RK stage from
+that stage's state inside \texttt{ODESolvers\_RHS}. On a multi-level grid the
+coarse and fine levels disagree on the flux through a shared coarse/fine
+face, and AsterX relies on one of two mechanisms, each in the regime where it
+is natural, to keep mass, momentum and energy conserved across the interface:
+
+\emph{Without subcycling} every level is at the same time inside
+\texttt{ODESolvers\_RHS}, and with \texttt{restrict\_fluxes = yes} (the
+default) AsterX replaces the coarse fluxes on fine-covered faces, and the
+coarse edge electric field $E$ and gauge term $G$ on fine-covered edges and
+vertices, by the fine values before the coarse RHS uses them
+(\texttt{AsterX\_RestrictFluxes}, \texttt{AsterX\_RestrictAuxTermsForAvecPsiRHS}).
+
+\emph{With subcycling} the coarse level takes its step while the fine level
+is outside the active window, so nothing can be restricted per stage and
+\texttt{restrict\_fluxes} has no effect. The conservative coupling is then
+provided by the CarpetX driver's flux register (\texttt{CarpetX::do\_reflux},
+on by default), which \texttt{cons\_vector} opts into through the
+\texttt{fluxes="flux\_x flux\_y flux\_z"} tag in \texttt{interface.ccl}.
+ODESolvers feeds each RK stage's flux, weighted by the stage's effective
+weight and the level's time step, into a register per level pair, and the
+driver repays the accumulated coarse/fine mismatch to the coarse cells
+adjacent to each refinement boundary once per coarse step, immediately
+before it restricts the fine state onto the coarse level. The driver reads
+the leading seven components of each flux group as the fluxes of
+\texttt{dens}, \texttt{mom\{x,y,z\}}, \texttt{tau}, \texttt{DYe} and
+\texttt{DEnt}; the trailing \texttt{f*B\{x,y,z\}} transport components,
+which only feed the constrained-transport electric field, are ignored by the
+register. AsterX has no parameter of its own for this: setting
+\texttt{CarpetX::do\_reflux = no} restores the pre-reflux subcycled
+behaviour.
+
+\emph{The magnetic field needs no register.} \texttt{Bvec} is the curl of
+the edge-centred vector potential \texttt{Avec}, so the cross-level quantity
+that matters is the time integral of the edge electric field (plus the gauge
+term) on the shared edges, not a face flux. The driver's edge restriction of
+\texttt{Avec} at the end of every time-aligned cascade overwrites every
+coarse edge under the fine box, the edges on the fine box's boundary faces
+included, with the fine time integral, and runs at the same moment as the
+hydro reflux, after it and before the coarse state is used again. The nodal
+gauge register described below removes the gauge part of the mismatch that
+survives on uncovered coarse edges.
+
+\emph{Tests.} \texttt{Sound\_wave\_AMR\_SC\_reflux} is a subcycled two-level
+sound wave on a fully periodic domain with a fixed refined box; with reflux
+on, the masked, volume-weighted \texttt{sum} reduction of \texttt{dens},
+\texttt{momx}, \texttt{tau} and \texttt{DYe} (written by
+\texttt{CarpetX::out\_norm\_vars}) is constant to round-off over the run
+(relative drift $2\times10^{-16}$ to $2\times10^{-15}$), while with
+\texttt{CarpetX::do\_reflux = no} the same totals drift by $4\times10^{-6}$
+to $3\times10^{-3}$. \texttt{DEnt} is excluded from that statement by
+construction: on every successful con2prim AsterX resets
+$\texttt{DEnt} = \texttt{dens}\,\times\,\texttt{entropy}$, so its total is not
+conserved even on a single level. A periodic multi-level Alfv\'en wave is not
+usable for this measurement, because the seed's vector potential is linear in
+$y$ and $z$ (a uniform $B_x$ has no periodic potential): with periodic
+transverse boundaries the prolongation of \texttt{Avec} onto the fine level
+straddles the wrap-around jump, and with open transverse boundaries the
+totals leak through the boundary at the $10^{-7}$ level whatever the
+interface treatment. \texttt{magTOV\_Z4c\_AMR\_SC\_reflux} runs the
+subcycled magnetised TOV star of \texttt{magTOV\_Z4c\_AMR\_SC\_gauge\_register}
+with reflux on and pins the correction on realistic physics, including the
+masked totals of \texttt{cons\_vector}; the atmosphere leaves through the
+outer boundary there, so those totals are pinned but are not a conservation
+diagnostic. \texttt{magTOV\_Z4c\_AMR\_SC} and
+\texttt{magTOV\_Z4c\_AMR\_SC\_gauge\_register} set
+\texttt{CarpetX::do\_reflux = no} explicitly and pin the pre-reflux subcycled
+path; \texttt{magTOV\_Z4c\_AMR} is not subcycled and pins the per-stage
+restriction path. The interface $B$-shell metric of the gauge-register
+paragraph below, measured on \texttt{magTOV\_Z4c\_AMR\_SC\_reflux}, is the
+guardrail that the reflux correction leaves the magnetic field near the
+interface no worse than the gauge register alone.
+
 \paragraph{Nodal gauge register (\texttt{AsterX::gauge\_register}).}
 In the generalized Lorenz gauge the vector potential receives the gauge term
 $-\partial_i G$. Under CarpetX subcycling the coarse and fine levels

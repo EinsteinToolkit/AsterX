@@ -17,7 +17,18 @@ PUBLIC:
 
 # Note that the prolongation method and order are hard-coded and will
 # supersede parfile choices
-CCTK_REAL cons_vector TYPE=gf CENTERING={ccc} TAGS='parities={+1 +1 +1    -1 +1 +1    +1 -1 +1    +1 +1 -1    +1 +1 +1    +1 +1 +1    +1 +1 +1} rhs="rhs_vector" dependents="HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec HydroBaseX::vel HydroBaseX::entropy TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Conserved quantities during AsterX evolution"
+#
+# The fluxes= tag registers flux_x/y/z with CarpetX's flux-register (reflux)
+# correction (CarpetX::do_reflux). Under subcycling the driver accumulates the
+# stage-weighted fluxes of every level into a register per level pair and
+# repays the coarse/fine mismatch to the coarse cells at each refinement
+# boundary once per coarse step, before restriction. Without subcycling no
+# register exists and AsterX_RestrictFluxes (restrict_fluxes) provides the
+# conservative coupling instead. The driver reads the leading seven components
+# of each flux group as the fluxes of dens, mom{x,y,z}, tau, DYe and DEnt in
+# that order (the AsterX RHS is rhs = sources - div(flux)); the trailing
+# fxB{x,y,z} transport components are ignored by the register.
+CCTK_REAL cons_vector TYPE=gf CENTERING={ccc} TAGS='parities={+1 +1 +1    -1 +1 +1    +1 -1 +1    +1 +1 -1    +1 +1 +1    +1 +1 +1    +1 +1 +1} rhs="rhs_vector" fluxes="flux_x flux_y flux_z" dependents="HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec HydroBaseX::vel HydroBaseX::entropy TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Conserved quantities during AsterX evolution"
 {
   dens, momx, momy, momz, tau, DYe, DEnt
 } "Conserved density, momenta, internal energy, electron fraction and entropy"

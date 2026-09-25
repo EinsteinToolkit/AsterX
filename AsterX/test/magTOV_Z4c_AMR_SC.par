@@ -42,6 +42,11 @@ CarpetX::restrict_during_sync = no
 # test pins the subcycled path bit-for-bit. magTOV_Z4c_AMR_SC_gauge_register
 # covers the register.
 AsterX::gauge_register = no
+# The reference data also predate the driver's flux-register (reflux)
+# correction of cons_vector across the refinement boundary; keep it off here
+# so this test pins the pre-reflux subcycled path bit-for-bit.
+# magTOV_Z4c_AMR_SC_reflux covers the correction.
+CarpetX::do_reflux = no
 
 # Finest grid spacing is 0.15625 
 # To have a symmetric grid along 0, we have odd number of points (257) 

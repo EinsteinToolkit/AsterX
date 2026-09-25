@@ -1,0 +1,178 @@
+ActiveThorns = "
+    BoxInBox
+    CarpetX
+    Cowling
+    IOUtil
+    ODESolvers
+    ADMBaseX
+    HydroBaseX
+    TmunuBaseX
+    AsterSeeds
+    AsterX
+    EOSX
+    AsterMasks
+"
+
+# Subcycled two-level sound wave on a fully periodic domain with a fixed
+# refined box inside it, integrated with RK4. Derived from Sound_wave.par
+# (same seed, EOS, reconstruction and solver settings); the domain is one
+# wavelength of the seed's sin(pi x) perturbation so that it can be periodic
+# in every direction, and Cowling re-sets the Minkowski background on the
+# fine level after regridding.
+#
+# This test reads the headline conservation lever of the driver's
+# flux-register (reflux) correction of AsterX::cons_vector: with
+# CarpetX::do_reflux at its default, the masked, volume-weighted "sum"
+# reduction of every conserved variable (CarpetX::out_norm_vars; fine-covered
+# coarse cells excluded) is constant to round-off over the run, because
+# nothing leaves through a periodic boundary and the driver repays the
+# coarse/fine flux mismatch on all six faces of the refined box once per
+# coarse step. With CarpetX::do_reflux = no the same totals drift. DEnt is
+# the one exception by construction: on every successful con2prim AsterX
+# resets DEnt = dens * entropy, so its total is not a conservation
+# diagnostic. The masked sums are a diagnostic at time-aligned iterations
+# only, i.e. at even cctk_iteration (cctk_iteration counts fine-level
+# steps).
+#
+# A periodic multi-level Alfven wave is not available for this purpose: the
+# Alfven-wave seed's vector potential is linear in y and z (a uniform B_x has
+# no periodic potential), so it cannot be evolved with periodic transverse
+# boundaries on a refined grid, and with open transverse boundaries the
+# totals leak through the boundary regardless of the interface treatment.
+
+$nlevels = 2
+
+Cactus::cctk_show_schedule = no
+
+Cactus::presync_mode = "mixed-error"
+# Detailed per-routine timers (incl. AsterX_Fluxes) via TimerReport, which
+# dumps every flesh timer -- unlike Cactus::cctk_timer_output, whose
+# schedule-bin view hides routines driven inside the ODESolvers RHS group.
+# Reports are written to the test output dir (AllTimers*.txt/.csv/.tsv,
+# AllTimersReadable.txt) and captured by the CI artifact.
+ActiveThorns = "TimerReport"
+TimerReport::out_every                   = 32
+TimerReport::out_filename                = "TimerReport"
+TimerReport::output_all_timers_together  = yes
+TimerReport::output_all_timers_readable  = yes
+TimerReport::n_top_timers                = 50
+
+# cctk_iteration counts finest-level steps: 32 fine steps = 16 coarse steps.
+Cactus::terminate = "iteration"
+Cactus::cctk_itlast = 32
+
+ADMBaseX::initial_data            = "Cartesian Minkowski"
+ADMBaseX::initial_lapse           = "one"
+ADMBaseX::initial_shift           = "zero"
+ADMBaseX::initial_dtlapse         = "none"
+ADMBaseX::initial_dtshift         = "none"
+
+CarpetX::verbose = no
+CarpetX::poison_undefined_values = yes
+
+CarpetX::xmin = -1.0
+CarpetX::ymin = -1.0
+CarpetX::zmin = -1.0
+
+CarpetX::xmax = +1.0
+CarpetX::ymax = +1.0
+CarpetX::zmax = +1.0
+
+CarpetX::boundary_x = "none"
+CarpetX::boundary_y = "none"
+CarpetX::boundary_z = "none"
+
+CarpetX::boundary_upper_x = "none"
+CarpetX::boundary_upper_y = "none"
+CarpetX::boundary_upper_z = "none"
+
+CarpetX::periodic = yes
+CarpetX::periodic_x = yes
+CarpetX::periodic_y = yes
+CarpetX::periodic_z = yes
+
+CarpetX::ncells_x = 16
+CarpetX::ncells_y = 8
+CarpetX::ncells_z = 8
+
+CarpetX::max_num_levels = $nlevels
+CarpetX::regrid_every = 100000
+CarpetX::blocking_factor_x = 1
+CarpetX::blocking_factor_y = 1
+CarpetX::blocking_factor_z = 1
+CarpetX::regrid_error_threshold = 0.01
+
+CarpetX::prolongation_type = "ddf"
+CarpetX::ghost_size = 3
+CarpetX::dtfac = 0.25
+
+CarpetX::use_subcycling = yes
+CarpetX::restrict_during_sync = no
+
+BoxInBox::num_regions = 1
+# Region 1: a fixed box (8 x 4 x 4 coarse cells, refined once); regrid_every
+# above keeps it fixed. It is displaced from the origin by one coarse cell in
+# x so that the composite grid has no reflection symmetry along the wave (a
+# centred box would make some totals vanish by symmetry whether or not the
+# reflux correction is applied), and by one coarse cell in y and z so that
+# the box is not centred in any direction. The wave is uniform in y and z,
+# so the masked totals of momy and momz vanish by symmetry regardless of the
+# box position and are not conservation levers; dens, momx, tau and DYe are.
+# Their totals drift by 4e-6 (dens, DYe), 7e-6 (tau) and 3e-3 (momx) relative
+# over the run with CarpetX::do_reflux = no.
+BoxInBox::shape_1 = "cube"
+BoxInBox::num_levels_1 = $nlevels
+BoxInBox::position_x_1 = 0.125
+BoxInBox::position_y_1 = 0.25
+BoxInBox::position_z_1 = -0.25
+BoxInBox::radius_x_1 = [ -1.0, 0.45 ]
+BoxInBox::radius_y_1 = [ -1.0, 0.5 ]
+BoxInBox::radius_z_1 = [ -1.0, 0.5 ]
+
+AsterSeeds::test_type = "1DTest"
+AsterSeeds::test_case = "sound wave"
+
+AsterX::debug_mode = "no"
+AsterX::flux_type = "HLLE"
+AsterX::local_estimate_error = "no"
+
+ReconX::reconstruction_method = "PPM"
+
+Con2PrimFactory::c2p_prime = "Noble"
+Con2PrimFactory::c2p_second = "Palenzuela"
+Con2PrimFactory::c2p_tol = 1e-8
+Con2PrimFactory::max_iter = 100
+Con2PrimFactory::rho_abs_min = 1e-8
+Con2PrimFactory::unit_test = "no"
+Con2PrimFactory::B_lim = 1e8
+Con2PrimFactory::vw_lim = 1e8
+Con2PrimFactory::Ye_lenient = "yes"
+
+EOSX::evolution_eos = "IdealGas"
+EOSX::gl_gamma = 2.0
+EOSX::poly_gamma = 2.0
+EOSX::rho_max = 1e8
+EOSX::eps_max = 1e8
+
+# The subcycling solver supports RK4 and SSPRK3
+ODESolvers::method = "RK4"
+
+IO::out_dir = $parfile
+IO::out_every = 1
+IO::parfile_write = no
+
+CarpetX::out_metadata = no
+
+# Masked, volume-weighted reductions of the conserved variables at every
+# iteration; the "sum" column is the conservation diagnostic.
+CarpetX::out_norm_vars = "AsterX::cons_vector"
+CarpetX::out_norm_omit_unstable = yes
+
+CarpetX::out_tsv_every = 16
+CarpetX::out_tsv_vars = "
+    HydroBaseX::rho
+    HydroBaseX::vel
+    HydroBaseX::eps
+    HydroBaseX::press
+    AsterX::cons_vector
+"
