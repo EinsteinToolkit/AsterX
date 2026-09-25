@@ -13,7 +13,7 @@
 # refinement boundary once per coarse step, before restriction. The masked
 # totals of cons_vector (CarpetX::out_norm_vars) are part of the reference
 # data. The star's atmosphere flows out through the outer boundary, so those
-# totals are not a conservation diagnostic here; Alfven_wave_AMR_SC_reflux is
+# totals are not a conservation diagnostic here; Sound_wave_AMR_SC_reflux is
 # the periodic test where they are constant to round-off. The interface
 # B-shell guardrail (doc/documentation.tex) is read off this test.
 ##############################
