@@ -135,11 +135,12 @@ with \texttt{restrict\_aux\_terms = yes} (the default) it does the same for
 the coarse edge electric field $E$ and gauge term $G$ on fine-covered edges
 and vertices (\texttt{AsterX\_RestrictAuxTermsForAvecPsiRHS}).
 Every RK stage is then conservative across the interface. CarpetX's flux
-register (below) is also fed and applied without subcycling, at the end of
-each step, but with the fluxes already restricted the coarse flux it
-accumulates is the fine one, so it holds only round-off and the reflux has no
-effect; AsterX warns at \texttt{CCTK\_PARAMCHECK} in this case, and
-\texttt{CarpetX::do\_reflux = no} skips the register work. The two mechanisms
+register (below), when enabled, is also fed and applied without subcycling,
+at the end of each step, but with the fluxes already restricted the coarse
+flux it accumulates is the fine one, so it holds only round-off and the
+reflux has no effect; AsterX warns at \texttt{CCTK\_PARAMCHECK} if
+\texttt{CarpetX::do\_reflux = yes} is set in this case, and leaving it at its
+default (\texttt{no}) skips the register work. The two mechanisms
 are not interchangeable here: with \texttt{restrict\_fluxes = no} and the
 register alone, conservation is restored only at the end of the step, and
 the intermediate coarse stage states next to the interface (which also feed
@@ -149,7 +150,7 @@ the prolongated fine ghost zones) carry the coarse interface flux.
 is outside the active window, so nothing can be restricted per stage and
 \texttt{restrict\_fluxes} and \texttt{restrict\_aux\_terms} have no effect.
 The conservative coupling is then provided by the CarpetX driver's flux register (\texttt{CarpetX::do\_reflux},
-on by default), which \texttt{cons\_vector} opts into through the
+off by default, so it must be switched on), which \texttt{cons\_vector} opts into through the
 \texttt{fluxes="flux\_x flux\_y flux\_z"} tag in \texttt{interface.ccl}.
 ODESolvers feeds each RK stage's flux, weighted by the stage's effective
 weight and the level's time step, into a register per level pair, and the
@@ -160,9 +161,11 @@ the leading seven components of each flux group as the fluxes of
 \texttt{dens}, \texttt{mom\{x,y,z\}}, \texttt{tau}, \texttt{DYe} and
 \texttt{DEnt}; the trailing \texttt{f*B\{x,y,z\}} transport components,
 which only feed the constrained-transport electric field, are ignored by the
-register. AsterX has no parameter of its own for this: setting
-\texttt{CarpetX::do\_reflux = no} restores the pre-reflux subcycled
-behaviour.
+register. AsterX has no parameter of its own for this: set
+\texttt{CarpetX::do\_reflux = yes} to enable the correction; at its default
+(\texttt{no}) the subcycled evolution keeps the pre-reflux behaviour, with
+no conservative coupling of \texttt{cons\_vector} across the refinement
+boundary.
 
 \emph{The magnetic field needs no register.} \texttt{Bvec} is the curl of
 the edge-centred vector potential \texttt{Avec}, so the cross-level quantity
@@ -176,8 +179,8 @@ gauge register described below removes the gauge part of the mismatch that
 survives on uncovered coarse edges.
 
 \emph{Tests.} \texttt{Sound\_wave\_AMR\_SC\_reflux} is a subcycled two-level
-sound wave on a fully periodic domain with a fixed refined box; with reflux
-on, the masked, volume-weighted \texttt{sum} reduction of \texttt{dens},
+sound wave on a fully periodic domain with a fixed refined box; with
+\texttt{CarpetX::do\_reflux = yes}, the masked, volume-weighted \texttt{sum} reduction of \texttt{dens},
 \texttt{momx}, \texttt{tau} and \texttt{DYe} (written by
 \texttt{CarpetX::out\_norm\_vars}) is constant to round-off over the run
 (relative drift $2\times10^{-16}$ to $2\times10^{-15}$), while with
@@ -193,12 +196,12 @@ straddles the wrap-around jump, and with open transverse boundaries the
 totals leak through the boundary at the $10^{-7}$ level whatever the
 interface treatment. \texttt{magTOV\_Z4c\_AMR\_SC\_reflux} runs the
 subcycled magnetised TOV star of \texttt{magTOV\_Z4c\_AMR\_SC\_gauge\_register}
-with reflux on and pins the correction on realistic physics, including the
+with \texttt{CarpetX::do\_reflux = yes} and pins the correction on realistic physics, including the
 masked totals of \texttt{cons\_vector}; the atmosphere leaves through the
 outer boundary there, so those totals are pinned but are not a conservation
 diagnostic. \texttt{magTOV\_Z4c\_AMR\_SC} and
 \texttt{magTOV\_Z4c\_AMR\_SC\_gauge\_register} set
-\texttt{CarpetX::do\_reflux = no} explicitly and pin the pre-reflux subcycled
+\texttt{CarpetX::do\_reflux = no} (the default) explicitly and pin the pre-reflux subcycled
 path; \texttt{magTOV\_Z4c\_AMR} is not subcycled and pins the per-stage
 restriction path. The interface $B$-shell metric of the gauge-register
 paragraph below, measured on \texttt{magTOV\_Z4c\_AMR\_SC\_reflux}, is the

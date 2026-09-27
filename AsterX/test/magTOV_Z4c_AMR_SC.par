@@ -44,7 +44,8 @@ CarpetX::restrict_during_sync = no
 AsterX::gauge_register = no
 # The reference data also predate the driver's flux-register (reflux)
 # correction of cons_vector across the refinement boundary; keep it off here
-# so this test pins the pre-reflux subcycled path bit-for-bit.
+# (the default; stated explicitly) so this test pins the pre-reflux subcycled
+# path bit-for-bit.
 # magTOV_Z4c_AMR_SC_reflux covers the correction.
 CarpetX::do_reflux = no
 

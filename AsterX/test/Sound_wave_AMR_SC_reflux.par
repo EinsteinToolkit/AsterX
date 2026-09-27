@@ -22,7 +22,7 @@ ActiveThorns = "
 #
 # This test reads the headline conservation lever of the driver's
 # flux-register (reflux) correction of AsterX::cons_vector: with
-# CarpetX::do_reflux at its default, the masked, volume-weighted "sum"
+# CarpetX::do_reflux = yes, the masked, volume-weighted "sum"
 # reduction of every conserved variable (CarpetX::out_norm_vars; fine-covered
 # coarse cells excluded) is constant to round-off over the run, because
 # nothing leaves through a periodic boundary and the driver repays the
@@ -108,6 +108,8 @@ CarpetX::dtfac = 0.25
 
 CarpetX::use_subcycling = yes
 CarpetX::restrict_during_sync = no
+# Reflux is off by default; this test exists to pin it
+CarpetX::do_reflux = yes
 
 BoxInBox::num_regions = 1
 # Region 1: a fixed box (8 x 4 x 4 coarse cells, refined once); regrid_every

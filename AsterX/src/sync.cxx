@@ -111,10 +111,11 @@ extern "C" void AsterX_RestrictFluxes(CCTK_ARGUMENTS) {
 }
 
 // Scheduled only with restrict_fluxes, without subcycling and without
-// freeze_evolution. The coarse flux the register accumulates at each stage
-// is then already the restricted fine flux, so the register holds round-off
-// and the end-of-step reflux changes nothing but costs a register update per
-// stage.
+// freeze_evolution; warns only if CarpetX::do_reflux has been switched on
+// (it is off by default). The coarse flux the register accumulates at each
+// stage is then already the restricted fine flux, so the register holds
+// round-off and the end-of-step reflux changes nothing but costs a register
+// update per stage.
 extern "C" void AsterX_CheckRedundantReflux(CCTK_ARGUMENTS) {
   // CarpetX::do_reflux and CarpetX::max_num_levels are private to the
   // driver; read them by name
@@ -142,8 +143,9 @@ extern "C" void AsterX_CheckRedundantReflux(CCTK_ARGUMENTS) {
              "AsterX::restrict_fluxes = yes and CarpetX::do_reflux = yes "
              "without subcycling: the fluxes are restricted fine-to-coarse at "
              "every RK stage, so the flux register only accumulates round-off "
-             "and the reflux of cons_vector has no effect. Set "
-             "CarpetX::do_reflux = no to skip the register work.");
+             "and the reflux of cons_vector has no effect. Leave "
+             "CarpetX::do_reflux at its default (no) to skip the register "
+             "work.");
 }
 
 extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {

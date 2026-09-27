@@ -48,8 +48,9 @@ CarpetX::restrict_during_sync = no
 # exists to pin it). magTOV_Z4c_AMR_SC runs the same setup with it off.
 AsterX::gauge_register = yes
 # The reference data predate the driver's flux-register (reflux) correction
-# of cons_vector across the refinement boundary; keep it off here so this
-# test pins the pre-reflux subcycled path with the gauge register on.
+# of cons_vector across the refinement boundary; keep it off here (the
+# default; stated explicitly) so this test pins the pre-reflux subcycled path
+# with the gauge register on.
 # magTOV_Z4c_AMR_SC_reflux runs the same setup with the correction on.
 CarpetX::do_reflux = no
 

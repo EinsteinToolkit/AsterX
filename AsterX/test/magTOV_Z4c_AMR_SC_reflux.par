@@ -6,7 +6,7 @@
 #
 # Same setup as magTOV_Z4c_AMR_SC_gauge_register (nodal gauge register on,
 # CarpetX poisoning at its default), but with the driver's flux-register
-# (reflux) correction of cons_vector at its default (CarpetX::do_reflux = yes).
+# (reflux) correction of cons_vector on (CarpetX::do_reflux = yes).
 # This test pins the correction on realistic physics: under subcycling the
 # driver accumulates the stage-weighted hydro fluxes of both levels into a
 # register and repays the coarse/fine mismatch to the coarse cells at the
@@ -53,10 +53,11 @@ TimerReport::n_top_timers                = 50
 CarpetX::use_subcycling = yes
 CarpetX::restrict_during_sync = no
 # Nodal gauge register on (the default). magTOV_Z4c_AMR_SC_gauge_register
-# runs the same setup with the reflux correction off (CarpetX::do_reflux = no);
-# the reflux correction is left at its default here because this test exists
-# to pin it.
+# runs the same setup with the reflux correction off (CarpetX::do_reflux = no,
+# the default); the reflux correction is switched on here because this test
+# exists to pin it.
 AsterX::gauge_register = yes
+CarpetX::do_reflux = yes
 
 # Finest grid spacing is 0.15625 
 # To have a symmetric grid along 0, we have odd number of points (257) 
