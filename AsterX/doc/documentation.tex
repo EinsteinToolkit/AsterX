@@ -134,6 +134,16 @@ values before the coarse RHS uses them (\texttt{AsterX\_RestrictFluxes}), and
 with \texttt{restrict\_aux\_terms = yes} (the default) it does the same for
 the coarse edge electric field $E$ and gauge term $G$ on fine-covered edges
 and vertices (\texttt{AsterX\_RestrictAuxTermsForAvecPsiRHS}).
+Every RK stage is then conservative across the interface. CarpetX's flux
+register (below) is also fed and applied without subcycling, at the end of
+each step, but with the fluxes already restricted the coarse flux it
+accumulates is the fine one, so it holds only round-off and the reflux has no
+effect; AsterX warns at \texttt{CCTK\_PARAMCHECK} in this case, and
+\texttt{CarpetX::do\_reflux = no} skips the register work. The two mechanisms
+are not interchangeable here: with \texttt{restrict\_fluxes = no} and the
+register alone, conservation is restored only at the end of the step, and
+the intermediate coarse stage states next to the interface (which also feed
+the prolongated fine ghost zones) carry the coarse interface flux.
 
 \emph{With subcycling} the coarse level takes its step while the fine level
 is outside the active window, so nothing can be restricted per stage and

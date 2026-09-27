@@ -22,9 +22,11 @@ PUBLIC:
 # correction (CarpetX::do_reflux). Under subcycling the driver accumulates the
 # stage-weighted fluxes of every level into a register per level pair and
 # repays the coarse/fine mismatch to the coarse cells at each refinement
-# boundary once per coarse step, before restriction. Without subcycling no
-# register exists and AsterX_RestrictFluxes (restrict_fluxes) provides the
-# conservative coupling instead. The driver reads the leading seven components
+# boundary once per coarse step, before restriction. Without subcycling
+# AsterX_RestrictFluxes (restrict_fluxes) provides the conservative coupling
+# at every RK stage instead; ODESolvers still feeds the register and refluxes
+# at the end of each step, but the register then holds only round-off (a
+# PARAMCHECK warning suggests CarpetX::do_reflux = no). The driver reads the leading seven components
 # of each flux group as the fluxes of dens, mom{x,y,z}, tau, DYe and DEnt in
 # that order (the AsterX RHS is rhs = sources - div(flux)); the trailing
 # fxB{x,y,z} transport components are ignored by the register.

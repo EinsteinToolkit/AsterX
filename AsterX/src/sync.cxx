@@ -110,6 +110,42 @@ extern "C" void AsterX_RestrictFluxes(CCTK_ARGUMENTS) {
   RestrictFromAlignedChildren(cctkGH, restrict_groups);
 }
 
+// Scheduled only with restrict_fluxes, without subcycling and without
+// freeze_evolution. The coarse flux the register accumulates at each stage
+// is then already the restricted fine flux, so the register holds round-off
+// and the end-of-step reflux changes nothing but costs a register update per
+// stage.
+extern "C" void AsterX_CheckRedundantReflux(CCTK_ARGUMENTS) {
+  // CarpetX::do_reflux and CarpetX::max_num_levels are private to the
+  // driver; read them by name
+  int do_reflux_type;
+  const void *const do_reflux_p =
+      CCTK_ParameterGet("do_reflux", "CarpetX", &do_reflux_type);
+  assert(do_reflux_p);
+  assert(do_reflux_type == PARAMETER_BOOLEAN);
+  const CCTK_INT do_reflux = *static_cast<const CCTK_INT *>(do_reflux_p);
+
+  int max_num_levels_type;
+  const void *const max_num_levels_p =
+      CCTK_ParameterGet("max_num_levels", "CarpetX", &max_num_levels_type);
+  assert(max_num_levels_p);
+  assert(max_num_levels_type == PARAMETER_INT);
+  const CCTK_INT max_num_levels =
+      *static_cast<const CCTK_INT *>(max_num_levels_p);
+
+  if (!do_reflux || max_num_levels <= 1)
+    return;
+  // Every process reaches the same verdict; warn once per run
+  if (CCTK_MyProc(nullptr) != 0)
+    return;
+  CCTK_VWARN(CCTK_WARN_ALERT,
+             "AsterX::restrict_fluxes = yes and CarpetX::do_reflux = yes "
+             "without subcycling: the fluxes are restricted fine-to-coarse at "
+             "every RK stage, so the flux register only accumulates round-off "
+             "and the reflux of cons_vector has no effect. Set "
+             "CarpetX::do_reflux = no to skip the register work.");
+}
+
 extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   static const std::vector<int> restrict_groups = {
       CCTK_GroupIndex("AsterX::G"), CCTK_GroupIndex("AsterX::Ex"),
