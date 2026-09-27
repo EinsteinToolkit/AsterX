@@ -11,11 +11,13 @@
 # driver accumulates the stage-weighted hydro fluxes of both levels into a
 # register and repays the coarse/fine mismatch to the coarse cells at the
 # refinement boundary once per coarse step, before restriction. The masked
-# totals of cons_vector (CarpetX::out_norm_vars) are part of the reference
-# data. The star's atmosphere flows out through the outer boundary, so those
-# totals are not a conservation diagnostic here; Sound_wave_AMR_SC_reflux is
-# the periodic test where they are constant to round-off. The interface
-# B-shell guardrail (doc/documentation.tex) is read off this test.
+# totals of cons_vector (CarpetX::out_norm_vars) are not part of the reference
+# data: the star's atmosphere flows out through the outer boundary, so they
+# are not a conservation diagnostic here, and DEnt's first moment (sumloc)
+# differs between arm64 and x86_64 builds by more than the test tolerance.
+# Sound_wave_AMR_SC_reflux is the periodic test where they are constant to
+# round-off. The interface B-shell guardrail (doc/documentation.tex) is read
+# off this test.
 ##############################
 ActiveThorns = "
     ADMBaseX
@@ -190,10 +192,9 @@ IO::out_every = 50
 IO::parfile_write = no
 
 CarpetX::out_metadata = no
-# Masked, volume-weighted reductions of the conserved variables (the "sum"
-# column is the total over the composite grid, fine-covered coarse cells
-# excluded), pinned as reference data.
-CarpetX::out_norm_vars = "AsterX::cons_vector"
+# No norm output: the masked reductions of cons_vector are not reproducible
+# across platforms within the test tolerance (see the header).
+CarpetX::out_norm_vars = " "
 CarpetX::out_norm_omit_unstable = yes
 
 CarpetX::out_tsv_vars = "

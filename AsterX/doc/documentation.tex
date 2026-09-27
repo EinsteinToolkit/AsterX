@@ -196,10 +196,11 @@ straddles the wrap-around jump, and with open transverse boundaries the
 totals leak through the boundary at the $10^{-7}$ level whatever the
 interface treatment. \texttt{magTOV\_Z4c\_AMR\_SC\_reflux} runs the
 subcycled magnetised TOV star of \texttt{magTOV\_Z4c\_AMR\_SC\_gauge\_register}
-with \texttt{CarpetX::do\_reflux = yes} and pins the correction on realistic physics, including the
-masked totals of \texttt{cons\_vector}; the atmosphere leaves through the
-outer boundary there, so those totals are pinned but are not a conservation
-diagnostic. \texttt{magTOV\_Z4c\_AMR\_SC} and
+with \texttt{CarpetX::do\_reflux = yes} and pins the correction on realistic physics. It does
+not pin the masked totals of \texttt{cons\_vector}: the atmosphere leaves
+through the outer boundary there, so they are not a conservation diagnostic,
+and the first moment of \texttt{DEnt} differs between arm64 and x86\_64
+builds by more than the test tolerance. \texttt{magTOV\_Z4c\_AMR\_SC} and
 \texttt{magTOV\_Z4c\_AMR\_SC\_gauge\_register} set
 \texttt{CarpetX::do\_reflux = no} (the default) explicitly and pin the pre-reflux subcycled
 path; \texttt{magTOV\_Z4c\_AMR} is not subcycled and pins the per-stage
