@@ -410,7 +410,7 @@ SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_FluxGroup AFTER AsterX_Fluxe
   WRITES: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
 } "Calculate the auxiliary terms for the rhs of Avec and Psi"
 
-if(restrict_fluxes && !use_subcycling) {
+if(restrict_aux_terms && !use_subcycling) {
 SCHEDULE AsterX_RestrictAuxTermsForAvecPsiRHS IN AsterX_FluxGroup AFTER AsterX_CalcAuxTermsForAvecPsiRHS
 {
   LANG: C

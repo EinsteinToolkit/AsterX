@@ -128,16 +128,17 @@ face, and AsterX relies on one of two mechanisms, each in the regime where it
 is natural, to keep mass, momentum and energy conserved across the interface:
 
 \emph{Without subcycling} every level is at the same time inside
-\texttt{ODESolvers\_RHS}, and with \texttt{restrict\_fluxes = yes} (the
-default) AsterX replaces the coarse fluxes on fine-covered faces, and the
-coarse edge electric field $E$ and gauge term $G$ on fine-covered edges and
-vertices, by the fine values before the coarse RHS uses them
-(\texttt{AsterX\_RestrictFluxes}, \texttt{AsterX\_RestrictAuxTermsForAvecPsiRHS}).
+\texttt{ODESolvers\_RHS}. With \texttt{restrict\_fluxes = yes} (the
+default) AsterX replaces the coarse fluxes on fine-covered faces by the fine
+values before the coarse RHS uses them (\texttt{AsterX\_RestrictFluxes}), and
+with \texttt{restrict\_aux\_terms = yes} (the default) it does the same for
+the coarse edge electric field $E$ and gauge term $G$ on fine-covered edges
+and vertices (\texttt{AsterX\_RestrictAuxTermsForAvecPsiRHS}).
 
 \emph{With subcycling} the coarse level takes its step while the fine level
 is outside the active window, so nothing can be restricted per stage and
-\texttt{restrict\_fluxes} has no effect. The conservative coupling is then
-provided by the CarpetX driver's flux register (\texttt{CarpetX::do\_reflux},
+\texttt{restrict\_fluxes} and \texttt{restrict\_aux\_terms} have no effect.
+The conservative coupling is then provided by the CarpetX driver's flux register (\texttt{CarpetX::do\_reflux},
 on by default), which \texttt{cons\_vector} opts into through the
 \texttt{fluxes="flux\_x flux\_y flux\_z"} tag in \texttt{interface.ccl}.
 ODESolvers feeds each RK stage's flux, weighted by the stage's effective
