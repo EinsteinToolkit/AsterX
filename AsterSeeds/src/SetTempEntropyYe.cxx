@@ -39,10 +39,16 @@ void AsterSeeds_SetEntropy_typeEoS(CCTK_ARGUMENTS, EOSType *eos_3p) {
   grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        CCTK_REAL epsL = eps(p.I);
-        entropy(p.I) =
-            eos_3p->kappa_from_rho_eps_ye(rho(p.I), epsL, Ye(p.I));
-        eps(p.I) = epsL;
+        // kappa ~ eps * rho^(1-gamma) is 0*inf = NaN in vacuum (e.g. outside
+        // a TOV star); those points are reset by the atmosphere later
+        if (rho(p.I) > 0) {
+          CCTK_REAL epsL = eps(p.I);
+          entropy(p.I) =
+              eos_3p->kappa_from_rho_eps_ye(rho(p.I), epsL, Ye(p.I));
+          eps(p.I) = epsL;
+        } else {
+          entropy(p.I) = 0;
+        }
       });
 }
 
