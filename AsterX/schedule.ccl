@@ -389,9 +389,11 @@ SCHEDULE AsterX_Fluxes IN AsterX_FluxGroup
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
 
-# Fine-to-coarse restriction of the fluxes and of E/G replaces the coarse
-# values on fine-covered faces and edges by the fine ones before the coarse
-# RHS uses them. It needs every child level at the same time as its parent,
+# Fine-to-coarse restriction of the fluxes and of G replaces the coarse
+# values on fine-covered faces and vertices by the fine ones before the coarse
+# RHS uses them. E is not restricted: it enters the Avec RHS only on the
+# fine-covered coarse edges themselves, which the driver's restriction of Avec
+# overwrites. It needs every child level at the same time as its parent,
 # which inside ODESolvers_RHS holds only without subcycling: under subcycling
 # the coarse RHS runs with the fine level outside the active window, so nothing
 # is scheduled and conservation across the refinement boundary is left to the
@@ -427,7 +429,7 @@ SCHEDULE AsterX_RestrictAuxTermsForAvecPsiRHS IN AsterX_FluxGroup AFTER AsterX_C
 {
   LANG: C
   OPTIONS: global
-} "Restrict the auxiliary terms for the rhs of Avec and Psi"
+} "Restrict the auxiliary gauge term G for the rhs of Avec"
 }
 
 SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_FluxGroup

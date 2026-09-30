@@ -132,8 +132,11 @@ is natural, to keep mass, momentum and energy conserved across the interface:
 default) AsterX replaces the coarse fluxes on fine-covered faces by the fine
 values before the coarse RHS uses them (\texttt{AsterX\_RestrictFluxes}), and
 with \texttt{restrict\_aux\_terms = yes} (the default) it does the same for
-the coarse edge electric field $E$ and gauge term $G$ on fine-covered edges
-and vertices (\texttt{AsterX\_RestrictAuxTermsForAvecPsiRHS}).
+the coarse gauge term $G$ on fine-covered vertices
+(\texttt{AsterX\_RestrictAuxTermsForAvecPsiRHS}). The edge electric field $E$
+is not restricted: it enters the \texttt{Avec} RHS only on the fine-covered
+coarse edges themselves, which the driver's restriction of \texttt{Avec}
+overwrites with the fine values.
 Every RK stage is then conservative across the interface. CarpetX's flux
 register (below), when enabled, is also fed and applied without subcycling,
 at the end of each step, but with the fluxes already restricted the coarse

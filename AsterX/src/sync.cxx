@@ -197,21 +197,26 @@ extern "C" void AsterX_CheckRedundantReflux(CCTK_ARGUMENTS) {
 extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
+  // Only G is restricted. The edge electric field E is not: CalcRHSofAvec_impl
+  // reads it pointwise, so a restricted E would only change the Avec RHS on
+  // the fine-covered coarse edges themselves, and the driver's restriction of
+  // Avec overwrites those edges from the fine level anyway (in the AsterX_Sync
+  // of every RK stage with CarpetX::restrict_during_sync = yes). The D_i G
+  // stencil instead reaches from uncovered coarse edges next to a refinement
+  // boundary onto fine-covered vertices, so restricting G does change the
+  // evolved coarse state.
   static const std::vector<int> restrict_groups = {
-      CCTK_GroupIndex("AsterX::G"), CCTK_GroupIndex("AsterX::Ex"),
-      CCTK_GroupIndex("AsterX::Ey"), CCTK_GroupIndex("AsterX::Ez")};
-  static const std::vector<int> ghost_groups = {CCTK_GroupIndex("AsterX::G")};
+      CCTK_GroupIndex("AsterX::G")};
 
   RestrictFromAlignedChildren(cctkGH, restrict_groups);
   // Same as in AsterX_RestrictFluxes: at mag_correction_order > 2 the D_i G
   // stencil in CalcRHSofAvec_impl reads one ghost vertex of G, so its ghost
   // copies must match the restricted interiors of the neighbouring boxes. Only
   // the generalized Lorenz gauge has that term; in the algebraic gauge G is
-  // not read at all. E is read on interior edges only, so its ghost copies are
-  // left alone.
+  // not read at all.
   if (mag_correction_order > 2 &&
       CCTK_EQUALS(vector_potential_gauge, "generalized Lorenz"))
-    FillGhostsFromNeighbours(cctkGH, ghost_groups);
+    FillGhostsFromNeighbours(cctkGH, restrict_groups);
 }
 
 extern "C" void AsterX_ProlongatedBstag(CCTK_ARGUMENTS) {
