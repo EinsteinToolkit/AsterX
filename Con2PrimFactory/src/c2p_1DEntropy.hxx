@@ -386,14 +386,18 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     return;
   }
 
-  auto result = Algo::brent(fn, a, b, minbits, maxiters, rep.iters);
+  // Convergence is judged below from the width of the returned bracket, so
+  // brent's own failure flag is not consulted here.
+  bool brent_failed = false;
+  auto result =
+      Algo::brent(fn, a, b, minbits, maxiters, rep.iters, brent_failed);
 
   CCTK_REAL xEntropy_Sol = 0.5 * (result.first + result.second);
 
   xEntropyToPrim(xEntropy_Sol, Ssq, Bsq, BiSi, eos_3p, pv, cv, gup, glo);
 
   // Check solution and calculate primitives
-  //  if (rep.iters < maxiters && abs(fn(xEntropy_Sol)) < tolerance) {
+  //  if (!brent_failed && abs(fn(xEntropy_Sol)) < tolerance) {
   /*
   if (abs(result.first - result.second) <=
       tolerance_0 * min(abs(result.first), abs(result.second))) {

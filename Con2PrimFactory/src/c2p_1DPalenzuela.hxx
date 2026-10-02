@@ -457,7 +457,11 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     return;
   }
 
-  auto result = Algo::brent(fn, a, b, minbits, maxiters, rep.iters);
+  // Convergence is judged below from the width of the returned bracket, so
+  // brent's own failure flag is not consulted here.
+  bool brent_failed = false;
+  auto result =
+      Algo::brent(fn, a, b, minbits, maxiters, rep.iters, brent_failed);
 
   // Legacy endpoint-preference selector kept for reference; below we use the
   // midpoint rule for xPalenzuela_Sol.
@@ -514,8 +518,8 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   // NaN: If the argument of if (...) is NaN, it usually evaluates to false.
   // Here, we would need to rewrite the logic a little bit.
 
-  // TODO: have an explicit check on max_iters, e.g.:
-  // if (rep.iters >= maxiters || abs(fn(xPalenzuela_Sol)) > tolerance) {
+  // TODO: have an explicit check on brent's failure flag, e.g.:
+  // if (brent_failed || abs(fn(xPalenzuela_Sol)) > tolerance) {
   const CCTK_REAL root_width = abs(result.first - result.second);
   const CCTK_REAL strict_width_tol =
       tolerance_0 * min(abs(result.first), abs(result.second));
