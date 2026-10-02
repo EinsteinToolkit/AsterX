@@ -156,8 +156,9 @@ findroot_using_deriv(F &f, interval<T> bracket, ROOTSTAT &errs, int digits,
   }
 
   int iters = 0;
-  auto ab = Algo::brent(fn, a, b, minbits, int(max_calls), iters);
-  errs = (iters >= int(max_calls)) ? ROOTSTAT::NOT_CONVERGED : ROOTSTAT::SUCCESS;
+  bool failed = false;
+  auto ab = Algo::brent(fn, a, b, minbits, int(max_calls), iters, failed);
+  errs = failed ? ROOTSTAT::NOT_CONVERGED : ROOTSTAT::SUCCESS;
   if (errs != ROOTSTAT::SUCCESS)
     return std::numeric_limits<T>::quiet_NaN();
 
@@ -219,8 +220,9 @@ findroot_no_deriv(F &f, interval<T> bracket, T acc, unsigned int max_calls,
 
   const int minbits = std::numeric_limits<T>::digits - 4;
   int iters = 0;
-  auto ab = Algo::brent(fn, a, b, minbits, int(max_calls), iters);
-  errs = (iters >= int(max_calls)) ? ROOTSTAT::NOT_CONVERGED : ROOTSTAT::SUCCESS;
+  bool failed = false;
+  auto ab = Algo::brent(fn, a, b, minbits, int(max_calls), iters, failed);
+  errs = failed ? ROOTSTAT::NOT_CONVERGED : ROOTSTAT::SUCCESS;
 
   return {ab.first, ab.second};
 }
