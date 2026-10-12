@@ -10,6 +10,18 @@ STORAGE: vel_NS2
 STORAGE: SeedNow
 STORAGE: DoneSeeding
 
+# Written in every run, not only for magBNS: the six variables are always
+# allocated and checkpointed, so they must hold real data. Checkpoints written
+# before this change hold NaN here; recover them with
+# CarpetX::poison_undefined_arrays = no.
+SCHEDULE AsterSeeds_Initialize_Seeding_Flags AT CCTK_INITIAL
+{
+   LANG: C
+   OPTIONS: GLOBAL
+   WRITES: SeedNow(everywhere) DoneSeeding(everywhere)
+   WRITES: CoM_NS1(everywhere) CoM_NS2(everywhere) vel_NS1(everywhere) vel_NS2(everywhere)
+} "Initialize seeding variables."
+
 #Initial conditions for setting atmosphere test
 
 if (CCTK_Equals(test_type, "Atmosphere")) {
@@ -97,13 +109,6 @@ if (CCTK_Equals(test_type, "3DTest")) {
   if (CCTK_Equals(test_case, "magBNS")) {
 
     STORAGE: Avec_cent
-    SCHEDULE AsterSeeds_Initialize_Seeding_Flags AT CCTK_INITIAL
-    {
-       LANG: C
-       OPTIONS: GLOBAL
-       WRITES: SeedNow(everywhere) DoneSeeding(everywhere)
-       WRITES: CoM_NS1(everywhere) CoM_NS2(everywhere) vel_NS1(everywhere) vel_NS2(everywhere)
-    } "Initialize seeding variables."
 
     if (seed_every != 0) {
       SCHEDULE AsterSeeds_InitializeAvectoZero AT initial IN ODESolvers_Initial BEFORE AsterX_InitialGroup 
