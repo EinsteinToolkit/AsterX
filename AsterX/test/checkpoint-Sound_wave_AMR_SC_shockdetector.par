@@ -1,0 +1,178 @@
+ActiveThorns = "
+    BoxInBox
+    CarpetX
+    Cowling
+    IOUtil
+    ODESolvers
+    ADMBaseX
+    HydroBaseX
+    TmunuBaseX
+    AsterSeeds
+    AsterX
+    EOSX
+    AsterMasks
+"
+
+# Checkpoint half of a checkpoint/recover pair (see
+# recover-Sound_wave_AMR_SC_shockdetector.par). The physics is that of
+# Sound_wave_AMR_SC_reflux.par (two levels, subcycling, RK4, reflux) with
+# the derivative shock detector on. The run writes an openPMD checkpoint at
+# iteration 5, where the two levels are on different clocks (3 and 5/2
+# coarse steps), and continues to iteration 8 as the uninterrupted baseline
+# for the recover run.
+#
+# The grid differs from the base: 16 coarse cells in y and z instead of 8,
+# and a refined box centred on the origin. A mid-cycle checkpoint holds the
+# coarse RK source bands of the fine level. They cover the box grown by the
+# fine ghost zones and the prolongation stencil, and may wrap around a
+# periodic boundary, but CarpetX's openPMD writer requires them to lie
+# inside the domain. With these settings that holds when the box keeps at
+# least 5 coarse cells from each periodic boundary (4 is not enough).
+#
+# The shock-detector threshold AsterX::eta_thresh sits inside the range of
+# the detector's measure etac for this wave (about 1e-5 to 1e-3 over the
+# run). AsterX::LOflag is then 1 in coarse cells next to both x faces of
+# the refined box for iterations 1 to 6, and so in the fine level's
+# coarse-fine ghosts there, which take the flag from the parent through the
+# SYNC in AsterX_SetLOFlag. The evolved variables differ from a run without
+# the flag (by up to 4e-5 in rho) wherever it switches the reconstruction
+# to low order. After a mid-cycle restart, the fine level steps first and
+# reads its parent's LOflag, which only the checkpoint holds.
+# (AsterX::loworder_rho_thresh would flag cells by density instead, but
+# AsterX_SetLOFlag does not write etac in those cells, which the poison
+# check rejects.)
+#
+# The AsterSeeds seeding helpers are output because they are checkpointed
+# in every run: their iteration-0 output here is 0, and NaN (or 0xdeadbeef)
+# if AsterSeeds stops writing them outside magBNS. LOflag itself is not
+# output, since it is first written by the first RHS evaluation.
+#
+# Output is written every 2 iterations, which shares iterations 6
+# (mid-cycle) and 8 (aligned) with the recover run. The recover par sets
+# IO::out_every itself, so this value does not carry over through the
+# checkpoint.
+
+$nlevels = 2
+
+Cactus::cctk_show_schedule = no
+
+Cactus::presync_mode = "mixed-error"
+
+Cactus::terminate = "iteration"
+Cactus::cctk_itlast = 8
+
+ADMBaseX::initial_data            = "Cartesian Minkowski"
+ADMBaseX::initial_lapse           = "one"
+ADMBaseX::initial_shift           = "zero"
+ADMBaseX::initial_dtlapse         = "none"
+ADMBaseX::initial_dtshift         = "none"
+
+CarpetX::verbose = no
+CarpetX::poison_undefined_values = yes
+
+CarpetX::xmin = -1.0
+CarpetX::ymin = -1.0
+CarpetX::zmin = -1.0
+
+CarpetX::xmax = +1.0
+CarpetX::ymax = +1.0
+CarpetX::zmax = +1.0
+
+CarpetX::boundary_x = "none"
+CarpetX::boundary_y = "none"
+CarpetX::boundary_z = "none"
+
+CarpetX::boundary_upper_x = "none"
+CarpetX::boundary_upper_y = "none"
+CarpetX::boundary_upper_z = "none"
+
+CarpetX::periodic = yes
+CarpetX::periodic_x = yes
+CarpetX::periodic_y = yes
+CarpetX::periodic_z = yes
+
+CarpetX::ncells_x = 16
+CarpetX::ncells_y = 16
+CarpetX::ncells_z = 16
+
+CarpetX::max_num_levels = $nlevels
+CarpetX::regrid_every = 100000
+CarpetX::blocking_factor_x = 1
+CarpetX::blocking_factor_y = 1
+CarpetX::blocking_factor_z = 1
+CarpetX::regrid_error_threshold = 0.01
+
+CarpetX::prolongation_type = "ddf"
+CarpetX::ghost_size = 3
+CarpetX::dtfac = 0.25
+
+CarpetX::use_subcycling = yes
+CarpetX::restrict_during_sync = no
+CarpetX::do_reflux = yes
+
+BoxInBox::num_regions = 1
+BoxInBox::shape_1 = "cube"
+BoxInBox::num_levels_1 = $nlevels
+BoxInBox::radius_x_1 = [ -1.0, 0.375 ]
+BoxInBox::radius_y_1 = [ -1.0, 0.25 ]
+BoxInBox::radius_z_1 = [ -1.0, 0.25 ]
+
+AsterSeeds::test_type = "1DTest"
+AsterSeeds::test_case = "sound wave"
+
+AsterX::debug_mode = "no"
+AsterX::flux_type = "HLLE"
+AsterX::local_estimate_error = "no"
+
+AsterX::use_deriv_shock_detector = yes
+AsterX::eta_thresh = 3.0e-4
+
+ReconX::reconstruction_method = "PPM"
+
+Con2PrimFactory::c2p_prime = "Noble"
+Con2PrimFactory::c2p_second = "Palenzuela"
+Con2PrimFactory::c2p_tol = 1e-8
+Con2PrimFactory::max_iter = 100
+Con2PrimFactory::rho_abs_min = 1e-8
+Con2PrimFactory::unit_test = "no"
+Con2PrimFactory::B_lim = 1e8
+Con2PrimFactory::vw_lim = 1e8
+Con2PrimFactory::Ye_lenient = "yes"
+
+EOSX::evolution_eos = "IdealGas"
+EOSX::gl_gamma = 2.0
+EOSX::poly_gamma = 2.0
+EOSX::rho_max = 1e8
+EOSX::eps_max = 1e8
+
+ODESolvers::method = "RK4"
+
+IO::out_dir = $parfile
+IO::out_every = 2
+IO::parfile_write = no
+
+# Grid scalars and arrays get only the axis-label header line, which
+# scripts/compare_tsv.py reads; the default adds a date line.
+IO::out_fileinfo = "axis labels"
+
+CarpetX::out_metadata = no
+
+CarpetX::out_tsv_vars = "
+    HydroBaseX::rho
+    HydroBaseX::vel
+    HydroBaseX::eps
+    HydroBaseX::press
+    AsterX::cons_vector
+    AsterSeeds::CoM_NS1
+    AsterSeeds::CoM_NS2
+    AsterSeeds::vel_NS1
+    AsterSeeds::vel_NS2
+    AsterSeeds::SeedNow
+    AsterSeeds::DoneSeeding
+"
+
+CarpetX::checkpoint_method = "openpmd"
+IO::checkpoint_dir = $parfile + "/checkpoints"
+IO::checkpoint_ID = no
+IO::checkpoint_every = 5
+IO::checkpoint_on_terminate = no

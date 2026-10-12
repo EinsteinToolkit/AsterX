@@ -1,0 +1,160 @@
+ActiveThorns = "
+    BoxInBox
+    CarpetX
+    Cowling
+    IOUtil
+    ODESolvers
+    ADMBaseX
+    HydroBaseX
+    TmunuBaseX
+    AsterSeeds
+    AsterX
+    EOSX
+    AsterMasks
+"
+
+# Recover half of a checkpoint/recover pair (see
+# checkpoint-Sound_wave_AMR_SC_shockdetector.par, which explains the
+# setup): recovers the frozen checkpoint written at iteration 5, where the
+# two levels are on different clocks, and continues to iteration 8. The
+# fine level steps first after the restart, and the SYNC of AsterX::LOflag
+# in AsterX_SetLOFlag prolongates the parent's LOflag into its coarse-fine
+# ghosts. The parent has not run an RHS evaluation since the restart, so
+# that value must come from the checkpoint; without it the SYNC aborts with
+# "This run was recovered and group ASTERX::LOFLAG is not checkpointed".
+#
+# At iterations 6 and 8, every output matches the uninterrupted run's to
+# round-off (last digit). The checkpoint was written on 1 rank with the
+# default CarpetX::poison_undefined_arrays = yes. IO::recover_dir is
+# relative to the testsuite's working directory, TEST/<config>/AsterX; run
+# from anywhere else, "autoprobe" finds no checkpoint and the run starts
+# from scratch.
+
+$nlevels = 2
+
+Cactus::cctk_show_schedule = no
+
+Cactus::presync_mode = "mixed-error"
+
+Cactus::terminate = "iteration"
+Cactus::cctk_itlast = 8
+
+ADMBaseX::initial_data            = "Cartesian Minkowski"
+ADMBaseX::initial_lapse           = "one"
+ADMBaseX::initial_shift           = "zero"
+ADMBaseX::initial_dtlapse         = "none"
+ADMBaseX::initial_dtshift         = "none"
+
+CarpetX::verbose = no
+CarpetX::poison_undefined_values = yes
+
+CarpetX::xmin = -1.0
+CarpetX::ymin = -1.0
+CarpetX::zmin = -1.0
+
+CarpetX::xmax = +1.0
+CarpetX::ymax = +1.0
+CarpetX::zmax = +1.0
+
+CarpetX::boundary_x = "none"
+CarpetX::boundary_y = "none"
+CarpetX::boundary_z = "none"
+
+CarpetX::boundary_upper_x = "none"
+CarpetX::boundary_upper_y = "none"
+CarpetX::boundary_upper_z = "none"
+
+CarpetX::periodic = yes
+CarpetX::periodic_x = yes
+CarpetX::periodic_y = yes
+CarpetX::periodic_z = yes
+
+CarpetX::ncells_x = 16
+CarpetX::ncells_y = 16
+CarpetX::ncells_z = 16
+
+CarpetX::max_num_levels = $nlevels
+CarpetX::regrid_every = 100000
+CarpetX::blocking_factor_x = 1
+CarpetX::blocking_factor_y = 1
+CarpetX::blocking_factor_z = 1
+CarpetX::regrid_error_threshold = 0.01
+
+CarpetX::prolongation_type = "ddf"
+CarpetX::ghost_size = 3
+CarpetX::dtfac = 0.25
+
+CarpetX::use_subcycling = yes
+CarpetX::restrict_during_sync = no
+CarpetX::do_reflux = yes
+
+BoxInBox::num_regions = 1
+BoxInBox::shape_1 = "cube"
+BoxInBox::num_levels_1 = $nlevels
+BoxInBox::radius_x_1 = [ -1.0, 0.375 ]
+BoxInBox::radius_y_1 = [ -1.0, 0.25 ]
+BoxInBox::radius_z_1 = [ -1.0, 0.25 ]
+
+AsterSeeds::test_type = "1DTest"
+AsterSeeds::test_case = "sound wave"
+
+AsterX::debug_mode = "no"
+AsterX::flux_type = "HLLE"
+AsterX::local_estimate_error = "no"
+
+AsterX::use_deriv_shock_detector = yes
+AsterX::eta_thresh = 3.0e-4
+
+ReconX::reconstruction_method = "PPM"
+
+Con2PrimFactory::c2p_prime = "Noble"
+Con2PrimFactory::c2p_second = "Palenzuela"
+Con2PrimFactory::c2p_tol = 1e-8
+Con2PrimFactory::max_iter = 100
+Con2PrimFactory::rho_abs_min = 1e-8
+Con2PrimFactory::unit_test = "no"
+Con2PrimFactory::B_lim = 1e8
+Con2PrimFactory::vw_lim = 1e8
+Con2PrimFactory::Ye_lenient = "yes"
+
+EOSX::evolution_eos = "IdealGas"
+EOSX::gl_gamma = 2.0
+EOSX::poly_gamma = 2.0
+EOSX::rho_max = 1e8
+EOSX::eps_max = 1e8
+
+ODESolvers::method = "RK4"
+
+IO::out_dir = $parfile
+IO::out_every = 1
+IO::parfile_write = no
+
+# Grid scalars and arrays get only the axis-label header line, which
+# scripts/compare_tsv.py reads; the default adds a date line.
+IO::out_fileinfo = "axis labels"
+
+CarpetX::out_metadata = no
+CarpetX::out_initial_data = no
+
+CarpetX::out_tsv_vars = "
+    HydroBaseX::rho
+    HydroBaseX::vel
+    HydroBaseX::eps
+    HydroBaseX::press
+    AsterX::cons_vector
+    AsterSeeds::CoM_NS1
+    AsterSeeds::CoM_NS2
+    AsterSeeds::vel_NS1
+    AsterSeeds::vel_NS2
+    AsterSeeds::SeedNow
+    AsterSeeds::DoneSeeding
+"
+
+IO::checkpoint_dir = $parfile
+IO::checkpoint_ID = no
+IO::checkpoint_every = 0
+IO::checkpoint_on_terminate = no
+
+CarpetX::recover_method = "openpmd"
+IO::recover_dir = "../../../arrangements/AsterX/AsterX/test/checkpoints-Sound_wave_AMR_SC_shockdetector"
+IO::recover = "autoprobe"
