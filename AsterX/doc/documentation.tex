@@ -261,13 +261,16 @@ reconcile runs either.
 rhs-tagged group), \texttt{IG\_rhs} is written inside the \texttt{Psi} RHS
 loop, and \texttt{IG} is synchronized with the other evolved variables after
 every stage whether or not the register is active (the driver requires every
-evolved group to be valid everywhere at the top of each iteration). An inert
-run therefore still pays the ghost synchronization of one vertex grid
-function, but no extra kernel and no reconcile. An active run adds, per
-time-aligned pass, one nodal restriction and one ghost synchronization of the
-scratch ledger \texttt{IGr} plus the local shift and adopt kernels; the
-register issues no \texttt{Avec} transfer of its own, since the driver's
-restriction and halo refill follow the shift.
+evolved group to be valid everywhere at the top of each iteration). Under
+subcycling the driver also re-prolongates the refinement-boundary ghosts of
+\texttt{IG} from the parent after every restriction, as it does for every
+evolved group; \texttt{restrict="no"} only keeps it from restricting
+\texttt{IG} itself. An inert run therefore still pays the ghost fills of one
+vertex grid function, but no extra kernel and no reconcile. An active run
+adds, per time-aligned pass, one nodal restriction and one ghost
+synchronization of the scratch ledger \texttt{IGr} plus the local shift and
+adopt kernels; the register issues no \texttt{Avec} transfer of its own,
+since the driver's restriction and halo refill follow the shift.
 
 \emph{Validation and tests.} On a two-level magnetised TOV run with
 \texttt{mag\_correction\_order = 2}, the register reduces the interface

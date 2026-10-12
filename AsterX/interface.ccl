@@ -135,7 +135,10 @@ CCTK_REAL Psi_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of
 # node is bit-for-bit the gauge integral int G dt that this level applied to
 # the edges touching the node. It is excluded from the driver's automatic
 # restriction (restrict="no") so the coarse ledger survives until AsterX
-# compares it with the fine one. The prolongation settings mirror Psi.
+# compares it with the fine one. Its refinement-boundary ghosts are not
+# exempt: under subcycling the driver re-prolongates them from the parent
+# after each restriction, as for every evolved group. The prolongation
+# settings mirror Psi.
 CCTK_REAL IG TYPE=gf CENTERING={vvv} TAGS='rhs="IG_rhs" restrict="no" prolongation_type="hermite" prolongation_order=5' "Nodal gauge register: int G dt applied by this level"
 
 CCTK_REAL IG_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "RHS of IG (= G when the gauge register is active, 0 otherwise)"

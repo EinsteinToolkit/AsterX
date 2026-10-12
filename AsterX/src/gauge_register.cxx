@@ -35,7 +35,7 @@ extern "C" void AsterX_GaugeRegisterInit(CCTK_ARGUMENTS) {
 // immediately before it restricts the evolved variables fine-to-coarse. The
 // group applies the gauge shift on the coarse levels there, and the driver's
 // own transfers that follow do the rest: its Restrict resets every fine-owned
-// coarse edge from the fine level, and its ProlongateRestrictedGFs refills
+// coarse edge from the fine level, and its ProlongateAfterRestriction refills
 // the fine Avec_* ghost halo from the corrected coarse interior. Nothing in
 // this group moves Avec_* across levels. ODESolvers_PostStep in
 // CCTK_POSTRESTRICT runs after those transfers, so everything downstream on

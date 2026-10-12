@@ -186,7 +186,7 @@ SCHEDULE AsterX_Sync AT post_recover_variables BEFORE ODESolvers_PostStep
 # window to every level at the current time and immediately before it
 # restricts. The group applies the coarse-edge gauge shift there; the driver's
 # own Restrict then resets every fine-owned coarse edge from the fine level and
-# its ProlongateRestrictedGFs refills the fine Avec ghost halo from the
+# its ProlongateAfterRestriction refills the fine Avec ghost halo from the
 # corrected coarse level, so the register issues no Avec transfer of its own.
 # ODESolvers_PostStep in CCTK_POSTRESTRICT runs after those transfers, so this
 # pass's B, con2prim and output, and the fluxes, G and E of the next RHS, see
