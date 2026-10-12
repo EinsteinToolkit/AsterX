@@ -95,7 +95,10 @@ CCTK_REAL theta_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "flux limiter i
 
 # ----- shock detector
 
-CCTK_REAL LOflag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector switch"
+# Checkpointed: under subcycling, a level that lags its parent SYNCs LOflag
+# from the parent's last RK stage, which no routine can recompute after a
+# restart. The evolve and restrict tags keep the non-checkpointed defaults.
+CCTK_REAL LOflag TYPE=gf CENTERING={ccc} TAGS='checkpoint="yes" evolve="no" restrict="no"' "Shock detector switch"
 CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
 
 # ----- staggered vector potential (edges)
