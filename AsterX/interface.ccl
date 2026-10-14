@@ -146,6 +146,10 @@ CCTK_REAL IG TYPE=gf CENTERING={vvv} TAGS='rhs="IG_rhs" restrict="no" prolongati
 
 CCTK_REAL IG_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "RHS of IG (= G when the gauge register is active, 0 otherwise)"
 
+# IGr is scratch for the reconcile. restrict="no" keeps the driver from
+# restricting it on either of its paths (end of step, SYNC);
+# AsterX_GaugeRestrictIGr restricts it explicitly through
+# CarpetX::RestrictNoPoison, which ignores the tag.
 CCTK_REAL IGr TYPE=gf CENTERING={vvv} TAGS='checkpoint="no" restrict="no"' "Scratch: IG restricted from the time-aligned child level"
 
 CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'

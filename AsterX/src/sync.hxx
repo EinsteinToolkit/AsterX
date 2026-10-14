@@ -17,15 +17,13 @@
 
 namespace AsterX {
 
-// `level` has a child that is in the active window, i.e. is time-aligned
-// with it.
-bool has_aligned_child(int level);
-
 // The active window reaches level 0: every level is at the same time.
 bool full_cascade();
 
 // Restrict `groups` fine-to-coarse onto every level that has an aligned
-// child, finest pair first, without poisoning the restricted region.
+// child (a child in the active window), finest pair first, without poisoning
+// the restricted region. The driver's restrict tag does not apply: a
+// restrict="no" group (IGr) is restricted too.
 void RestrictFromAlignedChildren(const cGH *cctkGH,
                                  const std::vector<int> &groups);
 

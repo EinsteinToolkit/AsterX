@@ -15,9 +15,11 @@ namespace AsterX {
 using namespace CarpetX;
 
 ////////////////////////////////////////////////////////////////////////////////
-// Level-window helpers (declared in sync.hxx)
+// Level-window helpers (declared in sync.hxx, except has_aligned_child)
 
-bool has_aligned_child(const int level) {
+// `level` has a child that is in the active window, i.e. is time-aligned
+// with it.
+static bool has_aligned_child(const int level) {
   assert(active_levels);
   return level + 1 < active_levels->max_level;
 }
@@ -30,15 +32,15 @@ bool full_cascade() {
 void RestrictFromAlignedChildren(const cGH *const cctkGH,
                                  const std::vector<int> &groups) {
   assert(active_levels);
-  active_levels->loop_fine_to_coarse([&](const auto &leveldata) {
-    // Only restrict from a child level that is inside the active window
-    // [min_level, max_level), i.e. one that is time-aligned with this level.
-    // Under subcycling a coarse-only batch has no active child, so nothing
-    // is restricted; without subcycling every level is active, so this is
-    // the same as restricting from every level but the finest.
-    if (has_aligned_child(leveldata.level))
-      RestrictNoPoison(cctkGH, leveldata.level, groups);
-  });
+  // The window form restricts every level pair (L, L + 1) with both levels in
+  // the active window [min_level, max_level), i.e. every level whose child is
+  // time-aligned with it (has_aligned_child), finest pair first. Under
+  // subcycling a coarse-only batch has no active child, so nothing is
+  // restricted; without subcycling every level is active, so this is the same
+  // as restricting from every level but the finest. It restricts exactly
+  // `groups`, whatever their restrict tags.
+  RestrictNoPoison(cctkGH, active_levels->min_level, active_levels->max_level,
+                   groups);
 }
 
 void SyncGhostsOnly(const cGH *const cctkGH, const std::vector<int> &groups) {
