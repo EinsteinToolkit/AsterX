@@ -441,6 +441,12 @@ c2p::cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv,
   const CCTK_REAL spatial_detg = calc_det(glo);
   const CCTK_REAL sqrt_detg = sqrt(spatial_detg);
 
+  // Leave invalid inputs to C2P failure handling, not the EOS table lookup.
+  if ((!isfinite(cv.dens)) || cv.dens <= 0.0 ||
+      (!isfinite(cv.tau)) || (!isfinite(cv.DYe)) ||
+      (!isfinite(sqrt_detg)) || sqrt_detg <= 0.0)
+    return;
+
   const smat<CCTK_REAL, 3> gup = calc_inv(glo, spatial_detg);
 
   // Lower limit on tau/conserved internal energy
@@ -449,13 +455,22 @@ c2p::cons_floors_and_ceilings(const EOSType *eos_3p, cons_vars &cv,
   // Compute Bsq
   vec<CCTK_REAL, 3> B_low = calc_contraction(glo, cv.dBvec);
   const CCTK_REAL BsqL = calc_contraction(B_low, cv.dBvec);
-  //const CCTK_REAL tauF_atmo =
-  //    std::max(cv.dens * atmo.eps_atmo, sqrt_detg * tauFluid_atmo);
-  const CCTK_REAL tau_lim = 0.5 * BsqL / sqrt_detg;
+  const CCTK_REAL tau_lim =
+      0.5 * BsqL / sqrt_detg + cv.dens * fmin(0.0, eos_3p->rgeps.min);
 
-  if (cv.tau <= tau_lim) {
-    //cv.tau = tau_lim + tauF_atmo;
-    cv.tau = tau_lim + sqrt_detg * tauFluid_atmo;
+  if (cv.tau < tau_lim) {
+    // Trigger on the global physical energy bound. A local
+    // minimum at D / sqrt(g) is not a bound at every possible recovered rho.
+    // Query the local range only when a conservative repair is needed.
+    const CCTK_REAL rhoL =
+        fmin(fmax(cv.dens / sqrt_detg, eos_3p->rgrho.min),
+             eos_3p->rgrho.max);
+    const CCTK_REAL YeL =
+        fmin(fmax(cv.DYe / cv.dens, eos_3p->rgye.min), eos_3p->rgye.max);
+    const auto rgeps = eos_3p->range_eps_from_rho_ye(rhoL, YeL);
+    // tauFluid_atmo is an undensitized energy-density margin, not eps_atmo.
+    cv.tau = 0.5 * BsqL / sqrt_detg + cv.dens * rgeps.min +
+             sqrt_detg * tauFluid_atmo;
   }
 
   // Dominant energy condition
