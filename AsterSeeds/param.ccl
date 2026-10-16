@@ -42,6 +42,8 @@ KEYWORD test_case "Name of the testcase" STEERABLE=never
 
 private:
 
+BOOLEAN unit_test "Check beta-floor thermodynamics at startup" {} no
+
 # parameters for perturbing neutron-star initial data
 
 KEYWORD ns_perturbation_mode "Neutron-star perturbation applied after hydro initial data are read" STEERABLE=never

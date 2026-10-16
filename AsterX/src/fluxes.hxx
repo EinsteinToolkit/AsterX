@@ -12,6 +12,7 @@
 #include <array>
 #include <cassert>
 #include <cmath>
+#include <limits>
 
 namespace AsterX {
 using namespace std;
@@ -58,10 +59,12 @@ hlle(vec<vec<CCTK_REAL, 4>, 2> lam, vec<CCTK_REAL, 2> var,
            lam(1)(1), lam(1)(2), lam(1)(3)});
 
   const CCTK_REAL charpm = charmax - charmin;
+  if (charpm <= std::numeric_limits<CCTK_REAL>::min())
+    return laxf(lam, var, flux);
 
-  return (charmax * flux(0) - charmin * flux(1) +
-          charmax * charmin * (var(1) - var(0))) /
-         charpm;
+  const CCTK_REAL weight = charmax / charpm;
+  return weight * flux(0) + (1.0 - weight) * flux(1) +
+         weight * charmin * (var(1) - var(0));
 }
 
 } // namespace AsterX

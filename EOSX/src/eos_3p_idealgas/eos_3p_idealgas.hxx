@@ -111,6 +111,26 @@ public:
     dpdeps = gm1 * rho;
   }
 
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline bool
+  eps_from_rho_h_ye(const CCTK_REAL rho, const CCTK_REAL h,
+                     const CCTK_REAL ye, CCTK_REAL &eps) const {
+    // Newton trials may lie outside the recovered-energy bounds.
+    eps = (h - 1.0) / gamma;
+    return std::isfinite(rho) && rho > 0.0 && std::isfinite(eps);
+  }
+
+  CCTK_HOST CCTK_DEVICE inline bool
+  press_derivs_from_rho_h_ye(CCTK_REAL &press, CCTK_REAL &dpdrho,
+                             CCTK_REAL &dpdeps, const CCTK_REAL rho,
+                             const CCTK_REAL h, const CCTK_REAL ye,
+                             CCTK_REAL *temp = nullptr) const {
+    CCTK_REAL eps;
+    if (!eps_from_rho_h_ye(rho, h, ye, eps))
+      return false;
+    press_derivs_from_rho_eps_ye(press, dpdrho, dpdeps, rho, eps, ye);
+    return true;
+  }
+
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   entropy_from_rho_temp_ye(
       const CCTK_REAL rho,  ///< Rest mass density  \f$ \rho \f$
@@ -174,6 +194,14 @@ public:
                               const CCTK_REAL ye) const {
     return (gamma - 1.0) * eps * pow(rho, 1.0 - gamma);
   };
+
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  kappa_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+                        const CCTK_REAL ye) const {
+    // Evolved kappa is P / rho^gamma, not physical entropy.
+    CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);
+    return kappa_from_rho_eps_ye(rho, eps, ye);
+  }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline range
   range_eps_from_rho_ye(

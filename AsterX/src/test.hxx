@@ -47,6 +47,7 @@ void test_minmod(std::mt19937_64 &engine, int repetitions);
 void test_mp5(std::mt19937_64 &engine, int repetitions);
 
 void test_uct_edge_speed_envelope();
+void test_hlle();
 
 } // namespace AsterXTests
 

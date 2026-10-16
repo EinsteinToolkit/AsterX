@@ -203,6 +203,44 @@ public:
                                      Xt...>::linterp(*this, index, xin...))...};
   };
 
+  // Value and coordinate derivatives of the same multilinear interpolant.
+  // At a table knot, find_index selects the right stencil except at xmax,
+  // where the derivative is taken from the last interior stencil.
+  template <size_t var, typename... Xt>
+  CCTK_HOST CCTK_DEVICE vec_t<dim + 1>
+  interpolate_with_derivs(Xt const &...xin) const {
+    static_assert(sizeof...(Xt) == dim, "Incorrect number of coordinates");
+    static_assert(var < num_vars, "Invalid table variable");
+    const std::array<T, dim> point{xin...};
+    std::array<size_t, dim> index;
+    std::array<T, dim> lambda, inv_dx;
+    for (size_t d = 0; d < dim; ++d) {
+      index[d] = find_index(d, point[d]);
+      inv_dx[d] = 1.0 / (x[d][index[d] + 1] - x[d][index[d]]);
+      lambda[d] = (point[d] - x[d][index[d]]) * inv_dx[d];
+    }
+    vec_t<dim + 1> result{};
+    result[0] = interpolate<var>(xin...)[0];
+    for (size_t corner = 0; corner < (size_t(1) << dim); ++corner) {
+      size_t offset = 0;
+      size_t stride = 1;
+      for (size_t d = 0; d < dim; ++d) {
+        offset += (index[d] + ((corner >> d) & 1)) * stride;
+        stride *= num_points[d];
+      }
+      const T value = y[var + num_vars * offset];
+      for (size_t deriv = 0; deriv < dim; ++deriv) {
+        T weight = ((corner >> deriv) & 1) ? inv_dx[deriv] : -inv_dx[deriv];
+        for (size_t d = 0; d < dim; ++d) {
+          if (d != deriv)
+            weight *= ((corner >> d) & 1) ? lambda[d] : 1.0 - lambda[d];
+        }
+        result[deriv + 1] += value * weight;
+      }
+    }
+    return result;
+  }
+
   // CCTK_HOST CCTK_DEVICE lintp_ND_t() = default;
 
   template <typename Yt, typename... Xt>
