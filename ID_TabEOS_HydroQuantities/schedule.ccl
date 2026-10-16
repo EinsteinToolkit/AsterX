@@ -38,4 +38,18 @@ schedule ID_TabEOS_HydroQuantities_recompute_HydroBase_variables IN ID_TabEOS_in
   WRITES: HydroBaseX::eps(Everywhere)
   WRITES: HydroBaseX::Ye(Everywhere)
   WRITES: HydroBaseX::temperature(Everywhere)
+  WRITES: HydroBaseX::entropy(Everywhere)
 } "Set up general relativistic hydrodynamic (GRHD) fields"
+
+if (unit_test) {
+  schedule ID_TabEOS_HydroQuantities_Test IN ID_TabEOS_init AFTER ID_TabEOS_HydroQuantities_recompute_HydroBase_variables
+  {
+    LANG: C
+    READS: HydroBaseX::rho(Everywhere)
+    READS: HydroBaseX::temperature(Everywhere)
+    READS: HydroBaseX::Ye(Everywhere)
+    READS: HydroBaseX::press(Everywhere)
+    READS: HydroBaseX::eps(Everywhere)
+    READS: HydroBaseX::entropy(Everywhere)
+  } "Check the recomputed initial thermodynamic state"
+}

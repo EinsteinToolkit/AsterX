@@ -173,6 +173,7 @@ c2p_1DPalenzuela::xPalenzuelaToPrim(CCTK_REAL xPalenzuela_Sol, CCTK_REAL Ssq,
 
   // (ii)
   pv.rho = cv.dens / W_sol;
+  pv.Ye = cv.DYe / cv.dens;
 
   // (iii)
   eps_raw = W_sol - 1.0 +
@@ -183,13 +184,11 @@ c2p_1DPalenzuela::xPalenzuelaToPrim(CCTK_REAL xPalenzuela_Sol, CCTK_REAL Ssq,
                      sPalenzuela / (2.0 * W_sol * W_sol));
   pv.eps = eps_raw;
 
-  // TODO: Using this check here can lead to corrections of negative eps
-  //       which could be accepted in certain cases. Thus, these cases will
-  //       not be marked as failure after the solving for the root. Move
-  //       the check to the tabulated EOS framework later.
+  // Bound energy at the recovered rho and Ye, not at the atmosphere state.
+  // Keep eps_raw unchanged for the acceptance and conservative-update checks.
   if (use_temp) {
-    pv.eps = std::max(pv.eps, atmo.eps_atmo);     // check on lower bound
-    pv.eps = std::min(pv.eps, eos_3p->rgeps.max); // check on upper bound
+    const auto rgeps = eos_3p->range_eps_from_rho_ye(pv.rho, pv.Ye);
+    pv.eps = std::min(std::max(pv.eps, rgeps.min), rgeps.max);
   }
 
   // (iv)
@@ -254,8 +253,6 @@ c2p_1DPalenzuela::xPalenzuelaToPrim(CCTK_REAL xPalenzuela_Sol, CCTK_REAL Ssq,
     pv.w_lor = W_sol;
   }
 
-  pv.Ye = cv.DYe / cv.dens;
-
   pv.press = eos_3p->press_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
 
   pv.temperature = eos_3p->temp_from_rho_eps_ye(pv.rho, pv.eps, pv.Ye);
@@ -298,13 +295,10 @@ c2p_1DPalenzuela::funcRoot_1DPalenzuela(CCTK_REAL Ssq, CCTK_REAL Bsq,
                                tPalenzuela * tPalenzuela / (2 * x * x) +
                                sPalenzuela / (2 * W_loc * W_loc));
 
-  // TODO: Using this check here can lead to corrections of negative eps
-  //       which could be accepted in certain cases. Thus, these cases will
-  //       not be marked as failure after the solving for the root. Move
-  //       the check to the tabulated EOS framework later.
+  // Use the same local EOS bounds as in the final primitive recovery.
   if (use_temp) {
-    eps_loc = std::max(eps_loc, atmo.eps_atmo);     // check on lower bound
-    eps_loc = std::min(eps_loc, eos_3p->rgeps.max); // check on upper bound
+    const auto rgeps = eos_3p->range_eps_from_rho_ye(rho_loc, Ye_loc);
+    eps_loc = std::min(std::max(eps_loc, rgeps.min), rgeps.max);
   }
 
   // (iv)
@@ -475,23 +469,32 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   xPalenzuelaToPrim(xPalenzuela_Sol, Ssq, Bsq, BiSi, eos_3p, pv, eps_raw, cv,
                     gup, glo);
 
-  // Error out if rho is negative or zero
-  if (pv.rho <= 0.0) {
+  // Error out if rho is non-finite, negative or zero
+  if ((!isfinite(pv.rho)) || (pv.rho <= 0.0)) {
     // set status to rho is out of range
     rep.set_range_rho(cv.dens, pv.rho);
     cv = cv_const;
     return;
   }
 
-  // Let the usual temperature floor repair non-positive eps unless the caller
-  // has an entropy-based fallback available.
-  if (reject_nonpositive_eps && eps_raw <= 0.0) {
+  const auto rgeps = eos_3p->range_eps_from_rho_ye(pv.rho, pv.Ye);
+  const bool eps_clipped =
+      use_temp && (eps_raw < rgeps.min || eps_raw > rgeps.max);
+
+  // Preserve the non-positive-energy fallback for nonnegative EOSs.
+  // If the local EOS allows negative energy, reject only below its minimum.
+  // Do not broaden this fallback to every upper/lower energy correction.
+  const bool eps_invalid =
+      rgeps.min < 0.0 ? eps_raw < rgeps.min : eps_raw <= 0.0;
+  if ((!isfinite(eps_raw)) || (reject_nonpositive_eps && eps_invalid)) {
     rep.set_range_eps(eps_raw);
     cv = cv_const;
     return;
   }
 
-  if (ye_clipped) {
+  // Compare with the bounds, not pv.eps: table inversion can round eps
+  // even when no clipping was needed.
+  if (ye_clipped || eps_clipped) {
     rep.adjust_cons = true;
   }
 

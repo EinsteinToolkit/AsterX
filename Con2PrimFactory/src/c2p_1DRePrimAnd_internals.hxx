@@ -92,14 +92,10 @@ public:
     last.ye = valid_ye;
     last.calls = 0;
 
-    // Build h0 from EOS min bounds
-    const CCTK_REAL rhomin = eos->rgrho.min;
-    const auto rgeps0 = eos->range_eps_from_rho_ye(rhomin, valid_ye);
-    CCTK_REAL epsmin = rgeps0.min;
-    const CCTK_REAL pmin =
-        eos->press_from_rho_eps_ye(rhomin, epsmin, valid_ye);
-    h0 = 1.0 + epsmin + pmin / rhomin;
-    h0 = fmax(h0, CCTK_REAL(1.0) + std::numeric_limits<CCTK_REAL>::epsilon());
+    // For P >= 0, h >= 1 + eps_min over the entire EOS domain. Sampling
+    // h at rho_min is not a global bound; negative physical eps permits h < 1.
+    // solve checks eps_min > -1 before constructing the root function.
+    h0 = 1.0 + fmin(CCTK_REAL(0.0), eos->rgeps.min);
 
     const CCTK_REAL zsqrinf = rsqr / (h0 * h0);
     const CCTK_REAL wsqrinf = 1.0 + zsqrinf;

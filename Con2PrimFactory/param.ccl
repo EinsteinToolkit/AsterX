@@ -87,7 +87,7 @@ STEERABLE=ALWAYS
   1.0:* :: "Must be >= 1"
 } 1.0
 
-CCTK_REAL tauFluid_atmo "Minimum conserved internal energy of fluid" STEERABLE=ALWAYS
+CCTK_REAL tauFluid_atmo "Nonnegative undensitized energy-density margin added only when repairing tau below its EOS-aware bound" STEERABLE=ALWAYS
 {
   [0.0:* :: "Larger than zero"
 } 1e-15

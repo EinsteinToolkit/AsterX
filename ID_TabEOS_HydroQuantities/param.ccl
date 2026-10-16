@@ -52,3 +52,9 @@ USES CCTK_REAL r_atmo
 USES CCTK_REAL n_rho_atmo
 USES CCTK_REAL n_press_atmo
 USES CCTK_REAL n_temp_atmo
+
+private:
+
+BOOLEAN unit_test "Check thermodynamic consistency after initial-data conversion"
+{
+} "no"

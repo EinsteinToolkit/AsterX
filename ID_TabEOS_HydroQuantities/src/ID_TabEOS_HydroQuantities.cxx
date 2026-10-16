@@ -1,9 +1,12 @@
 #include <cctk.h>
 #include <cctk_Arguments.h>
 #include <cctk_Parameters.h>
+#include <algorithm>
 #include <cmath>
 
 #include <AMReX.H>
+#include <AMReX_GpuAtomic.H>
+#include <AMReX_GpuMemory.H>
 
 #include <loop_device.hxx>
 
@@ -149,9 +152,9 @@ extern "C" void ID_TabEOS_HydroQuantities_initial_temp_ent(CCTK_ARGUMENTS) {
         }
 
         if (temperature(p.I) < 0.0) {
-          printf("Negative input for temperature at I=%d (x=%.5e y=%.5e "
+          printf("Negative input for temperature at (x=%.5e y=%.5e "
                  "z=%.5e): temp=%.5e\n",
-                 p.I, p.x, p.y, p.z, temperature(p.I));
+                 p.x, p.y, p.z, temperature(p.I));
         }
       });
 }
@@ -166,28 +169,30 @@ ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
 
   auto eos_3p_tab3d = global_eos_3p_tab3d;
 
-  // table minimum values
+  // Table validity bounds
   const CCTK_REAL Tmin = eos_3p_tab3d->rgtemp.min;
+  const CCTK_REAL Tmax = eos_3p_tab3d->rgtemp.max;
   const CCTK_REAL rho_min = eos_3p_tab3d->rgrho.min;
+  const CCTK_REAL rho_max = eos_3p_tab3d->rgrho.max;
   const CCTK_REAL Ye_min = eos_3p_tab3d->rgye.min;
   const CCTK_REAL Ye_max = eos_3p_tab3d->rgye.max;
-  const CCTK_REAL eps_min = eos_3p_tab3d->rgeps.min;
 
-  // compute P_min from table at (rho_min, Tmin, Ye_min)
-  const CCTK_REAL P_min =
-      eos_3p_tab3d->press_from_rho_temp_ye(rho_min, Tmin, Ye_min);
+  // Device loops cannot call CCTK_ERROR. Report failures on the host.
+  amrex::Gpu::DeviceScalar<unsigned int> failures(0);
+  auto *failed = failures.dataPtr();
 
   // Loop over the grid, recomputing the HydroBase quantities
   grid.loop_all_device<1, 1, 1>(
       grid.nghostzones,
       [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        // Find Atmospheric Density
         CCTK_REAL rhoL = rho(p.I);
         CCTK_REAL tempL = temperature(p.I);
-        if (!std::isfinite(tempL) || tempL < Tmin) {
+        CCTK_REAL yeL = Ye(p.I);
+
+        // Retain the existing fallback for a non-finite input temperature.
+        if (!std::isfinite(tempL))
           tempL = Tmin;
-          temperature(p.I) = tempL;
-        }
+        tempL = std::clamp(tempL, Tmin, Tmax);
 
         CCTK_REAL radial_distance =
             std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
@@ -198,53 +203,53 @@ ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
         rho_atm = std::max(rho_atm, rho_min);
         const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
 
-        if (rhoL > rho_atmo_cut) {
-          CCTK_REAL yeL = Ye(p.I);
-          yeL = std::clamp(yeL, Ye_min, Ye_max);
-          Ye(p.I) = yeL;
-
-          CCTK_REAL Pval =
-              eos_3p_tab3d->press_from_rho_temp_ye(rhoL, tempL, yeL);
-
-          if (!std::isfinite(Pval) || Pval < P_min) {
-            Pval = P_min;
-          }
-          press(p.I) = Pval;
-
-          CCTK_REAL eps_val =
-              eos_3p_tab3d->eps_from_rho_temp_ye(rhoL, tempL, yeL);
-          if (!std::isfinite(eps_val) || eps_val < eps_min) {
-            eps_val = eps_min;
-          }
-          eps(p.I) = eps_val;
-
-        } else {
-          // Reset to atmosphere
-          CCTK_REAL temp_atmL = tempL;
-          rho(p.I) = rho_atm;
-          Ye(p.I) = Ye_atmo;
-
-          CCTK_REAL Pval_atm = eos_3p_tab3d->press_from_rho_temp_ye(
-              rho_atm, temp_atmL, Ye_atmo);
-
-          if (!std::isfinite(Pval_atm) || Pval_atm < P_min) {
-            Pval_atm = P_min;
-          }
-          press(p.I) = Pval_atm;
-
-          CCTK_REAL eps_val_atm = eos_3p_tab3d->eps_from_rho_temp_ye(
-              rho_atm, temp_atmL, Ye_atmo);
-
-          if (!std::isfinite(eps_val_atm) || eps_val_atm < eps_min) {
-            eps_val_atm = eps_min;
-          }
-          eps(p.I) = eps_val_atm;
-
+        // Keep the existing atmosphere selection and input temperature.
+        // Shared atmosphere construction is introduced separately.
+        if (!(rhoL > rho_atmo_cut)) {
+          rhoL = rho_atm;
+          yeL = Ye_atmo;
           velx(p.I) = 0.0;
           vely(p.I) = 0.0;
           velz(p.I) = 0.0;
         }
+
+        if (!std::isfinite(rhoL) || !std::isfinite(yeL)) {
+          amrex::HostDevice::Atomic::Add(failed, 1U);
+          return;
+        }
+
+        rhoL = std::clamp(rhoL, rho_min, rho_max);
+        yeL = std::clamp(yeL, Ye_min, Ye_max);
+
+        // rho, T and Ye are authoritative. Do not independently floor
+        // pressure or energy after computing them from this state.
+        const CCTK_REAL Pval =
+            eos_3p_tab3d->press_from_rho_temp_ye(rhoL, tempL, yeL);
+        const CCTK_REAL eps_val =
+            eos_3p_tab3d->eps_from_rho_temp_ye(rhoL, tempL, yeL);
+        // For this tabulated EOS, evolved kappa is the table entropy.
+        // Use the known temperature rather than inverting eps again.
+        const CCTK_REAL ent_val =
+            eos_3p_tab3d->entropy_from_rho_temp_ye(rhoL, tempL, yeL);
+
+        if (!std::isfinite(Pval) || !std::isfinite(eps_val) ||
+            !std::isfinite(ent_val)) {
+          amrex::HostDevice::Atomic::Add(failed, 1U);
+          return;
+        }
+
+        rho(p.I) = rhoL;
+        temperature(p.I) = tempL;
+        Ye(p.I) = yeL;
+        press(p.I) = Pval;
+        eps(p.I) = eps_val;
+        entropy(p.I) = ent_val;
       });
+
+  // Complete the loop before reading or releasing the temporary flag.
+  amrex::Gpu::streamSynchronize();
+  if (failures.dataValue())
+    CCTK_ERROR("Non-finite rho, Ye or EOS output during initial-data conversion");
 }
 
 } // namespace ID_TabEOS_HydroQuantities
