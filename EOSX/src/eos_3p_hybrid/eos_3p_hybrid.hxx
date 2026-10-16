@@ -15,7 +15,6 @@ namespace EOSX {
 
 template <class ColdEOS> class eos_3p_hybrid : public eos_3p {
 public:
-  CCTK_REAL gamma;            // dummy
   CCTK_REAL gamma_th, gm1_th; // thermal gamma and gamma-1
   range rgeps;                // eps range parameters (allows eps_min sentinel)
   ColdEOS *eos_c;             // cold EOS (polytrope or piecewise-polytrope)
@@ -103,6 +102,15 @@ public:
     return sqrt(cs2);
   }
 
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline bool
+  eps_from_rho_h_ye(const CCTK_REAL rho, const CCTK_REAL h,
+                     const CCTK_REAL ye, CCTK_REAL &eps) const {
+    if (!std::isfinite(rho) || rho <= 0.0)
+      return false;
+    eps = eps_cold(rho) + (h - 1.0 - hm1_cold(rho)) / gamma_th;
+    return std::isfinite(eps);
+  }
+
   // Temperature not implemented
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   csnd_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
@@ -149,6 +157,18 @@ public:
     press = p_c + p_th;
     dpdrho = h_c * cs2_c + gm1_th * (eps_th - p_c / rho);
     dpdeps = gm1_th * rho;
+  }
+
+  CCTK_HOST CCTK_DEVICE inline bool
+  press_derivs_from_rho_h_ye(CCTK_REAL &press, CCTK_REAL &dpdrho,
+                             CCTK_REAL &dpdeps, const CCTK_REAL rho,
+                             const CCTK_REAL h, const CCTK_REAL ye,
+                             CCTK_REAL *temp = nullptr) const {
+    CCTK_REAL eps;
+    if (!eps_from_rho_h_ye(rho, h, ye, eps))
+      return false;
+    press_derivs_from_rho_eps_ye(press, dpdrho, dpdeps, rho, eps, ye);
+    return true;
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -211,6 +231,13 @@ public:
     return gm1_th * eps_th * pow(rho, CCTK_REAL(1.0) - gamma_th);
   }
 
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  kappa_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+                         const CCTK_REAL ye) const {
+    printf("EOS: kappa from temperature not implemented for eos_3p_hybrid.\n");
+    return CCTK_REAL(0.0);
+  }
+
   //   eps_min >= 0  -> constant eps_min
   //   eps_min == -1 -> eps_min = eps_cold(rho)
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline eos_3p::range
@@ -229,4 +256,3 @@ public:
 } // namespace EOSX
 
 #endif
-

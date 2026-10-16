@@ -10,6 +10,7 @@ SRCS = \
   gauge_register.cxx \
   check_prims.cxx \
   lo_flag.cxx \
+  param_check.cxx \
   prim2con.cxx \
   rhs.cxx \
   sync.cxx \

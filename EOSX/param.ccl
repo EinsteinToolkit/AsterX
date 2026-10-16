@@ -117,3 +117,9 @@ CCTK_STRING EOSTable_filename "File name of the 3D EOS table" STEERABLE=RECOVER
 {  
   ".+" :: ""
 } "."
+
+private:
+
+BOOLEAN unit_test "Run EOSX energy and temperature tests during startup"
+{
+} "no"
