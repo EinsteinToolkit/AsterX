@@ -192,7 +192,6 @@ eos_readtable_scollapse(const std::string &filename,
   tab.nye = nye;
   tab.npoints = npoints;
 
-  // NEW
   tab.have_rel_cs2 = have_rel_cs2;
 
   tab.logrho = logrho;

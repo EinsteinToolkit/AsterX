@@ -44,11 +44,17 @@ CCTK_STRING Y_e_filename "Initial data file for electron fraction"
 SHARES: Con2PrimFactory
 USES CCTK_REAL rho_abs_min
 USES CCTK_REAL atmo_tol
-USES CCTK_REAL eps_atmo
 USES CCTK_REAL p_atmo
 USES CCTK_REAL t_atmo
 USES CCTK_REAL Ye_atmo
+USES BOOLEAN Ye_atmo_beq
 USES CCTK_REAL r_atmo
 USES CCTK_REAL n_rho_atmo
 USES CCTK_REAL n_press_atmo
 USES CCTK_REAL n_temp_atmo
+
+private:
+
+BOOLEAN unit_test "Check initial Ye, thermal profiles and converted state"
+{
+} "no"

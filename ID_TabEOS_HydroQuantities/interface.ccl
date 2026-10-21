@@ -3,4 +3,5 @@ INHERITS: HydroBaseX #CarpetXRegrid
 
 USES INCLUDE HEADER: loop_device.hxx
 USES INCLUDE HEADER: setup_eos.hxx
+USES INCLUDE HEADER: atmo.hxx
 

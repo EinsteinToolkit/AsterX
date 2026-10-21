@@ -28,6 +28,7 @@ extern "C" void AsterX_Test(CCTK_ARGUMENTS) {
     test_mp5(engine, repetitions);
 
     test_uct_edge_speed_envelope();
+    test_hlle();
 
   } else {
     CCTK_INFO("Skipping unit tests");

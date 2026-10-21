@@ -87,6 +87,10 @@ Con2PrimFactory::c2p_tol = 1e-8
 Con2PrimFactory::max_iter = 100
 Con2PrimFactory::rho_abs_min = 1e-8
 Con2PrimFactory::unit_test = "yes"
+# Run the existing EOS and atmosphere suites in this regression.
+EOSX::unit_test = "yes"
+AsterSeeds::unit_test = "yes"
+AsterX::unit_test = "yes"
 Con2PrimFactory::B_lim = 1e8
 Con2PrimFactory::vw_lim = 1e8
 Con2PrimFactory::Ye_lenient = "yes"

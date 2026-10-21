@@ -7,9 +7,6 @@ namespace Con2PrimFactory {
 
 class c2p_1DEntropy : public c2p {
 public:
-  /* Some attributes */
-  CCTK_REAL GammaIdealFluid;
-
   /* Constructor */
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_1DEntropy(
@@ -90,9 +87,6 @@ CCTK_HOST CCTK_DEVICE
   use_press_atmo = use_pressure_atmo;
   soft_root_convergence = soft_root_conv;
   soft_root_width_factor = fmax(CCTK_REAL(1.0), soft_root_width_factor_in);
-
-  // Derived
-  GammaIdealFluid = eos_3p->gamma;
 }
 
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -384,6 +378,11 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
       Algo::brent(fn, a, b, minbits, maxiters, rep.iters, root_failed);
 
   CCTK_REAL xEntropy_Sol = 0.5 * (result.first + result.second);
+  if (!std::isfinite(xEntropy_Sol)) {
+    rep.set_root_conv();
+    cv = cv_const;
+    return;
+  }
 
   xEntropyToPrim(xEntropy_Sol, Ssq, Bsq, BiSi, eos_3p, pv, cv, gup, glo);
 
@@ -442,6 +441,10 @@ c2p_1DEntropy::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   }
 
   c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
+  if (rep.failed()) {
+    cv = cv_const;
+    return;
+  }
 
   // Recompute cons if prims have been adjusted
   if (rep.adjust_cons) {
