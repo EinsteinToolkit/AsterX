@@ -27,6 +27,18 @@ STORAGE: LOflag etac
 STORAGE: theta_x theta_y theta_z theta_tot
 
 
+# Without subcycling, AsterX_RestrictFluxes hands the coarse RHS the fine
+# fluxes on every fine-covered face, so the driver's flux register (which
+# ODESolvers also feeds without subcycling) only accumulates round-off.
+if(restrict_fluxes && !use_subcycling && !freeze_evolution)
+{
+  SCHEDULE AsterX_CheckRedundantReflux AT CCTK_PARAMCHECK
+  {
+    LANG: C
+    OPTIONS: global
+  } "Warn that CarpetX::do_reflux is redundant with restrict_fluxes without subcycling"
+}
+
 if(unit_test)
 {
   SCHEDULE AsterX_Test AT wragh
@@ -174,7 +186,7 @@ SCHEDULE AsterX_Sync AT post_recover_variables BEFORE ODESolvers_PostStep
 # window to every level at the current time and immediately before it
 # restricts. The group applies the coarse-edge gauge shift there; the driver's
 # own Restrict then resets every fine-owned coarse edge from the fine level and
-# its ProlongateRestrictedGFs refills the fine Avec ghost halo from the
+# its ProlongateAfterRestriction refills the fine Avec ghost halo from the
 # corrected coarse level, so the register issues no Avec transfer of its own.
 # ODESolvers_PostStep in CCTK_POSTRESTRICT runs after those transfers, so this
 # pass's B, con2prim and output, and the fluxes, G and E of the next RHS, see
@@ -377,9 +389,11 @@ SCHEDULE AsterX_Fluxes IN AsterX_FluxGroup
   WRITES: a_xface(everywhere) a_yface(everywhere) a_zface(everywhere)
 } "Calculate the hydro fluxes"
 
-# Fine-to-coarse restriction of the fluxes and of E/G replaces the coarse
-# values on fine-covered faces and edges by the fine ones before the coarse
-# RHS uses them. It needs every child level at the same time as its parent,
+# Fine-to-coarse restriction of the fluxes and of G replaces the coarse
+# values on fine-covered faces and vertices by the fine ones before the coarse
+# RHS uses them. E is not restricted: it enters the Avec RHS only on the
+# fine-covered coarse edges themselves, which the driver's restriction of Avec
+# overwrites. It needs every child level at the same time as its parent,
 # which inside ODESolvers_RHS holds only without subcycling: under subcycling
 # the coarse RHS runs with the fine level outside the active window, so nothing
 # is scheduled and conservation across the refinement boundary is left to the
@@ -410,12 +424,12 @@ SCHEDULE AsterX_CalcAuxTermsForAvecPsiRHS IN AsterX_FluxGroup AFTER AsterX_Fluxe
   WRITES: Fx_stag(everywhere) Fy_stag(everywhere) Fz_stag(everywhere)
 } "Calculate the auxiliary terms for the rhs of Avec and Psi"
 
-if(restrict_fluxes && !use_subcycling) {
+if(restrict_aux_terms && !use_subcycling) {
 SCHEDULE AsterX_RestrictAuxTermsForAvecPsiRHS IN AsterX_FluxGroup AFTER AsterX_CalcAuxTermsForAvecPsiRHS
 {
   LANG: C
   OPTIONS: global
-} "Restrict the auxiliary terms for the rhs of Avec and Psi"
+} "Restrict the auxiliary gauge term G for the rhs of Avec"
 }
 
 SCHEDULE AsterX_SourceTerms IN AsterX_RHSGroup AFTER AsterX_FluxGroup

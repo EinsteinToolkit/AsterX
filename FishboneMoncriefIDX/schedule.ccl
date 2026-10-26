@@ -44,7 +44,7 @@ if (FM_Cowling) {
 
   } "Set ADM variables for FM torus"
 
-  schedule FishboneMoncrief_Set_Spacetime IN CCTK_POST_RECOVER_VARIABLES
+  schedule FishboneMoncrief_Set_Spacetime IN CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep
   {
     LANG: C
     WRITES: ADMBaseX::metric(everywhere)
@@ -58,7 +58,7 @@ if (FM_Cowling) {
 }
 
 if (seed_magnetic) {
-  schedule FishboneMoncrief_Set_A IN HydroBaseX_InitialData BEFORE FishboneMoncrief_ET_GRHD_initial__perturb_pressure
+  schedule FishboneMoncrief_Set_A IN HydroBaseX_InitialData AFTER FishboneMoncrief_ET_GRHD_initial BEFORE FishboneMoncrief_ET_GRHD_initial__perturb_pressure
   {
     LANG: C
 

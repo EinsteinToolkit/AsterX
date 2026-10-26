@@ -47,7 +47,20 @@ schedule TOVX_C_FreeMemory AT TERMINATE
 #} "Synchronize"
 
 if (TOV_Cowling) {
-  schedule TOVX_C_Exact_ADM IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep
+  # With TOV_Cowling, only this group sets ADMBaseX after initial data, and
+  # ADMBaseX is not checkpointed. Recovery does not traverse POSTREGRID, so the
+  # group also runs in CCTK_POST_RECOVER_VARIABLES, before ODESolvers_PostStep
+  # reads the metric. The 1D TOV solution it interpolates from is rebuilt at
+  # WRAGH, which runs on recovery too.
+  schedule GROUP TOVX_Cowling_ADM AT CCTK_POSTREGRID BEFORE ODESolvers_PostStep
+  {
+  } "Set the Cowling ADM variables of TOV"
+
+  schedule GROUP TOVX_Cowling_ADM AT CCTK_POST_RECOVER_VARIABLES BEFORE ODESolvers_PostStep
+  {
+  } "Set the Cowling ADM variables of TOV"
+
+  schedule TOVX_C_Exact_ADM IN TOVX_Cowling_ADM
   {
     LANG: C
     WRITES: metric_cell(interior)
@@ -61,7 +74,7 @@ if (TOV_Cowling) {
     SYNC: dtlapse_cell dtshift_cell
   } "Set values for ADM variables of TOV"
 
-  schedule TOVX_C_Exact_ADM_Interpolation_C2V IN CCTK_POSTREGRID BEFORE ODESolvers_PostStep AFTER TOVX_C_Exact_ADM
+  schedule TOVX_C_Exact_ADM_Interpolation_C2V IN TOVX_Cowling_ADM AFTER TOVX_C_Exact_ADM
   {
     LANG: C
     READS: metric_cell(everywhere)

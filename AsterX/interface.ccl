@@ -17,7 +17,22 @@ PUBLIC:
 
 # Note that the prolongation method and order are hard-coded and will
 # supersede parfile choices
-CCTK_REAL cons_vector TYPE=gf CENTERING={ccc} TAGS='parities={+1 +1 +1    -1 +1 +1    +1 -1 +1    +1 +1 -1    +1 +1 +1    +1 +1 +1    +1 +1 +1} rhs="rhs_vector" dependents="HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec HydroBaseX::vel HydroBaseX::entropy TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Conserved quantities during AsterX evolution"
+#
+# The fluxes= tag registers flux_x/y/z with CarpetX's flux-register (reflux)
+# correction, which is opt-in (CarpetX::do_reflux, off by default). With
+# do_reflux = yes, under subcycling the driver accumulates the stage-weighted
+# fluxes of every level into a register per level pair and repays the
+# coarse/fine mismatch to the coarse cells at each refinement boundary once
+# per coarse step, before restriction. Without subcycling
+# AsterX_RestrictFluxes (restrict_fluxes) provides the conservative coupling
+# at every RK stage instead; with do_reflux = yes ODESolvers still feeds the
+# register and refluxes at the end of each step, but the register then holds
+# only round-off (a PARAMCHECK warning suggests leaving CarpetX::do_reflux =
+# no). The driver reads the leading seven components
+# of each flux group as the fluxes of dens, mom{x,y,z}, tau, DYe and DEnt in
+# that order (the AsterX RHS is rhs = sources - div(flux)); the trailing
+# fxB{x,y,z} transport components are ignored by the register.
+CCTK_REAL cons_vector TYPE=gf CENTERING={ccc} TAGS='parities={+1 +1 +1    -1 +1 +1    +1 -1 +1    +1 +1 -1    +1 +1 +1    +1 +1 +1    +1 +1 +1} rhs="rhs_vector" fluxes="flux_x flux_y flux_z" dependents="HydroBaseX::rho HydroBaseX::eps HydroBaseX::press HydroBaseX::temperature HydroBaseX::Ye HydroBaseX::Bvec HydroBaseX::vel HydroBaseX::entropy TmunuBaseX::eTtt TmunuBaseX::eTti TmunuBaseX::eTij AsterX::flux_x AsterX::flux_y AsterX::flux_z" prolongation_type="minmod" prolongation_order=1' "Conserved quantities during AsterX evolution"
 {
   dens, momx, momy, momz, tau, DYe, DEnt
 } "Conserved density, momenta, internal energy, electron fraction and entropy"
@@ -80,7 +95,10 @@ CCTK_REAL theta_z TYPE=gf CENTERING={ccv} TAGS='checkpoint="no"' "flux limiter i
 
 # ----- shock detector
 
-CCTK_REAL LOflag TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector switch"
+# Checkpointed: under subcycling, a level that lags its parent SYNCs LOflag
+# from the parent's last RK stage, which no routine can recompute after a
+# restart. The evolve and restrict tags keep the non-checkpointed defaults.
+CCTK_REAL LOflag TYPE=gf CENTERING={ccc} TAGS='checkpoint="yes" evolve="no" restrict="no"' "Shock detector switch"
 CCTK_REAL etac TYPE=gf CENTERING={ccc} TAGS='checkpoint="no"' "Shock detector measure"
 
 # ----- staggered vector potential (edges)
@@ -120,11 +138,18 @@ CCTK_REAL Psi_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "t-component of
 # node is bit-for-bit the gauge integral int G dt that this level applied to
 # the edges touching the node. It is excluded from the driver's automatic
 # restriction (restrict="no") so the coarse ledger survives until AsterX
-# compares it with the fine one. The prolongation settings mirror Psi.
+# compares it with the fine one. Its refinement-boundary ghosts are not
+# exempt: under subcycling the driver re-prolongates them from the parent
+# after each restriction, as for every evolved group. The prolongation
+# settings mirror Psi.
 CCTK_REAL IG TYPE=gf CENTERING={vvv} TAGS='rhs="IG_rhs" restrict="no" prolongation_type="hermite" prolongation_order=5' "Nodal gauge register: int G dt applied by this level"
 
 CCTK_REAL IG_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "RHS of IG (= G when the gauge register is active, 0 otherwise)"
 
+# IGr is scratch for the reconcile. restrict="no" keeps the driver from
+# restricting it on either of its paths (end of step, SYNC);
+# AsterX_GaugeRestrictIGr restricts it explicitly through
+# CarpetX::RestrictNoPoison, which ignores the tag.
 CCTK_REAL IGr TYPE=gf CENTERING={vvv} TAGS='checkpoint="no" restrict="no"' "Scratch: IG restricted from the time-aligned child level"
 
 CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'
