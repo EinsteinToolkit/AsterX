@@ -11,3 +11,11 @@ SCHEDULE EOSX_Setup_EOS AT CCTK_WRAGH AFTER EOSX_Setup_EOSID
   LANG: C
   OPTIONS: GLOBAL
 } "set up evolution EOS"
+
+if (unit_test) {
+  SCHEDULE EOS_Test AT CCTK_WRAGH AFTER EOSX_Setup_EOS {
+  LANG:
+    C OPTIONS : meta
+  }
+  "EOSX pwpoly Self-test"
+}

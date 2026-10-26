@@ -126,13 +126,19 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     } else {
       const CCTK_REAL gm1 = eos_1p->gm1_from_rho(rho_atm);
       temp_atm = eos_1p->temp_from_gm1(gm1);
-      temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
+      // temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
+
+      /*
       eps_atm = eos_3p->eps_from_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
       // eps_atm should be kept consistent with temp_atm, so we do not use
       // the setting below
       // eps_atm =
       //    std::min(std::max(eos_3p->rgeps.min, eps_atm), eos_3p->rgeps.max);
-      press_atm = eos_3p->press_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+      press_atm = eos_3p->press_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);*/
+
+      eps_atm = eos_1p->sed_from_gm1(gm1);
+      press_atm = eos_1p->p_from_gm1(gm1);
+
     }
     CCTK_REAL entropy_atm =
         eos_3p->kappa_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
@@ -523,10 +529,10 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
   DECLARE_CCTK_ARGUMENTS_AsterX_Con2Prim;
   DECLARE_CCTK_PARAMETERS;
 
-  if (CCTK_EQUALS(evolution_eos, "Hybrid") && thermal_eos_atmo) {
-    CCTK_ERROR("Hybrid EOS does not implement *_from_rho_temp_ye; set "
-               "Con2PrimFactory::thermal_eos_atmo = no.");
-  }
+  // if (CCTK_EQUALS(evolution_eos, "Hybrid") && thermal_eos_atmo) {
+  //   CCTK_ERROR("Hybrid EOS does not implement *_from_rho_temp_ye; set "
+  //              "Con2PrimFactory::thermal_eos_atmo = no.");
+  // }
   if (CCTK_EQUALS(evolution_eos, "Tabulated3d") && !use_temperature) {
     CCTK_ERROR("Tabulated3d requires Con2PrimFactory::use_temperature = yes.");
   }
