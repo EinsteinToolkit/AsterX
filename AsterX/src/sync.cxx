@@ -12,14 +12,7 @@
 namespace AsterX {
 
 ////////////////////////////////////////////////////////////////////////////////
-// Level-window helpers (declared in sync.hxx, except has_aligned_child and
-// group_indices)
-
-// `level` has a child that is in the active window, i.e. is time-aligned
-// with it.
-static bool has_aligned_child(const CarpetX::level_t level) {
-  return level.index() + 1 < CarpetX::active_window().level_bounds().max;
-}
+// Level-window helpers (declared in sync.hxx, except group_indices)
 
 bool full_cascade() { return CarpetX::active_window().level_bounds().min == 0; }
 
@@ -36,7 +29,7 @@ group_indices(const std::vector<int> &groups) {
 void RestrictFromAlignedChildren(const std::vector<int> &groups) {
   // The window form restricts every level pair (L, L + 1) with both levels in
   // the active window [min_level, max_level), i.e. every level whose child is
-  // time-aligned with it (has_aligned_child), finest pair first. Under
+  // time-aligned with it, finest pair first. Under
   // subcycling a coarse-only batch has no active child, so nothing is
   // restricted; without subcycling every level is active, so this is the same
   // as restricting from every level but the finest. It restricts exactly
@@ -82,64 +75,30 @@ extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
   SyncGhostsOnly(groups);
 }
 
-// The validity that every variable of `group` has at time level `tl`. A
-// write scope that promises exactly this leaves every validity bit as it
-// was and poisons nothing.
-static CarpetX::valid_t group_validity(const CarpetX::group_t group,
-                                       const CarpetX::tl_t tl) {
-  const CarpetX::valid_t valid = CarpetX::valid(group, tl, CarpetX::vi_t{0});
-  for (int vi = 1; vi < CarpetX::numvars(group); ++vi)
-    if (CarpetX::valid(group, tl, CarpetX::vi_t{vi}) != valid)
-      CCTK_VERROR("AsterX: the variables of group %s differ in validity at "
-                  "time level %d on refinement level %d, so a single write "
-                  "scope cannot keep all of them",
-                  CCTK_FullGroupName(group.gi.index()), tl.index(),
-                  group.level.index());
-  return valid;
-}
-
 // Same-level ghost exchange of `groups` on every active level that has an
 // aligned child, i.e. on the levels RestrictFromAlignedChildren has just
 // rewritten; the other levels were not restricted, so their ghost copies still
-// match the neighbouring interiors.
-// No outer boundary conditions are applied: ghost points that lie outside the
+// match the neighbouring interiors. Those levels are the active window without
+// its finest level.
+// CarpetX::sync_ghosts_only copies the same-level ghosts and nothing else. No
+// outer boundary conditions are applied: ghost points that lie outside the
 // domain or beyond a refinement boundary keep their locally computed values,
 // only the ghost points covered by a neighbouring box are refreshed from its
 // interior. In particular the ghost points beyond a reflection symmetry plane
 // are not refreshed (that needs the parities of `groups`, which the flux and G
 // groups do not declare), so they keep the unrestricted values even where
-// their mirror image was restricted.
-// SyncGhostsOnly would also apply the outer boundary conditions, so the
-// exchange is a bare FillBoundary inside a write scope. The scope
-// promises the validity each time level already has: FillBoundary only
-// overwrites ghost points with copies of valid interior points, so no bit
-// changes.
+// their mirror image was restricted. (SyncGhostsOnly, which applies the
+// boundary conditions as well, is the wrong call here.)
 // Single patch only: ghost points on an inter-patch boundary would need
-// MultiPatch_Interpolate.
-static void FillGhostsFromNeighbours(const cGH *const cctkGH,
-                                     const std::vector<int> &groups) {
+// MultiPatch_Interpolate, which the ghost-only sync does not run.
+static void FillGhostsFromNeighbours(const std::vector<int> &groups) {
   assert(CarpetX::num_patches() == 1);
-  for (const int gi : groups) {
-    const int ntls = CCTK_ActiveTimeLevelsGI(cctkGH, gi);
-    assert(ntls > 0);
-    const int sync_tl = ntls > 1 ? ntls - 1 : ntls;
-    CarpetX::active_window().loop_serially([&](const CarpetX::level_t level) {
-      if (!has_aligned_child(level))
-        return;
-      const CarpetX::group_t group{level, CarpetX::gi_t{gi}};
-      const amrex::Periodicity periodicity =
-          CarpetX::geometry(level).periodicity();
-      for (int itl = 0; itl < sync_tl; ++itl) {
-        const CarpetX::tl_t tl{itl};
-        CarpetX::write_t scope =
-            CarpetX::write(group, tl, group_validity(group, tl),
-                           "AsterX::FillGhostsFromNeighbours");
-        amrex::MultiFab &mfab = scope.mfab();
-        mfab.FillBoundary(0, mfab.nComp(), mfab.nGrowVect(), periodicity);
-      }
-    });
-  }
-  CarpetX::synchronize();
+  const CarpetX::window_t window = CarpetX::active_window();
+  const auto levels = window.level_bounds();
+  if (levels.max - levels.min < 2)
+    return; // no active level has an aligned child
+  CarpetX::sync_ghosts_only(window.narrow(levels.min, levels.max - 1),
+                            group_indices(groups));
 }
 
 extern "C" void AsterX_RestrictFluxes(CCTK_ARGUMENTS) {
@@ -157,7 +116,7 @@ extern "C" void AsterX_RestrictFluxes(CCTK_ARGUMENTS) {
   // an interprocess boundary sees a restricted flux on one side and the stale
   // unrestricted coarse flux on the other. At 2nd order no ghost face is read.
   if (hydro_correction_order > 2)
-    FillGhostsFromNeighbours(cctkGH, restrict_groups);
+    FillGhostsFromNeighbours(restrict_groups);
 }
 
 // Scheduled only with restrict_fluxes, without subcycling and without
@@ -220,7 +179,7 @@ extern "C" void AsterX_RestrictAuxTermsForAvecPsiRHS(CCTK_ARGUMENTS) {
   // not read at all.
   if (mag_correction_order > 2 &&
       CCTK_EQUALS(vector_potential_gauge, "generalized Lorenz"))
-    FillGhostsFromNeighbours(cctkGH, restrict_groups);
+    FillGhostsFromNeighbours(restrict_groups);
 }
 
 extern "C" void AsterX_ProlongatedBstag(CCTK_ARGUMENTS) {
