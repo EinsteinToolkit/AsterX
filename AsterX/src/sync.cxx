@@ -45,7 +45,12 @@ void RestrictFromAlignedChildren(const std::vector<int> &groups) {
 }
 
 void SyncGhostsOnly(const std::vector<int> &groups) {
-  CarpetX::sync_ghosts_only(CarpetX::active_window(), group_indices(groups));
+  // CarpetX::sync_ghosts_only copies the same-level ghosts and nothing else;
+  // the outer boundary condition is the driver's separate operation, which
+  // requires the interior and the ghosts valid.
+  const std::vector<CarpetX::gi_t> gis = group_indices(groups);
+  CarpetX::sync_ghosts_only(CarpetX::active_window(), gis);
+  CarpetX::apply_outer_boundary(CarpetX::active_window(), gis);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -70,9 +75,10 @@ extern "C" void AsterX_ApplyOuterBCOnPrim(CCTK_ARGUMENTS) {
       CCTK_GroupIndex("AsterX::dBy_stag"),
       CCTK_GroupIndex("AsterX::dBz_stag")};
 
-  // Copy from adjacent boxes on same level and apply boundary conditions.
-  // Even though this introduces additional communication, it makes the code
-  // compatible with symmetries.
+  // AsterX_Con2Prim wrote these groups everywhere, but its result at a ghost
+  // point is not trusted: the ghosts are copied from the neighbouring
+  // interiors (periodic images included) and the outer boundary condition
+  // (symmetries included) is applied on top.
   SyncGhostsOnly(groups);
 }
 
@@ -103,8 +109,8 @@ static CarpetX::valid_t group_validity(const CarpetX::group_t group,
 // are not refreshed (that needs the parities of `groups`, which the flux and G
 // groups do not declare), so they keep the unrestricted values even where
 // their mirror image was restricted.
-// CarpetX's sync_ghosts_only would also apply the outer boundary conditions,
-// so the exchange is a bare FillBoundary inside a write scope. The scope
+// SyncGhostsOnly would also apply the outer boundary conditions, so the
+// exchange is a bare FillBoundary inside a write scope. The scope
 // promises the validity each time level already has: FillBoundary only
 // overwrites ghost points with copies of valid interior points, so no bit
 // changes.
