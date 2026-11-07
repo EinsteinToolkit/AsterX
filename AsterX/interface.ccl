@@ -10,6 +10,7 @@ USES INCLUDE HEADER: setup_eos.hxx
 USES INCLUDE HEADER: c2p.hxx c2p_2DNoble.hxx c2p_1DRePrimAnd.hxx c2p_1DPalenzuela.hxx c2p_1DEntropy.hxx
 USES INCLUDE HEADER: reconstruct.hxx
 USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx
+USES INCLUDE HEADER: carpetx.hxx
 
 PUBLIC:
 
@@ -149,7 +150,7 @@ CCTK_REAL IG_rhs TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"' "RHS of IG (= G 
 # IGr is scratch for the reconcile. restrict="no" keeps the driver from
 # restricting it on either of its paths (end of step, SYNC);
 # AsterX_GaugeRestrictIGr restricts it explicitly through
-# CarpetX::RestrictNoPoison, which ignores the tag.
+# CarpetX::restrict_no_poison, which ignores the tag.
 CCTK_REAL IGr TYPE=gf CENTERING={vvv} TAGS='checkpoint="no" restrict="no"' "Scratch: IG restricted from the time-aligned child level"
 
 CCTK_REAL Fbeta TYPE=gf CENTERING={vvv} TAGS='checkpoint="no"'

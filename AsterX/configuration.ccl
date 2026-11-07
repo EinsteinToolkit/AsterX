@@ -1,6 +1,6 @@
 # Configuration definitions for thorn AsterX
 
-REQUIRES Loop EOSX Con2PrimFactory ReconX AsterUtils AsterMasks
+REQUIRES CarpetX Loop EOSX Con2PrimFactory ReconX AsterUtils AsterMasks
 
 PROVIDES AsterX
 {
