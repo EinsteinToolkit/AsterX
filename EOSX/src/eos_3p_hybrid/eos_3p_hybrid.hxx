@@ -11,7 +11,6 @@
 
 using namespace std;
 
-// Remember to define umass_
 namespace EOSX {
 
 template <class ColdEOS> class eos_3p_hybrid : public eos_3p {
@@ -45,8 +44,7 @@ public:
     set_range_rho(rgrho_);
     set_range_ye(rgye_);
     temp_over_eps_th = gm1_th * umass_;
-    //Strictly speaking should probably convert eps range to eps_th range?
-    set_range_temp(range(temp_over_eps_th * rgeps.min, temp_over_eps_th * rgeps.max)); // TODO: Implement temperature;
+    set_range_temp(range(temp_over_eps_th * rgeps.min, temp_over_eps_th * rgeps.max)); 
   }
 
   // cold helpers
@@ -113,9 +111,6 @@ public:
                         const CCTK_REAL ye) const {
     CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);
     return csnd_from_rho_eps_ye(rho, eps, ye);
-    /*printf("eos_3p_hybrid: sound speed not implemented\n");
-    assert(false);
-    return CCTK_REAL(0.0);*/
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -124,9 +119,6 @@ public:
     const CCTK_REAL eps_c = eps_cold(rho);  
     const CCTK_REAL eps_th = eps - eps_c;
     return temp_over_eps_th * eps_th;
-    /*printf("eos_3p_hybrid: temperature not implemented\n");
-    assert(false);
-    return CCTK_REAL(0.0);*/
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -165,9 +157,6 @@ public:
                            const CCTK_REAL ye) const {
     const CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);
     return entropy_from_rho_eps_ye(rho, eps, ye);
-    /*printf("EOS: entropy from temperature not implemented for eos_3p_hybrid.\n");
-    assert(false);
-    return CCTK_REAL(0.0);*/
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -182,9 +171,6 @@ public:
                        const CCTK_REAL ye) const {
     const CCTK_REAL eps_c = eps_cold(rho);
     return temp / temp_over_eps_th + eps_c;
-    /* printf("EOS: eps from temperature not implemented for eos_3p_hybrid.\n");
-    assert(false);
-    return CCTK_REAL(0.0); */
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -192,9 +178,6 @@ public:
                          const CCTK_REAL ye) const {
     CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);    
     return press_from_rho_eps_ye(rho, eps, ye);
-    /*printf("EOS: press from temperature not implemented for eos_3p_hybrid.\n");
-    assert(false);
-    return CCTK_REAL(0.0);*/
   }
 
   // kappa is the evolved entropy-like quantity.

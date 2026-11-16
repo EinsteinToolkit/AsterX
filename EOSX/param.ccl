@@ -1,8 +1,5 @@
 # Parameter definitions for thorn EOSX
 
-BOOLEAN unit_test "turn on all the unit tests if set to yes" STEERABLE=ALWAYS {}
-no
-
 restricted:
 
 KEYWORD initial_data_eos "Name of active EOS for initial data"
