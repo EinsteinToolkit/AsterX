@@ -39,8 +39,20 @@ if(restrict_fluxes && !use_subcycling && !freeze_evolution)
   } "Warn that CarpetX::do_reflux is redundant with restrict_fluxes without subcycling"
 }
 
+SCHEDULE AsterX_ParamCheck AT CCTK_PARAMCHECK
+{
+  LANG: C
+  OPTIONS: global
+} "Check atmosphere parameters and prepare the global atmosphere"
+
 if(unit_test)
 {
+  SCHEDULE AsterX_TestAtmo AT CCTK_PARAMCHECK AFTER AsterX_ParamCheck
+  {
+    LANG: C
+    OPTIONS: global
+  } "Test global atmosphere reuse and device construction"
+
   SCHEDULE AsterX_Test AT wragh
   {
     LANG: C

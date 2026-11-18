@@ -217,6 +217,7 @@ USES CCTK_REAL eps_atmo
 USES CCTK_REAL p_atmo
 USES CCTK_REAL t_atmo
 USES CCTK_REAL Ye_atmo
+USES BOOLEAN Ye_atmo_beq
 USES CCTK_REAL tauFluid_atmo
 USES CCTK_REAL B_lim
 USES CCTK_REAL vw_lim

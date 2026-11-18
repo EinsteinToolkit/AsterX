@@ -175,6 +175,14 @@ public:
     return (gamma - 1.0) * eps * pow(rho, 1.0 - gamma);
   };
 
+  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
+  kappa_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+                        const CCTK_REAL ye) const {
+    // Evolved kappa is P / rho^gamma, not physical entropy.
+    CCTK_REAL eps = eps_from_rho_temp_ye(rho, temp, ye);
+    return kappa_from_rho_eps_ye(rho, eps, ye);
+  }
+
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline range
   range_eps_from_rho_ye(
       const CCTK_REAL rho, ///< Rest mass density  \f$ \rho \f$
