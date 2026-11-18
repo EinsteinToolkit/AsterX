@@ -101,42 +101,6 @@ static void FillGhostsFromNeighbours(const std::vector<int> &groups) {
                             group_indices(groups));
 }
 
-// Same-level ghost exchange of `groups` on every active level that has an
-// aligned child, i.e. on the levels RestrictFromAlignedChildren has just
-// rewritten; the other levels were not restricted, so their ghost copies still
-// match the neighbouring interiors.
-// No outer boundary conditions are applied: ghost points that lie outside the
-// domain or beyond a refinement boundary keep their locally computed values,
-// only the ghost points covered by a neighbouring box are refreshed from its
-// interior. In particular the ghost points beyond a reflection symmetry plane
-// are not refreshed (that needs the parities of `groups`, which the flux and G
-// groups do not declare), so they keep the unrestricted values even where
-// their mirror image was restricted.
-// Single patch only: ghost points on an inter-patch boundary would need
-// MultiPatch_Interpolate.
-static void FillGhostsFromNeighbours(const cGH *const cctkGH,
-                                     const std::vector<int> &groups) {
-  assert(active_levels);
-  assert(ghext->num_patches() == 1);
-  for (const int gi : groups) {
-    active_levels->loop_serially([&](auto &restrict leveldata) {
-      if (!has_aligned_child(leveldata.level))
-        return;
-      auto &restrict groupdata = *leveldata.groupdata.at(gi);
-      const int ntls = groupdata.mfab.size();
-      const int sync_tl = ntls > 1 ? ntls - 1 : ntls;
-      const auto &geom =
-          ghext->patchdata.at(leveldata.patch).amrcore->Geom(leveldata.level);
-      for (int tl = 0; tl < sync_tl; ++tl) {
-        auto &mfab = *groupdata.mfab.at(tl);
-        mfab.FillBoundary(0, mfab.nComp(), mfab.nGrowVect(),
-                          geom.periodicity());
-      }
-    });
-  }
-  synchronize();
-}
-
 extern "C" void AsterX_RestrictFluxes(CCTK_ARGUMENTS) {
   DECLARE_CCTK_PARAMETERS;
 
