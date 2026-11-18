@@ -1,7 +1,8 @@
 # make.code.defn file for the Cake patch system definition and tests
 
 # Source files in this directory
-SRCS = contraction_smat_upvec.cxx    \
+SRCS = atmo_global.cxx              \
+       contraction_smat_upvec.cxx    \
        contraction_upvec_downvec.cxx \
        cross_product.cxx             \
        minmod.cxx                    \

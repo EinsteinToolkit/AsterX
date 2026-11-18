@@ -1,3 +1,6 @@
+#include <AMReX.H>
+#include <AMReX_GpuAtomic.H>
+#include <AMReX_GpuMemory.H>
 #include <loop_device.hxx>
 
 #include <cctk.h>
@@ -90,6 +93,8 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
                 evolution_eos);
   }
 
+  amrex::Gpu::DeviceScalar<unsigned int> failures(0);
+  auto *failed = failures.dataPtr();
   const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
 
   grid.loop_all_device<1, 1, 1>(
@@ -129,13 +134,11 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
           eps(p.I) = epsL;
           entropy(p.I) = entL;
         } else {
-          // Recalculate primitives
-          press(p.I) = press_lim;
-          rho(p.I) =
-              eos_3p_tab3d->rho_from_press_temp_ye(press_lim, tempL, YeL);
-          eps(p.I) = eos_3p_tab3d->eps_from_rho_temp_ye(rho(p.I), tempL, YeL);
-          entropy(p.I) =
-              eos_3p_tab3d->entropy_from_rho_temp_ye(rho(p.I), tempL, YeL);
+          if (!set_beta_floor(eos_3p_tab3d, press_lim, tempL, YeL,
+                              rho(p.I), eps(p.I), press(p.I), entropy(p.I))) {
+            amrex::HostDevice::Atomic::Add(failed, 1U);
+            return;
+          }
         }
 
         // TODO: The coorbiting velocity feature is not well tested. Use with
@@ -188,6 +191,9 @@ extern "C" void AsterSeeds_SetInitialBetaFloor(CCTK_ARGUMENTS) {
           }
         } // if set coorbiting velocity
       });
+  amrex::Gpu::streamSynchronize();
+  if (failures.dataValue())
+    CCTK_ERROR("Initial beta floor cannot be satisfied within the EOS domain");
 }
 
 } // namespace AsterSeeds

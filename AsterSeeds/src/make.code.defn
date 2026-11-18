@@ -9,6 +9,7 @@ SRCS =	\
   atmosphere.cxx \
   bbhcloud.cxx \
   initial_betafloor.cxx \
+  test.cxx \
   perturbNS.cxx \
   magTOV.cxx \
   magBNS.cxx \

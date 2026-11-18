@@ -71,7 +71,6 @@ public:
     NUM_VARS
   };
 
-  CCTK_REAL gamma; // table Γ
   CCTK_REAL *energy_shift;
   range rgeps;
   linear_interp_uniform_ND_t<CCTK_REAL, 3, NTABLES> *interptable;
@@ -232,9 +231,12 @@ public:
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
   logtemp_from_rho_eps_ye(const CCTK_REAL rho, CCTK_REAL &eps,
                           const CCTK_REAL ye) const {
-    // bound inputs
-    eps = std::fmax(eps, rgeps.min);
-    CCTK_REAL leps = std::log(eps + *energy_shift);
+    // Bound physical eps before taking the logarithm. The inverse below
+    // applies the local temperature-edge bounds at this (rho, Ye).
+    eps = std::fmin(std::fmax(eps, rgeps.min), rgeps.max);
+    const CCTK_REAL shifted_eps = eps + *energy_shift;
+    assert(shifted_eps > 0.0);
+    CCTK_REAL leps = std::log(shifted_eps);
     CCTK_REAL lt = logtemp_from_rho_var_ye<EV::EPS>(rho, leps, ye);
     eps = exp(leps) - *energy_shift;
     return lt;
@@ -261,6 +263,39 @@ public:
     CCTK_REAL lt = logtemp_from_rho_var_ye<EV::PRESS>(rho, lP, ye);
     press = exp(lP);
     return exp(lt);
+  }
+
+  // Find the first pressure-floor crossing at or above the current T.
+  // Each temperature cell is linear in log(P); global monotonicity is not
+  // needed. Failure means the requested floor cannot be met in the table.
+  CCTK_HOST CCTK_DEVICE inline bool
+  temp_from_rho_press_floor(const CCTK_REAL rho, const CCTK_REAL press,
+                             const CCTK_REAL ye, CCTK_REAL &temp) const {
+    if (!std::isfinite(rho) || rho < rgrho.min || rho > rgrho.max ||
+        !std::isfinite(press) || press < 0.0 || !std::isfinite(ye) ||
+        ye < rgye.min || ye > rgye.max || !std::isfinite(temp))
+      return false;
+    temp = std::clamp(temp, rgtemp.min, rgtemp.max);
+    const CCTK_REAL lr = log(rho);
+    CCTK_REAL lo = log(temp);
+    CCTK_REAL plo = interptable->interpolate<EV::PRESS>(lr, lo, ye)[0];
+    if (exp(plo) >= press)
+      return true;
+    const CCTK_REAL target = log(press);
+    for (size_t j = 0; j < interptable->num_points[1]; ++j) {
+      const CCTK_REAL hi = interptable->x[1][j];
+      if (hi <= lo)
+        continue;
+      const CCTK_REAL phi = interptable->interpolate<EV::PRESS>(lr, hi, ye)[0];
+      if (phi >= target && phi > plo) {
+        temp = std::clamp(exp(lo + (hi - lo) * (target - plo) / (phi - plo)),
+                          rgtemp.min, rgtemp.max);
+        return true;
+      }
+      lo = hi;
+      plo = phi;
+    }
+    return false;
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
@@ -345,8 +380,98 @@ public:
   press_derivs_from_rho_eps_ye(CCTK_REAL &press, CCTK_REAL &dpdrho,
                                CCTK_REAL &dpdeps, const CCTK_REAL rho,
                                const CCTK_REAL eps, const CCTK_REAL ye) const {
-    printf("press_derivs_from_rho_eps_ye is not supported for now! \n");
-    assert(false);
+    const CCTK_REAL y = std::clamp(ye, rgye.min, rgye.max);
+    CCTK_REAL epsL = eps;
+    const CCTK_REAL temp = temp_from_rho_eps_ye(rho, epsL, y);
+    press_derivs_from_rho_temp_ye(press, dpdrho, dpdeps, rho, temp, y);
+  }
+
+  // Derivatives of the pressure and energy interpolants.
+  // dpdrho holds eps fixed, and dpdeps holds rho fixed.
+  CCTK_HOST CCTK_DEVICE inline void
+  press_derivs_from_rho_temp_ye(CCTK_REAL &press, CCTK_REAL &dpdrho,
+                                CCTK_REAL &dpdeps, const CCTK_REAL rho,
+                                const CCTK_REAL temp, const CCTK_REAL ye) const {
+    const CCTK_REAL r = std::clamp(rho, rgrho.min, rgrho.max);
+    const CCTK_REAL t = std::clamp(temp, rgtemp.min, rgtemp.max);
+    const CCTK_REAL y = std::clamp(ye, rgye.min, rgye.max);
+    const auto p = interptable->interpolate_with_derivs<EV::PRESS>(log(r), log(t), y);
+    const auto e = interptable->interpolate_with_derivs<EV::EPS>(log(r), log(t), y);
+    press = exp(p[0]);
+    if (!(e[2] > 0.0) || !std::isfinite(e[2])) {
+      dpdrho = dpdeps = std::numeric_limits<CCTK_REAL>::quiet_NaN();
+      return;
+    }
+    dpdeps = press / exp(e[0]) * p[2] / e[2];
+    dpdrho = press / r * (p[1] - p[2] * e[1] / e[2]);
+  }
+
+  // Invert h near the supplied temperature; h(T) need not be monotone.
+  CCTK_HOST CCTK_DEVICE inline bool
+  eps_from_rho_h_ye(const CCTK_REAL rho, const CCTK_REAL h,
+                     const CCTK_REAL ye, CCTK_REAL &eps,
+                     CCTK_REAL *temp = nullptr,
+                     const CCTK_REAL temp_guess = 0.0) const {
+    if (!std::isfinite(rho) || rho < rgrho.min || rho > rgrho.max ||
+        !std::isfinite(h) || h <= 0.0 || !std::isfinite(ye) ||
+        ye < rgye.min || ye > rgye.max)
+      return false;
+    const CCTK_REAL lr = log(rho);
+    const CCTK_REAL lo = log(rgtemp.min), hi = log(rgtemp.max);
+    CCTK_REAL lt = std::isfinite(temp_guess) && temp_guess > 0.0
+        ? log(std::clamp(temp_guess, rgtemp.min, rgtemp.max))
+        : lo + 0.5 * (hi - lo);
+    const CCTK_REAL tol =
+        16.0 * std::numeric_limits<CCTK_REAL>::epsilon() * fmax(1.0, fabs(h));
+    for (int n = 0; n < 80; ++n) {
+      const auto p = interptable->interpolate_with_derivs<EV::PRESS>(lr, lt, ye);
+      const auto e = interptable->interpolate_with_derivs<EV::EPS>(lr, lt, ye);
+      const CCTK_REAL energy = exp(e[0]) - *energy_shift;
+      const CCTK_REAL press = exp(p[0]);
+      const CCTK_REAL f = 1.0 + energy + press / rho - h;
+      if (std::isfinite(f) && fabs(f) <= tol) {
+        eps = energy;
+        if (temp)
+          *temp = exp(lt);
+        return true;
+      }
+      const CCTK_REAL dh = exp(e[0]) * e[2] + press / rho * p[2];
+      if (!std::isfinite(f) || !std::isfinite(dh) || dh == 0.0)
+        return false;
+      // Limit each step to one temperature interval and require progress.
+      CCTK_REAL step = std::clamp(-f / dh, -interptable->dx[1],
+                                  interptable->dx[1]);
+      for (;;) {
+        const CCTK_REAL next = std::clamp(lt + step, lo, hi);
+        if (next == lt)
+          return false;
+        const auto v = interptable->interpolate<EV::EPS, EV::PRESS>(lr, next, ye);
+        const CCTK_REAL fn = 1.0 + (exp(v[0]) - *energy_shift) +
+                              exp(v[1]) / rho - h;
+        if (std::isfinite(fn) && (fabs(fn) < fabs(f) || fabs(fn) <= tol)) {
+          lt = next;
+          break;
+        }
+        step *= 0.5;
+      }
+    }
+    return false;
+  }
+
+  CCTK_HOST CCTK_DEVICE inline bool
+  press_derivs_from_rho_h_ye(CCTK_REAL &press, CCTK_REAL &dpdrho,
+                             CCTK_REAL &dpdeps, const CCTK_REAL rho,
+                             const CCTK_REAL h, const CCTK_REAL ye,
+                             CCTK_REAL *temp = nullptr) const {
+    CCTK_REAL eps, t;
+    if (!eps_from_rho_h_ye(rho, h, ye, eps, &t, temp ? *temp : 0.0))
+      return false;
+    press_derivs_from_rho_temp_ye(press, dpdrho, dpdeps, rho, t, ye);
+    if (!std::isfinite(press) || !std::isfinite(dpdrho) || !std::isfinite(dpdeps))
+      return false;
+    if (temp)
+      *temp = t;
+    return true;
   }
 
   CCTK_HOST CCTK_DEVICE inline CCTK_REAL
@@ -376,6 +501,54 @@ public:
     return mue + mup - mun;
   }
 
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  ye_beq_from_rho_temp(const CCTK_REAL rho, const CCTK_REAL temp) const {
+    // Neutrino-less beta equilibrium: mu_e + mu_p - mu_n = 0.
+    const CCTK_REAL lr =
+        log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
+    const CCTK_REAL lt =
+        log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
+    const auto func = [&](const CCTK_REAL Ye) {
+      const auto mu = interptable->interpolate<EV::MU_E, EV::MU_P, EV::MU_N>(
+          lr, lt, Ye);
+      return mu[0] + mu[1] - mu[2];
+    };
+
+    const auto *yes = interptable->x[2];
+    size_t a = 0, b = interptable->num_points[2] - 1;
+    CCTK_REAL fa = func(yes[a]), fb = func(yes[b]);
+    assert(std::isfinite(fa) && std::isfinite(fb));
+    if (fa == 0.0)
+      return yes[a];
+    if (fb == 0.0)
+      return yes[b];
+
+    // If equilibrium lies outside the table, use the closest endpoint.
+    if ((fa < 0.0) == (fb < 0.0))
+      return fabs(fa) <= fabs(fb) ? yes[a] : yes[b];
+
+    // Locate the sign-changing Ye cell. The chemical potentials are linear
+    // in Ye inside this cell, so the final interpolation gives its root.
+    while (b - a > 1) {
+      const size_t m = a + (b - a) / 2;
+      const CCTK_REAL fm = func(yes[m]);
+      assert(std::isfinite(fm));
+      if (fm == 0.0)
+        return yes[m];
+      if ((fa < 0.0) != (fm < 0.0)) {
+        b = m;
+        fb = fm;
+      } else {
+        a = m;
+        fa = fm;
+      }
+    }
+
+    const CCTK_REAL scale = std::fmax(fabs(fa), fabs(fb));
+    const CCTK_REAL wa = fabs(fa) / scale, wb = fabs(fb) / scale;
+    return yes[a] + (yes[b] - yes[a]) * (wa / (wa + wb));
+  }
+
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   press_from_rho_kappa_ye(const CCTK_REAL rho,
                           const CCTK_REAL kappa, // kappa=entropy
@@ -401,6 +574,13 @@ public:
                                     ye);
   }
 
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  kappa_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+                        const CCTK_REAL ye) const {
+    // Table entropy is evolved kappa.
+    return entropy_from_rho_temp_ye(rho, temp, ye);
+  }
+
   CCTK_HOST CCTK_DEVICE inline range
   range_eps_from_rho_ye(const CCTK_REAL rho, const CCTK_REAL ye) const {
     CCTK_REAL lr = std::log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
@@ -422,12 +602,12 @@ public:
 
     for (size_t i = 0; i < total; i++) {
       const CCTK_REAL logeps = interptable->y[EV::EPS + NTABLES * i];
+      // Only interpolation uses shifted energy; callers use physical eps.
       CCTK_REAL val = exp(logeps) - *energy_shift;
       eps_min = std::fmin(eps_min, val);
       eps_max = std::fmax(eps_max, val);
     }
 
-    eps_min = std::fmax(eps_min, 1e-27); // Force eps positive
     return range{eps_min, eps_max};
   }
 

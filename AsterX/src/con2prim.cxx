@@ -12,6 +12,7 @@
 #include "c2p_2DNoble.hxx"
 
 #include "aster_utils.hxx"
+#include "atmo_global.hxx"
 #include "setup_eos.hxx"
 
 namespace AsterX {
@@ -40,6 +41,14 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
                              EOSType *eos_3p) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Con2Prim;
   DECLARE_CCTK_PARAMETERS;
+
+  const auto eos_1p_pwpoly = global_eos_1p_pwpoly;
+  const void *eos_cold = eos_1p_pwpoly
+                            ? static_cast<const void *>(eos_1p_pwpoly)
+                            : eos_1p;
+  atmosphere atmo_const{};
+  const bool use_atmo_const =
+      get_global_atmo(eos_cold, eos_3p, atmo_const);
 
   c2p_first_t c2p_fir;
   c2p_second_t c2p_sec;
@@ -83,62 +92,28 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     // AsterX -> dependents tag
 
     // Setting up atmosphere
-    CCTK_REAL rho_atm = 0.0;   // dummy initialization
-    CCTK_REAL press_atm = 0.0; // dummy initialization
-    CCTK_REAL eps_atm = 0.0;   // dummy initialization
-    CCTK_REAL temp_atm = 0.0;  // dummy initialization
-
-    CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-
-    // Grading rho
-    rho_atm = (radial_distance > r_atmo)
-                  ? (rho_abs_min * pow((r_atmo / radial_distance), n_rho_atmo))
-                  : rho_abs_min;
-    rho_atm = std::max(eos_3p->rgrho.min, rho_atm);
-
-    // Grading temperature or pressure based on either cold or thermal EOS
-    if (thermal_eos_atmo) {
-      // rho_atm = max(rho_atm, eos_3p->interptable->xmin<0>());
-
-      if (use_press_atmo) {
-        press_atm = (radial_distance > r_atmo)
-                        ? (p_atmo * pow(r_atmo / radial_distance, n_press_atmo))
-                        : p_atmo;
-        press_atm = std::max(eos_3p->press_from_rho_temp_ye(
-                                 rho_atm, eos_3p->rgtemp.min, Ye_atmo),
-                             press_atm);
-        eps_atm = eos_3p->eps_from_rho_press_ye(rho_atm, press_atm, Ye_atmo);
-        temp_atm = eos_3p->temp_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
-      } else {
-        temp_atm = (radial_distance > r_atmo)
-                       ? (t_atmo * pow(r_atmo / radial_distance, n_temp_atmo))
-                       : t_atmo;
-        temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
-        // temp_atm = max(temp_atm, eos_3p->interptable->xmin<1>());
-        press_atm = eos_3p->press_from_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
-        eps_atm = eos_3p->eps_from_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
-        // eps_atm should be kept consistent with temp_atm, so we do not use
-        // the setting below
-        // eps_atm =
-        //    std::min(std::max(eos_3p->rgeps.min, eps_atm), eos_3p->rgeps.max);
-      }
-
+    atmosphere atmo{};
+    if (use_atmo_const) {
+      atmo = atmo_const;
     } else {
-      const CCTK_REAL gm1 = eos_1p->gm1_from_rho(rho_atm);
-      temp_atm = eos_1p->temp_from_gm1(gm1);
-      temp_atm = std::max(eos_3p->rgtemp.min, temp_atm);
-      eps_atm = eos_3p->eps_from_rho_temp_ye(rho_atm, temp_atm, Ye_atmo);
-      // eps_atm should be kept consistent with temp_atm, so we do not use
-      // the setting below
-      // eps_atm =
-      //    std::min(std::max(eos_3p->rgeps.min, eps_atm), eos_3p->rgeps.max);
-      press_atm = eos_3p->press_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
+      const CCTK_REAL radial_distance = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+      if (eos_1p_pwpoly) {
+        atmo = make_atmo(
+            eos_1p_pwpoly, eos_3p, radial_distance, rho_abs_min, p_atmo,
+            t_atmo, Ye_atmo, r_atmo, n_rho_atmo, n_press_atmo,
+            n_temp_atmo, atmo_tol, thermal_eos_atmo, use_press_atmo,
+            Ye_atmo_beq);
+      } else {
+        atmo = make_atmo(
+            eos_1p, eos_3p, radial_distance, rho_abs_min, p_atmo,
+            t_atmo, Ye_atmo, r_atmo, n_rho_atmo, n_press_atmo,
+            n_temp_atmo, atmo_tol, thermal_eos_atmo, use_press_atmo,
+            Ye_atmo_beq);
+      }
     }
-    CCTK_REAL entropy_atm =
-        eos_3p->kappa_from_rho_eps_ye(rho_atm, eps_atm, Ye_atmo);
-    const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
-    atmosphere atmo(rho_atm, eps_atm, Ye_atmo, press_atm, temp_atm, entropy_atm,
-                    rho_atmo_cut);
+    const CCTK_REAL rho_atm = atmo.rho_atmo;
+    const CCTK_REAL press_atm = atmo.press_atmo;
+    const CCTK_REAL rho_atmo_cut = atmo.rho_cut;
 
     // ----- Construct C2P objects -----
 
@@ -237,6 +212,7 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     bool c2p_flag_local = true;
     CCTK_INT c2p_flag_code = C2P_INIT;
     bool call_c2p = true;
+    bool bh_failed = false;
 
     // Check if point is below atmosphere, and if atmosphere obeys magnetization
     // limits (RPA only). Magnetization limits are currently only applied for RPA C2P, 
@@ -267,7 +243,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     if (excise) {
 
       if (mask_local != 1.0) {
-        c2p_Noble.bh_interior<EOSType, false>(eos_3p, pv_seeds, cv, glo);
+        bh_failed =
+            !c2p_Noble.bh_interior<EOSType, false>(eos_3p, pv_seeds, cv, glo);
         pv = pv_seeds;
         call_c2p = false;
       }
@@ -278,12 +255,12 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     c2p_report rep_second;
     c2p_report rep_ent;
 
-    // Limit conservatives before calling C2P
-    c2p_Noble.cons_floors_and_ceilings(eos_3p, cv, glo, tauFluid_atmo);
-
     // ----- ----- C2P ----- -----
 
     if (call_c2p) {
+      // Limit conservatives before calling C2P
+      // Do not modify a completed atmosphere or excision reset.
+      c2p_Noble.cons_floors_and_ceilings(eos_3p, cv, glo, tauFluid_atmo);
 
       // Calling the first C2P
       c2p_flag_code = C2P_PRIME;
@@ -398,7 +375,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
             if (mask_local != 1.0) {
               // Failure inside mask
-              c2p_Noble.bh_interior<EOSType, false>(eos_3p, pv_seeds, cv, glo);
+              bh_failed =
+                  !c2p_Noble.bh_interior<EOSType, false>(eos_3p, pv_seeds, cv, glo);
               pv = pv_seeds;
             } else {
               // Failure outside, set to atmo
@@ -445,7 +423,8 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
           if (mask_local != 1.0) {
             // Failure inside mask
-            c2p_Noble.bh_interior<EOSType, false>(eos_3p, pv_seeds, cv, glo);
+            bh_failed =
+                !c2p_Noble.bh_interior<EOSType, false>(eos_3p, pv_seeds, cv, glo);
             pv = pv_seeds;
           } else {
             // Failure outside, set to atmo
@@ -460,8 +439,15 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
 
       // Inside mask, C2P success
       if ((mask_local != 1.0) && c2p_flag_local) {
-        c2p_Noble.bh_interior<EOSType, true>(eos_3p, pv, cv, glo);
+        bh_failed = !c2p_Noble.bh_interior<EOSType, true>(eos_3p, pv, cv, glo);
       }
+    }
+
+    if (bh_failed) {
+      pv.Bvec = Bup;
+      cv.dBvec = sqrt_detg * Bup;
+      atmo.set(pv, cv, glo);
+      c2p_flag_code = C2P_FAIL;
     }
 
     con2prim_flag(p.I) = c2p_flag_code;
@@ -600,95 +586,145 @@ extern "C" void AsterX_Con2Prim(CCTK_ARGUMENTS) {
   }
 }
 
-extern "C" void AsterX_Con2Prim_Interpolate_Failed(CCTK_ARGUMENTS) {
+template <typename EOSIDType, typename EOSType>
+void InterpolateFailed(CCTK_ARGUMENTS, const EOSIDType *eos_1p,
+                       const EOSType *eos_3p) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Con2Prim_Interpolate_Failed;
   DECLARE_CCTK_PARAMETERS;
-
   const smat<GF3D2<const CCTK_REAL>, 3> gf_g{gxx, gxy, gxz, gyy, gyz, gzz};
-  const vec<GF3D2<CCTK_REAL>, 6> gf_prims{rho, velx, vely, velz, eps, press};
-  const vec<GF3D2<CCTK_REAL>, 5> gf_cons{dens, momx, momy, momz, tau};
-
-  grid.loop_int_device<1, 1, 1>(
-      grid.nghostzones,
-      [=] CCTK_DEVICE(const PointDesc &p) CCTK_ATTRIBUTE_ALWAYS_INLINE {
-        if (con2prim_flag(p.I) == C2P_FAIL) {
-
-          const vec<CCTK_REAL, 6> flag_nbs = get_neighbors(con2prim_flag, p);
-          const vec<CCTK_REAL, 6> rho_nbs = get_neighbors(rho, p);
-          const vec<CCTK_REAL, 6> velx_nbs = get_neighbors(velx, p);
-          const vec<CCTK_REAL, 6> vely_nbs = get_neighbors(vely, p);
-          const vec<CCTK_REAL, 6> velz_nbs = get_neighbors(velz, p);
-          const vec<CCTK_REAL, 6> eps_nbs = get_neighbors(eps, p);
-          const vec<CCTK_REAL, 6> press_nbs = get_neighbors(press, p);
-          const vec<CCTK_REAL, 6> saved_rho_nbs = get_neighbors(saved_rho, p);
-          const vec<CCTK_REAL, 6> saved_velx_nbs = get_neighbors(saved_velx, p);
-          const vec<CCTK_REAL, 6> saved_vely_nbs = get_neighbors(saved_vely, p);
-          const vec<CCTK_REAL, 6> saved_velz_nbs = get_neighbors(saved_velz, p);
-          const vec<CCTK_REAL, 6> saved_eps_nbs = get_neighbors(saved_eps, p);
-
-          const auto good_nb = [&](int i) ARITH_INLINE -> CCTK_REAL {
-            const CCTK_INT flag_i = CCTK_INT(flag_nbs(i));
-            return ((flag_i != C2P_FAIL) && (flag_i != C2P_INIT))
-                       ? CCTK_REAL(1)
-                       : CCTK_REAL(0);
-          };
-
-          const CCTK_REAL sum_nbs =
-              sum<6>([&](int i) ARITH_INLINE { return good_nb(i); });
-          if (sum_nbs <= CCTK_REAL(0)) {
+  grid.loop_int_device<1, 1, 1>(grid.nghostzones,
+      [=] CCTK_DEVICE(const PointDesc &p) {
+        if (con2prim_flag(p.I) != CCTK_REAL(C2P_FAIL))
+          return;
+        // In-place updates can race between failed neighbours.
+        const auto flag_nbs = get_neighbors(con2prim_flag, p);
+        const auto rho_nbs = get_neighbors(rho, p);
+        const auto eps_nbs = get_neighbors(eps, p);
+        const auto Ye_nbs = get_neighbors(Ye, p);
+        const auto velx_nbs = get_neighbors(velx, p);
+        const auto vely_nbs = get_neighbors(vely, p);
+        const auto velz_nbs = get_neighbors(velz, p);
+        const auto good_nb = [&](int i) {
+          return flag_nbs(i) != CCTK_REAL(C2P_FAIL) &&
+                 flag_nbs(i) != CCTK_REAL(C2P_INIT) &&
+                 std::isfinite(rho_nbs(i)) && std::isfinite(eps_nbs(i)) &&
+                 std::isfinite(Ye_nbs(i)) && std::isfinite(velx_nbs(i)) &&
+                 std::isfinite(vely_nbs(i)) && std::isfinite(velz_nbs(i));
+        };
+        CCTK_REAL sum_nbs = 0.0;
+        for (int i = 0; i < 6; ++i)
+          sum_nbs += good_nb(i);
+        if (sum_nbs == 0.0)
+          return;
+        const auto average = [&](const auto &values) {
+          CCTK_REAL value = 0.0;
+          for (int i = 0; i < 6; ++i)
+            if (good_nb(i))
+              value += values(i);
+          return value / sum_nbs;
+        };
+        const auto atmo = make_atmo(eos_1p, eos_3p,
+            sqrt(p.x * p.x + p.y * p.y + p.z * p.z), rho_abs_min, p_atmo, t_atmo,
+            Ye_atmo, r_atmo, n_rho_atmo, n_press_atmo, n_temp_atmo, atmo_tol,
+            thermal_eos_atmo, use_press_atmo, Ye_atmo_beq);
+        const smat<CCTK_REAL, 3> g([&](int i, int j) ARITH_INLINE {
+          return calc_avg_v2c(gf_g(i, j), p);
+        });
+        const CCTK_REAL detg = calc_det(g);
+        if (!std::isfinite(detg) || detg <= 0.0 || g(0, 0) <= 0.0 ||
+            g(0, 0) * g(1, 1) <= g(0, 1) * g(0, 1))
+          return;
+        prim_vars pv;
+        pv.Bvec = {Bvecx(p.I), Bvecy(p.I), Bvecz(p.I)};
+        if (!std::isfinite(pv.Bvec(0)) || !std::isfinite(pv.Bvec(1)) ||
+            !std::isfinite(pv.Bvec(2)))
+          return;
+        const CCTK_REAL rhoL = average(rho_nbs);
+        if (rhoL <= atmo.rho_cut) {
+          atmo.set(pv);
+        } else {
+          pv.rho = rhoL;
+          pv.eps = average(eps_nbs);
+          pv.Ye = average(Ye_nbs);
+          if (!complete_prims(eos_3p, pv, false))
             return;
+          if (use_press_atmo && pv.press < atmo.press_atmo) {
+            pv.eps = eos_3p->eps_from_rho_press_ye(pv.rho, atmo.press_atmo, pv.Ye);
+            if (!complete_prims(eos_3p, pv, false))
+              return;
+          } else if (!use_press_atmo && pv.temperature < atmo.temp_atmo) {
+            pv.temperature = atmo.temp_atmo;
+            if (!complete_prims(eos_3p, pv, true))
+              return;
           }
-
-          rho(p.I) = sum<6>([&](int i) ARITH_INLINE {
-                       return good_nb(i) * rho_nbs(i);
-                     }) /
-                     sum_nbs;
-          velx(p.I) = sum<6>([&](int i) ARITH_INLINE {
-                        return good_nb(i) * velx_nbs(i);
-                      }) /
-                      sum_nbs;
-          vely(p.I) = sum<6>([&](int i) ARITH_INLINE {
-                        return good_nb(i) * vely_nbs(i);
-                      }) /
-                      sum_nbs;
-          velz(p.I) = sum<6>([&](int i) ARITH_INLINE {
-                        return good_nb(i) * velz_nbs(i);
-                      }) /
-                      sum_nbs;
-          eps(p.I) = sum<6>([&](int i) ARITH_INLINE {
-                       return good_nb(i) * eps_nbs(i);
-                     }) /
-                     sum_nbs;
-          press(p.I) = sum<6>([&](int i) ARITH_INLINE {
-                         return good_nb(i) * press_nbs(i);
-                       }) /
-                       sum_nbs;
-
-          /* reset flag */
-          con2prim_flag(p.I) = C2P_AVG;
-
-          // set to atmos
-          /*
-          if (rho(p.I) <= rho_abs_min * (1 + atmo_tol))
-          {
-            const smat<CCTK_REAL, 3> g3_avg([&](int i, int j) ARITH_INLINE
-                                            { return calc_avg_v2c(gf_g(i, j),
-          p); }); const CCTK_REAL sqrtg = sqrt(calc_det(g3_avg)); const
-          vec<CCTK_REAL, 3> Bup{Bvecx(p.I), Bvecy(p.I), Bvecz(p.I)}; const
-          vec<CCTK_REAL, 3> Blow = calc_contraction(g3_avg, Bup); const
-          CCTK_REAL Bsq = calc_contraction(Bup, Blow);
-
-            set_to_atmosphere(rho_abs_min, poly_K, gamma, sqrtg, Bsq, gf_prims,
-                              gf_cons, p);
-          };
-          */
-          saved_rho(p.I) = rho(p.I);
-          saved_velx(p.I) = velx(p.I);
-          saved_vely(p.I) = vely(p.I);
-          saved_velz(p.I) = velz(p.I);
-          saved_eps(p.I) = eps(p.I);
+          pv.vel = {average(velx_nbs), average(vely_nbs), average(velz_nbs)};
+          const auto v_low = calc_contraction(g, pv.vel);
+          const CCTK_REAL vsq = calc_contraction(v_low, pv.vel);
+          if (!std::isfinite(vsq) || vsq < 0.0)
+            return;
+          const CCTK_REAL vlim = vw_lim / sqrt(1.0 + vw_lim * vw_lim);
+          if (vsq > vlim * vlim)
+            pv.vel *= vlim / sqrt(vsq);
+          pv.w_lor = calc_wlorentz(calc_contraction(g, pv.vel), pv.vel);
+          pv.E = calc_contraction(calc_inv(g, detg),
+                                   calc_cross_product(pv.Bvec, pv.vel));
         }
+        cons_vars cv;
+        cv.from_prim(pv, g);
+        if (!std::isfinite(cv.dens) || cv.dens <= 0.0 ||
+            !std::isfinite(cv.tau) || !std::isfinite(cv.DYe) ||
+            !std::isfinite(cv.DEnt))
+          return;
+        for (int d = 0; d < 3; ++d)
+          if (!std::isfinite(cv.mom(d)) || !std::isfinite(cv.dBvec(d)))
+            return;
+        CCTK_REAL Ex, Ey, Ez, Bx, By, Bz;
+        pv.scatter(rho(p.I), eps(p.I), Ye(p.I), press(p.I), temperature(p.I),
+            entropy(p.I), velx(p.I), vely(p.I), velz(p.I), w_lorentz(p.I),
+            Bx, By, Bz, Ex, Ey, Ez);
+        // The magnetic field is unchanged, so do not write the staggered B.
+        dens(p.I) = cv.dens;
+        momx(p.I) = cv.mom(0);
+        momy(p.I) = cv.mom(1);
+        momz(p.I) = cv.mom(2);
+        tau(p.I) = cv.tau;
+        DYe(p.I) = cv.DYe;
+        DEnt(p.I) = cv.DEnt;
+        saved_rho(p.I) = pv.rho;
+        saved_eps(p.I) = pv.eps;
+        saved_Ye(p.I) = pv.Ye;
+        saved_velx(p.I) = pv.vel(0);
+        saved_vely(p.I) = pv.vel(1);
+        saved_velz(p.I) = pv.vel(2);
+        const CCTK_REAL rhoh = pv.rho * (1.0 + pv.eps) + pv.press;
+        zvec_x(p.I) = pv.w_lor * pv.vel(0);
+        zvec_y(p.I) = pv.w_lor * pv.vel(1);
+        zvec_z(p.I) = pv.w_lor * pv.vel(2);
+        svec_x(p.I) = rhoh * pv.w_lor * pv.w_lor * pv.vel(0);
+        svec_y(p.I) = rhoh * pv.w_lor * pv.w_lor * pv.vel(1);
+        svec_z(p.I) = rhoh * pv.w_lor * pv.w_lor * pv.vel(2);
+        const CCTK_REAL B2 = calc_contraction(pv.Bvec, calc_contraction(g, pv.Bvec));
+        const CCTK_REAL Bv = calc_contraction(pv.Bvec, calc_contraction(g, pv.vel));
+        B_norm(p.I) = sqrt(B2);
+        b2small(p.I) = B2 / (pv.w_lor * pv.w_lor) + Bv * Bv;
+        volform(p.I) = sqrt(detg);
+        con2prim_flag(p.I) = C2P_AVG;
       });
+}
+
+extern "C" void AsterX_Con2Prim_Interpolate_Failed(CCTK_ARGUMENTS) {
+  const auto run = [&](const auto *eos) {
+    if (global_eos_1p_pwpoly)
+      InterpolateFailed(cctkGH, global_eos_1p_pwpoly, eos);
+    else
+      InterpolateFailed(cctkGH, global_eos_1p_poly, eos);
+  };
+  if (global_eos_3p_ig)
+    run(global_eos_3p_ig);
+  else if (global_eos_3p_tab3d)
+    run(global_eos_3p_tab3d);
+  else
+    CCTK_ERROR("Neighbour C2P repair supports IdealGas and Tabulated3d");
 }
 
 } // namespace AsterX

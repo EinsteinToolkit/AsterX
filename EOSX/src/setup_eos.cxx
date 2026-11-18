@@ -91,7 +91,7 @@ CCTK_HOST void eos_readtable(const std::string &filename,
     eos_readtable_scollapse(filename, tab);
     break;
   case eos_table_format::Compose:
-    eos_readtable_compose(filename, tab);
+    eos_readtable_compose(filename, particle_mass, tab);
     break;
   default:
     assert(false);
