@@ -15,6 +15,7 @@
 #include <cmath>
 
 #include "aster_utils.hxx"
+#include "atmo_global.hxx"
 #include "eigenvalues.hxx"
 #include "fluxes.hxx"
 #include "reconstruct.hxx"
@@ -25,6 +26,7 @@ using namespace std;
 using namespace Loop;
 using namespace Arith;
 using namespace EOSX;
+using namespace Con2PrimFactory;
 using namespace ReconX;
 using namespace AsterUtils;
 
@@ -43,6 +45,15 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
               const flux_t fluxtype) {
   DECLARE_CCTK_ARGUMENTSX_AsterX_Fluxes;
   DECLARE_CCTK_PARAMETERS;
+
+  const auto eos_1p_poly = global_eos_1p_poly;
+  const auto eos_1p_pwpoly = global_eos_1p_pwpoly;
+  const void *eos_cold = eos_1p_pwpoly
+                            ? static_cast<const void *>(eos_1p_pwpoly)
+                            : eos_1p_poly;
+  atmosphere atmo_const{};
+  const bool use_atmo_const =
+      get_global_atmo(eos_cold, eos_3p, atmo_const);
 
   switch (reconstruction) {
   case reconstruction_t::Godunov:
@@ -222,77 +233,53 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
     vec<CCTK_REAL, 2> temp_rc;
 
     // Setting up atmosphere for two neighboring cell centers
-    vec<CCTK_REAL, 2> r_atm;
+    vec<CCTK_REAL, 2> r_atm{0.0, 0.0};
     vec<CCTK_REAL, 2> r2_atm = {0.0, 0.0};
     vec<CCTK_REAL, 2> rho_atm;
     vec<CCTK_REAL, 2> rho_cut;
     vec<CCTK_REAL, 2> press_atm;
     vec<CCTK_REAL, 2> eps_atm;
     vec<CCTK_REAL, 2> temp_atm;
+    vec<CCTK_REAL, 2> Ye_atm{Ye_atmo, Ye_atmo};
+    vec<CCTK_REAL, 2> entropy_atm{0.0, 0.0};
 
     // Get coordinates at neighboring cell centers
-    for (int ii = 0; ii < 3; ii++) {
-      r2_atm(0) += (p.X[ii] - (ii == dir_i) * 0.5 * (p.DX[dir_i])) *
-                   (p.X[ii] - (ii == dir_i) * 0.5 * (p.DX[dir_i]));
-      r2_atm(1) += (p.X[ii] + (ii == dir_i) * 0.5 * (p.DX[dir_i])) *
-                   (p.X[ii] + (ii == dir_i) * 0.5 * (p.DX[dir_i]));
+    if (!use_atmo_const) {
+      for (int ii = 0; ii < 3; ii++) {
+        r2_atm(0) += (p.X[ii] - (ii == dir_i) * 0.5 * (p.DX[dir_i])) *
+                     (p.X[ii] - (ii == dir_i) * 0.5 * (p.DX[dir_i]));
+        r2_atm(1) += (p.X[ii] + (ii == dir_i) * 0.5 * (p.DX[dir_i])) *
+                     (p.X[ii] + (ii == dir_i) * 0.5 * (p.DX[dir_i]));
+      }
+      r_atm(0) = sqrt(r2_atm(0));
+      r_atm(1) = sqrt(r2_atm(1));
     }
-    r_atm(0) = sqrt(r2_atm(0));
-    r_atm(1) = sqrt(r2_atm(1));
 
-    // Grading rho
-    rho_atm(0) = (r_atm(0) > r_atmo)
-                     ? (rho_abs_min * pow((r_atmo / r_atm(0)), n_rho_atmo))
-                     : rho_abs_min;
-    rho_atm(0) = std::max(eos_3p->rgrho.min, rho_atm(0));
-    rho_cut(0) = rho_atm(0) * recon_thresh;
-
-    rho_atm(1) = (r_atm(1) > r_atmo)
-                     ? (rho_abs_min * pow((r_atmo / r_atm(1)), n_rho_atmo))
-                     : rho_abs_min;
-    rho_atm(1) = std::max(eos_3p->rgrho.min, rho_atm(1));
-    rho_cut(1) = rho_atm(1) * recon_thresh;
-
-    // Grading temperature or pressure
-    if (use_press_atmo) {
-      press_atm(0) = (r_atm(0) > r_atmo)
-                         ? (p_atmo * pow(r_atmo / r_atm(0), n_press_atmo))
-                         : p_atmo;
-      press_atm(0) = std::max(eos_3p->press_from_rho_temp_ye(
-                                  rho_atm(0), eos_3p->rgtemp.min, Ye_atmo),
-                              press_atm(0));
-      press_atm(1) = (r_atm(1) > r_atmo)
-                         ? (p_atmo * pow(r_atmo / r_atm(1), n_press_atmo))
-                         : p_atmo;
-      press_atm(1) = std::max(eos_3p->press_from_rho_temp_ye(
-                                  rho_atm(1), eos_3p->rgtemp.min, Ye_atmo),
-                              press_atm(1));
-      eps_atm(0) =
-          eos_3p->eps_from_rho_press_ye(rho_atm(0), press_atm(0), Ye_atmo);
-      eps_atm(1) =
-          eos_3p->eps_from_rho_press_ye(rho_atm(1), press_atm(1), Ye_atmo);
-      temp_atm(0) =
-          eos_3p->temp_from_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
-      temp_atm(1) =
-          eos_3p->temp_from_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
-    } else {
-      temp_atm(0) = (r_atm(0) > r_atmo)
-                        ? (t_atmo * pow(r_atmo / r_atm(0), n_temp_atmo))
-                        : t_atmo;
-      temp_atm(0) = std::max(eos_3p->rgtemp.min, temp_atm(0));
-
-      temp_atm(1) = (r_atm(1) > r_atmo)
-                        ? (t_atmo * pow(r_atmo / r_atm(1), n_temp_atmo))
-                        : t_atmo;
-      temp_atm(1) = std::max(eos_3p->rgtemp.min, temp_atm(1));
-      press_atm(0) =
-          eos_3p->press_from_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
-      press_atm(1) =
-          eos_3p->press_from_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
-      eps_atm(0) =
-          eos_3p->eps_from_rho_temp_ye(rho_atm(0), temp_atm(0), Ye_atmo);
-      eps_atm(1) =
-          eos_3p->eps_from_rho_temp_ye(rho_atm(1), temp_atm(1), Ye_atmo);
+    // Evaluate the atmosphere at each neighboring cell center.
+    for (int f = 0; f < 2; ++f) {
+      atmosphere atmo{};
+      if (use_atmo_const) {
+        atmo = atmo_const;
+      } else if (eos_1p_pwpoly) {
+        atmo = make_atmo(
+            eos_1p_pwpoly, eos_3p, r_atm(f), rho_abs_min, p_atmo,
+            t_atmo, Ye_atmo, r_atmo, n_rho_atmo, n_press_atmo,
+            n_temp_atmo, atmo_tol, thermal_eos_atmo, use_press_atmo,
+            Ye_atmo_beq);
+      } else {
+        atmo = make_atmo(
+            eos_1p_poly, eos_3p, r_atm(f), rho_abs_min, p_atmo,
+            t_atmo, Ye_atmo, r_atmo, n_rho_atmo, n_press_atmo,
+            n_temp_atmo, atmo_tol, thermal_eos_atmo, use_press_atmo,
+            Ye_atmo_beq);
+      }
+      rho_atm(f) = atmo.rho_atmo;
+      rho_cut(f) = rho_atm(f) * recon_thresh;
+      press_atm(f) = atmo.press_atmo;
+      eps_atm(f) = atmo.eps_atmo;
+      temp_atm(f) = atmo.temp_atmo;
+      Ye_atm(f) = atmo.ye_atmo;
+      entropy_atm(f) = atmo.entropy_atmo;
     }
     // End atmosphere
 
@@ -323,18 +310,16 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       if (rho_rc(0) <= rho_cut(0)) {
         resetL = true;
         rho_rc(0) = rho_atm(0);
-        entropy_rc(0) =
-            eos_3p->kappa_from_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
+        entropy_rc(0) = entropy_atm(0);
         temp_rc(0) = temp_atm(0);
-        Ye_rc(0) = Ye_atmo;
+        Ye_rc(0) = Ye_atm(0);
       }
       if (rho_rc(1) <= rho_cut(1)) {
         resetR = true;
         rho_rc(1) = rho_atm(1);
-        entropy_rc(1) =
-            eos_3p->kappa_from_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
+        entropy_rc(1) = entropy_atm(1);
         temp_rc(1) = temp_atm(1);
-        Ye_rc(1) = Ye_atmo;
+        Ye_rc(1) = Ye_atm(1);
       }
       // End lower-order
 
@@ -369,18 +354,16 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       if (rho_rc(0) <= rho_cut(0)) {
         resetL = true;
         rho_rc(0) = rho_atm(0);
-        entropy_rc(0) =
-            eos_3p->kappa_from_rho_eps_ye(rho_atm(0), eps_atm(0), Ye_atmo);
+        entropy_rc(0) = entropy_atm(0);
         press_rc(0) = press_atm(0);
-        Ye_rc(0) = Ye_atmo;
+        Ye_rc(0) = Ye_atm(0);
       }
       if (rho_rc(1) <= rho_cut(1)) {
         resetR = true;
         rho_rc(1) = rho_atm(1);
-        entropy_rc(1) =
-            eos_3p->kappa_from_rho_eps_ye(rho_atm(1), eps_atm(1), Ye_atmo);
+        entropy_rc(1) = entropy_atm(1);
         press_rc(1) = press_atm(1);
-        Ye_rc(1) = Ye_atmo;
+        Ye_rc(1) = Ye_atm(1);
       }
       // End lower-order
 

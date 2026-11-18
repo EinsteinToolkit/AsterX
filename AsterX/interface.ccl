@@ -7,6 +7,7 @@ INHERITS: CarpetXRegrid ADMBaseX HydroBaseX TmunuBaseX AsterMasks
 USES INCLUDE HEADER: fixmath.hxx
 USES INCLUDE HEADER: loop_device.hxx
 USES INCLUDE HEADER: setup_eos.hxx
+USES INCLUDE HEADER: atmo.hxx
 USES INCLUDE HEADER: c2p.hxx c2p_2DNoble.hxx c2p_1DRePrimAnd.hxx c2p_1DPalenzuela.hxx c2p_1DEntropy.hxx
 USES INCLUDE HEADER: reconstruct.hxx
 USES INCLUDE HEADER: aster_fd.hxx aster_interp.hxx aster_utils.hxx

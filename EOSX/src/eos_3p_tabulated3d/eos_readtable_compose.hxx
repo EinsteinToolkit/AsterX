@@ -285,7 +285,7 @@ CCTK_HOST inline void eos_readtable_compose(const std::string &filename,
           }
         }
 
-    // Optional composition groups (same as before)
+    // Optional composition groups
     int ncomp = 0;
     if (hdf5_link_exists(file, "/Composition_pairs")) {
       hid_t comp_id;
@@ -394,17 +394,13 @@ CCTK_HOST inline void eos_readtable_compose(const std::string &filename,
   }
 #else
   if (rank == 0) {
-    // (serial-HDF5 path identical logic; omitted for brevity in explanation,
-    // kept intact above) For your environment this is typically not used (you
-    // build with parallel HDF5). Keeping behavior consistent with previous
-    // version: rank 0 reads, then broadcasts.
     CCTK_VError(__LINE__, __FILE__, CCTK_THORNSTRING,
                 "Serial-HDF5 path for COMPOSE reader is not enabled in this "
                 "header version.");
   }
 #endif
 
-  // Broadcast (cheap even if all ranks already filled in parallel mode)
+  // Broadcast tables
   MPI_Bcast(logrho_h, nrho, mpi_real, 0, MPI_COMM_WORLD);
   MPI_Bcast(logtemp_h, ntemp, mpi_real, 0, MPI_COMM_WORLD);
   MPI_Bcast(yes_h, nye, mpi_real, 0, MPI_COMM_WORLD);
