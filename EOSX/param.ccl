@@ -44,7 +44,7 @@ CCTK_REAL pwpoly_rho_p0 "Polytropic density scale rho_p0 for first segment"
 CCTK_REAL pwpoly_segm_bound[20] "Segment boundary densities (first must be 0; strictly increasing). Unused entries = -1."
 {
   -1 :: "unused"
-  (0:* :: ""
+   0:* :: ""
 } -1.0
 
 CCTK_REAL pwpoly_segm_gamma[20] "Segment gammas (must be > 1). Unused entries = -1."
