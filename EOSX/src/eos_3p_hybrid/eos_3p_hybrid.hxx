@@ -102,15 +102,6 @@ public:
     return sqrt(cs2);
   }
 
-  CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline bool
-  eps_from_rho_h_ye(const CCTK_REAL rho, const CCTK_REAL h,
-                     const CCTK_REAL ye, CCTK_REAL &eps) const {
-    if (!std::isfinite(rho) || rho <= 0.0)
-      return false;
-    eps = eps_cold(rho) + (h - 1.0 - hm1_cold(rho)) / gamma_th;
-    return std::isfinite(eps);
-  }
-
   // Temperature not implemented
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   csnd_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
@@ -157,18 +148,6 @@ public:
     press = p_c + p_th;
     dpdrho = h_c * cs2_c + gm1_th * (eps_th - p_c / rho);
     dpdeps = gm1_th * rho;
-  }
-
-  CCTK_HOST CCTK_DEVICE inline bool
-  press_derivs_from_rho_h_ye(CCTK_REAL &press, CCTK_REAL &dpdrho,
-                             CCTK_REAL &dpdeps, const CCTK_REAL rho,
-                             const CCTK_REAL h, const CCTK_REAL ye,
-                             CCTK_REAL *temp = nullptr) const {
-    CCTK_REAL eps;
-    if (!eps_from_rho_h_ye(rho, h, ye, eps))
-      return false;
-    press_derivs_from_rho_eps_ye(press, dpdrho, dpdeps, rho, eps, ye);
-    return true;
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
