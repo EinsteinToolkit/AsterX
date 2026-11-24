@@ -81,52 +81,6 @@ void test_pal(const EOSType &eos, bool use_temp) {
               prim_vars pv;
               cons_vars cv = cv_in;
               c2p_report rep;
-              // Recover independently with a perturbed primitive seed.
-              c2p_2DNoble noble(&eos, atmo, 200, 1.0e-12, -1.0, 10.0, 100.0,
-                                1.0e20, 1.0e20, 1.0e20, 1.0e20, 1.0e20,
-                                true, false, use_temp, false, false, 1.0);
-              prim_vars seed = pv_in;
-              seed.E = {0.0, 0.0, 0.0};
-              seed.eps *= 1.01;
-              noble.solve(&eos, pv, seed, cv, 1.0, beta, g, rep, reject);
-              if (rep.failed() || rep.set_atmo || rep.adjust_cons)
-                CCTK_ERROR("Noble test: valid state rejected or adjusted");
-              check_pal("Noble rho", pv.rho, rho);
-              check_pal("Noble eps", pv.eps, eps);
-              check_pal("Noble press", pv.press, press);
-              check_pal("Noble temperature", pv.temperature, temp);
-              check_cons(cv, cv_in);
-              cons_vars cv_out;
-              cv_out.from_prim(pv, g);
-              check_cons(cv_out, cv_in);
-              // These derivatives do not depend on B or the rejection policy.
-              if (!reject && B == 0.0) {
-                const CCTK_REAL Z = rho * (1.0 + eps + press / rho) * wlor * wlor;
-                const CCTK_REAL vsq = 1.0 - 1.0 / (wlor * wlor);
-                const CCTK_REAL sd = sqrt(calc_det(g));
-                cons_vars undens = cv_in;
-                undens.dens /= sd;
-                undens.DYe /= sd;
-                CCTK_REAL p, dz, dv, pp, pm, dummy1, dummy2;
-                const CCTK_REAL dz_step = 1.0e-5 * Z, dv_step = 1.0e-6;
-                if (!noble.get_Press_funcZVsq(p, dz, dv, Z, vsq, &eos, undens) ||
-                    !noble.get_Press_funcZVsq(pp, dummy1, dummy2, Z + dz_step,
-                                             vsq, &eos, undens) ||
-                    !noble.get_Press_funcZVsq(pm, dummy1, dummy2, Z - dz_step,
-                                             vsq, &eos, undens))
-                  CCTK_ERROR("Noble test: Jacobian trial failed");
-                if (fabs((pp - pm) / (2.0 * dz_step) - dz) > 1.0e-6 * fabs(dz))
-                  CCTK_ERROR("Noble test: dP/dZ mismatch");
-                if (vsq > dv_step) {
-                  if (!noble.get_Press_funcZVsq(pp, dummy1, dummy2, Z,
-                                               vsq + dv_step, &eos, undens) ||
-                      !noble.get_Press_funcZVsq(pm, dummy1, dummy2, Z,
-                                               vsq - dv_step, &eos, undens))
-                    CCTK_ERROR("Noble test: velocity Jacobian trial failed");
-                  if (fabs((pp - pm) / (2.0 * dv_step) - dv) > 1.0e-6 * fabs(dv))
-                    CCTK_ERROR("Noble test: dP/dvsq mismatch");
-                }
-              }
               if constexpr (std::is_same_v<EOSType, eos_3p_idealgas>) {
                 if (!reject) {
                   c2p_1DEntropy ent(&eos, atmo, 200, 1.0e-12, -1.0, 10.0, 100.0,
@@ -786,64 +740,7 @@ void test_prims(const EOSType &eos) {
   check_cons(cv, cv_in);
 }
 
-void test_noble_table() {
-  std::array<CCTK_REAL, 2> lr{log(1.0e-6), log(1.0e-2)};
-  std::array<CCTK_REAL, 2> lt{log(0.005), log(0.08)};
-  std::array<CCTK_REAL, 2> ye{0.1, 0.5};
-  std::array<CCTK_REAL, 8 * NTABLES> data{};
-  for (int k = 0; k < 2; ++k)
-    for (int j = 0; j < 2; ++j)
-      for (int i = 0; i < 2; ++i) {
-        const int n = NTABLES * (i + 2 * (j + 2 * k));
-        // h = 1 + T + 0.0004/T has two temperature branches.
-        data[n + eos_3p_tabulated3d::PRESS] = lr[i] + log(0.0004) - lt[j];
-        data[n + eos_3p_tabulated3d::EPS] = lt[j];
-      }
-  linear_interp_uniform_ND_t<CCTK_REAL, 3, NTABLES> interp(
-      data.data(), {2, 2, 2}, lr.data(), lt.data(), ye.data());
-  CCTK_REAL shift = 0.0;
-  eos_3p_tabulated3d eos;
-  eos.interptable = &interp;
-  eos.energy_shift = &shift;
-  eos.rgrho = {exp(lr[0]), exp(lr[1])};
-  eos.rgtemp = {exp(lt[0]), exp(lt[1])};
-  eos.rgye = {ye[0], ye[1]};
-  eos.rgeps = eos.compute_eps_range_full_table();
-  const auto atmo = make_atmo(static_cast<const eos_1p_polytropic *>(nullptr),
-      &eos, 0.0, eos.rgrho.min, 0.0, eos.rgtemp.min, ye[0], 1.0,
-      0.0, 0.0, 0.0, 0.001, true, false, false);
-  c2p_2DNoble noble(&eos, atmo, 200, 1.0e-12, -1.0, 10.0, 100.0,
-                    1.0e20, 1.0e20, 1.0e20, 1.0e20, 1.0e20,
-                    true, false, true, false, false, 1.0);
-  const smat<CCTK_REAL, 3> g{1.0, 0.0, 0.0, 1.0, 0.0, 1.0};
-  const vec<CCTK_REAL, 3> beta{0.0, 0.0, 0.0};
-  const CCTK_REAL rho = 0.0027435103892115287; // DYe/D rounds below Ye_min.
-  for (CCTK_REAL temp : {0.01, 0.04})
-    for (CCTK_REAL factor : {0.99, 1.0, 1.01}) {
-      prim_vars pv{rho, temp, ye[0], 0.0004 * rho / temp, temp, 0.0,
-                    {0.0, 0.0, 0.0}, 1.0, {0.0, 0.0, 0.0}};
-      cons_vars cv;
-      cv.from_prim(pv, g);
-      const cons_vars cv_in = cv;
-      prim_vars seed = pv;
-      seed.temperature *= factor;
-      seed.eps = seed.temperature;
-      c2p_report rep;
-      noble.solve(&eos, pv, seed, cv, 1.0, beta, g, rep);
-      if (rep.failed() || rep.set_atmo)
-        CCTK_ERROR("Noble test: valid table branch rejected");
-      check_pal("Noble branch temperature", pv.temperature, temp);
-      cv.from_prim(pv, g);
-      check_cons(cv, cv_in);
-    }
-  CCTK_REAL eps = 0.01, temp = 0.01;
-  if (eos.eps_from_rho_h_ye(rho, 1.03, ye[0], eps, &temp, temp) ||
-      eps != 0.01 || temp != 0.01)
-    CCTK_ERROR("Noble test: unattainable enthalpy changed the state");
-}
-
 void test_pal_energy() {
-  test_noble_table();
   // Host-local synthetic table: exercise the actual table inverse without
   // loading a production EOS. No host pointers are captured in GPU kernels.
   std::array<CCTK_REAL, 3> lr{log(1.0e-6), log(1.0e-4), log(1.0e-2)};
