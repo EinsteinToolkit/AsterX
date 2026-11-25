@@ -91,6 +91,10 @@ extern "C" void AsterX_ParamCheck(CCTK_ARGUMENTS) {
 
   // CarpetX runs PARAMCHECK after EOS setup on fresh starts and recovery.
   global_atmo.valid = false;
+  if (!CCTK_EQUALS(evolution_eos, "IdealGas") &&
+      (CCTK_EQUALS(c2p_prime, "Noble") ||
+       CCTK_EQUALS(c2p_second, "Noble")))
+    CCTK_ERROR("Noble supports only the ideal-gas EOS");
   if (CCTK_EQUALS(evolution_eos, "Hybrid")) {
     if (Ye_atmo_beq)
       CCTK_ERROR("Ye_atmo_beq is supported only for Tabulated3d");

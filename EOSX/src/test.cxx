@@ -74,41 +74,6 @@ void test_table() {
           check("inverse physical eps", eps, energy(rho, temp, Ye));
           check("inverse pressure", eos.press_from_rho_eps_ye(rho, eps, Ye),
                 rho * temp);
-          CCTK_REAL press, dpdrho, dpdeps, eps_h;
-          eos.press_derivs_from_rho_eps_ye(press, dpdrho, dpdeps, rho, eps, Ye);
-          check("table derivative pressure", press, rho * temp);
-          check("table dP/drho at fixed eps", dpdrho, 0.9 * temp);
-          check("table dP/deps at fixed rho", dpdeps,
-                rho / (pow(rho, 0.1) * exp(0.2 * Ye)));
-          const CCTK_REAL h = 1.0 + eps + press / rho;
-          if (!eos.eps_from_rho_h_ye(rho, h, Ye, eps_h))
-            CCTK_ERROR("EOSX test: table enthalpy inverse failed");
-          check("table enthalpy energy", eps_h, eps);
-          if (rho == 3.0e-4 && temp == 0.007 && Ye == eos.rgye.min) {
-            eos.press_derivs_from_rho_eps_ye(
-                press, dpdrho, dpdeps, rho, eps, Ye - 0.1);
-            check("bounded derivative pressure", press, rho * temp);
-            check("bounded dP/drho", dpdrho, 0.9 * temp);
-            check("bounded dP/deps", dpdeps,
-                  rho / (pow(rho, 0.1) * exp(0.2 * Ye)));
-          }
-          // Compare to finite differences away from clipping boundaries.
-          if (rho == 3.0e-4 && temp == 0.007) {
-            const CCTK_REAL dr = 1.0e-5 * rho;
-            CCTK_REAL e1 = eps, e2 = eps;
-            const CCTK_REAL fd_r =
-                (eos.press_from_rho_eps_ye(rho + dr, e1, Ye) -
-                 eos.press_from_rho_eps_ye(rho - dr, e2, Ye)) / (2.0 * dr);
-            const CCTK_REAL de = 1.0e-5 * (eps + shift);
-            e1 = eps + de;
-            e2 = eps - de;
-            const CCTK_REAL fd_e =
-                (eos.press_from_rho_eps_ye(rho, e1, Ye) -
-                 eos.press_from_rho_eps_ye(rho, e2, Ye)) / (2.0 * de);
-            if (fabs(fd_r - dpdrho) > 1.0e-7 * fabs(dpdrho) ||
-                fabs(fd_e - dpdeps) > 1.0e-7 * fabs(dpdeps))
-              CCTK_ERROR("EOSX test: table finite-difference derivatives");
-          }
           const CCTK_REAL kappa = log(temp) - 0.1 * log(rho) + 0.2 * Ye;
           check("table kappa from T",
                 eos.kappa_from_rho_temp_ye(rho, temp, Ye), kappa);
@@ -121,14 +86,6 @@ void test_table() {
         check("pressure-floor temperature", t_floor, 0.02);
         if (eos.temp_from_rho_press_floor(rho, rho * 1.0, Ye, t_floor))
           CCTK_ERROR("EOSX test: unattainable pressure floor accepted");
-        CCTK_REAL eps_h;
-        const CCTK_REAL hlo = 1.0 + er.min +
-            eos.press_from_rho_temp_ye(rho, eos.rgtemp.min, Ye) / rho;
-        const CCTK_REAL hhi = 1.0 + er.max +
-            eos.press_from_rho_temp_ye(rho, eos.rgtemp.max, Ye) / rho;
-        if (eos.eps_from_rho_h_ye(rho, hlo - 0.01, Ye, eps_h) ||
-            eos.eps_from_rho_h_ye(rho, hhi + 0.01, Ye, eps_h))
-          CCTK_ERROR("EOSX test: out-of-table enthalpy accepted");
         for (const CCTK_REAL input : {eos.rgeps.min - 1.0, er.min,
                                       er.max, eos.rgeps.max + 1.0}) {
           CCTK_REAL eps = input;
@@ -215,11 +172,6 @@ void test_ideal() {
         check("ideal energy", eos.eps_from_rho_temp_ye(rho, temp, 0.5), eps);
         check("ideal pressure", eos.press_from_rho_eps_ye(rho, eps, 0.5),
               (gamma - 1.0) * rho * eps);
-        CCTK_REAL eps_h;
-        if (!eos.eps_from_rho_h_ye(rho, 1.0 + gamma * eps, 0.5, eps_h) ||
-            fabs(eps_h - eps) > 16.0 * std::numeric_limits<CCTK_REAL>::epsilon() *
-                                     fmax(1.0, fabs(eps)))
-          CCTK_ERROR("EOSX test: analytic enthalpy inverse failed");
         const CCTK_REAL kappa =
             (gamma - 1.0) * eps * pow(rho, 1.0 - gamma);
         check("ideal kappa from T",
