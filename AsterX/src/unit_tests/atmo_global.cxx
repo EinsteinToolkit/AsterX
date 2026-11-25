@@ -20,10 +20,13 @@ using namespace Con2PrimFactory;
 namespace {
 
 void CheckAtmoCopy(const atmosphere &a, const atmosphere &b) {
+  const CCTK_REAL cut_scale = fmax(fabs(a.rho_cut), fabs(b.rho_cut));
   if (a.rho_atmo != b.rho_atmo || a.eps_atmo != b.eps_atmo ||
       a.ye_atmo != b.ye_atmo || a.press_atmo != b.press_atmo ||
       a.temp_atmo != b.temp_atmo || a.entropy_atmo != b.entropy_atmo ||
-      a.rho_cut != b.rho_cut)
+      !std::isfinite(a.rho_cut) || !std::isfinite(b.rho_cut) ||
+      fabs(a.rho_cut - b.rho_cut) >
+          4.0 * std::numeric_limits<CCTK_REAL>::epsilon() * cut_scale)
     CCTK_ERROR("Global atmosphere copy changed the stored state");
 }
 

@@ -193,7 +193,7 @@ ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
         CCTK_REAL eps_val;
         CCTK_REAL ent_val;
 
-        // Preserve the existing comparison, including its NaN-density handling.
+        // NaN density also selects the atmosphere.
         if (!(rhoL > atmo.rho_cut)) {
           // Copy the complete atmosphere; do not apply further thermal floors.
           rhoL = atmo.rho_atmo;
@@ -206,7 +206,6 @@ ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
           vely(p.I) = 0.0;
           velz(p.I) = 0.0;
         } else {
-          // Retain the existing fallback for a non-finite input temperature.
           if (!std::isfinite(tempL))
             tempL = Tmin;
           tempL = std::clamp(tempL, Tmin, Tmax);
@@ -219,11 +218,9 @@ ID_TabEOS_HydroQuantities_recompute_HydroBase_variables(CCTK_ARGUMENTS) {
           rhoL = std::clamp(rhoL, rho_min, rho_max);
           yeL = std::clamp(yeL, Ye_min, Ye_max);
 
-          // rho, T and Ye are authoritative. Do not independently floor
-          // pressure or energy after computing them from this state.
+          // Derive thermodynamics from bounded rho, T and Ye.
           Pval = eos_3p_tab3d->press_from_rho_temp_ye(rhoL, tempL, yeL);
           eps_val = eos_3p_tab3d->eps_from_rho_temp_ye(rhoL, tempL, yeL);
-          // Use evolved kappa and reuse the known temperature.
           ent_val = eos_3p_tab3d->kappa_from_rho_temp_ye(rhoL, tempL, yeL);
         }
 

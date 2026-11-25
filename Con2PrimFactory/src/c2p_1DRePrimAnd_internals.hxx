@@ -92,9 +92,7 @@ public:
     last.ye = valid_ye;
     last.calls = 0;
 
-    // For P >= 0, h >= 1 + eps_min over the entire EOS domain. Sampling
-    // h at rho_min is not a global bound; negative physical eps permits h < 1.
-    // solve checks eps_min > -1 before constructing the root function.
+    // For P >= 0, h >= 1 + eps_min throughout the EOS domain.
     h0 = 1.0 + fmin(CCTK_REAL(0.0), eos->rgeps.min);
 
     const CCTK_REAL zsqrinf = rsqr / (h0 * h0);

@@ -345,17 +345,24 @@ if(interpolate_failed_c2p)
   SCHEDULE AsterX_Con2Prim_Interpolate_Failed IN AsterX_FluxGroup BEFORE AsterX_Fluxes
   {
     LANG: C
-    READS: ADMBaseX::metric(interior)
-    READS: con2prim_flag(interior)
-    READS: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
+    READS: ADMBaseX::metric(everywhere)
+    READS: con2prim_flag(everywhere)
+    READS: HydroBaseX::rho(everywhere) HydroBaseX::vel(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::Ye(everywhere)
+    READS: HydroBaseX::press(interior) HydroBaseX::Bvec(interior)
+    READS: HydroBaseX::temperature(interior) HydroBaseX::entropy(interior)
+    READS: diagnostics(interior) zvec(interior) svec(interior)
     READS: saved_prims(interior)
     READS: cons_vector(interior)
     WRITES: con2prim_flag(interior)
     WRITES: HydroBaseX::rho(interior) HydroBaseX::vel(interior) HydroBaseX::eps(interior) HydroBaseX::press(interior)
+    WRITES: HydroBaseX::Ye(interior) HydroBaseX::temperature(interior) HydroBaseX::entropy(interior)
+    WRITES: diagnostics(interior) zvec(interior) svec(interior)
     WRITES: saved_prims(interior)
     WRITES: cons_vector(interior)
     SYNC: con2prim_flag
     SYNC: HydroBaseX::rho HydroBaseX::vel HydroBaseX::eps HydroBaseX::press
+    SYNC: HydroBaseX::Ye HydroBaseX::temperature HydroBaseX::entropy
+    SYNC: diagnostics zvec svec
     SYNC: saved_prims
     SYNC: cons_vector
   } "Interpolate those grid points where con2prim failed"

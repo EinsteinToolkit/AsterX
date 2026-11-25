@@ -46,7 +46,6 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
   DECLARE_CCTK_ARGUMENTSX_AsterX_Fluxes;
   DECLARE_CCTK_PARAMETERS;
 
-  // Select the cold EOS without adding another CalcFlux template parameter.
   const auto eos_1p_poly = global_eos_1p_poly;
   const auto eos_1p_pwpoly = global_eos_1p_pwpoly;
   const void *eos_cold = eos_1p_pwpoly
@@ -256,7 +255,7 @@ void CalcFlux(CCTK_ARGUMENTS, EOSType *eos_3p, const rec_var_t rec_var,
       r_atm(1) = sqrt(r2_atm(1));
     }
 
-    // Each side retains its own cell-center radius and face cutoff.
+    // Evaluate the atmosphere at each neighboring cell center.
     for (int f = 0; f < 2; ++f) {
       atmosphere atmo{};
       if (use_atmo_const) {

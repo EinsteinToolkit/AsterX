@@ -94,7 +94,7 @@ extern "C" void AsterX_ParamCheck(CCTK_ARGUMENTS) {
   if (CCTK_EQUALS(evolution_eos, "Hybrid")) {
     if (Ye_atmo_beq)
       CCTK_ERROR("Ye_atmo_beq is supported only for Tabulated3d");
-    return; // Hybrid temperature support is outside this repair series.
+    return; // Hybrid temperature operations are not implemented.
   }
 
   CheckAtmoParams();

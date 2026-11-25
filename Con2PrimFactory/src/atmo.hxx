@@ -16,7 +16,6 @@
 #include <type_traits>
 
 namespace EOSX {
-class eos_3p_idealgas;
 class eos_3p_tabulated3d;
 }
 
@@ -150,16 +149,8 @@ make_atmo(const EOSIDType *eos_1p, const EOSType *eos_3p,
   // Recompute dependent quantities after bounding the authoritative state.
   const CCTK_REAL press_atm =
       eos_3p->press_from_rho_temp_ye(rho_atm, temp_atm, Ye_atm);
-  CCTK_REAL entropy_atm;
-  // Keep EOS-specific calls in the helper, outside device-lambda captures.
-  if constexpr (std::is_same_v<EOSType, EOSX::eos_3p_idealgas> ||
-                std::is_same_v<EOSType, EOSX::eos_3p_tabulated3d>) {
-    entropy_atm =
-        eos_3p->kappa_from_rho_temp_ye(rho_atm, temp_atm, Ye_atm);
-  } else {
-    entropy_atm =
-        eos_3p->kappa_from_rho_eps_ye(rho_atm, eps_atm, Ye_atm);
-  }
+  const CCTK_REAL entropy_atm =
+      eos_3p->kappa_from_rho_temp_ye(rho_atm, temp_atm, Ye_atm);
   const CCTK_REAL rho_atmo_cut = rho_atm * (1 + atmo_tol);
   return atmosphere(rho_atm, eps_atm, Ye_atm, press_atm, temp_atm,
                     entropy_atm, rho_atmo_cut);

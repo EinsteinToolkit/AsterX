@@ -44,7 +44,6 @@ CCTK_STRING Y_e_filename "Initial data file for electron fraction"
 SHARES: Con2PrimFactory
 USES CCTK_REAL rho_abs_min
 USES CCTK_REAL atmo_tol
-USES CCTK_REAL eps_atmo
 USES CCTK_REAL p_atmo
 USES CCTK_REAL t_atmo
 USES CCTK_REAL Ye_atmo

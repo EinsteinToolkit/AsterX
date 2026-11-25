@@ -8,9 +8,6 @@ namespace Con2PrimFactory {
 
 class c2p_1DPalenzuela : public c2p {
 public:
-  /* Some attributes */
-  CCTK_REAL GammaIdealFluid;
-
   /* Constructor */
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_1DPalenzuela(
@@ -94,9 +91,6 @@ CCTK_HOST CCTK_DEVICE
   use_press_atmo = use_pressure_atmo;
   soft_root_convergence = soft_root_conv;
   soft_root_width_factor = fmax(CCTK_REAL(1.0), soft_root_width_factor_in);
-
-  // Derived
-  GammaIdealFluid = eos_3p->gamma;
 }
 
 CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
@@ -184,8 +178,7 @@ c2p_1DPalenzuela::xPalenzuelaToPrim(CCTK_REAL xPalenzuela_Sol, CCTK_REAL Ssq,
                      sPalenzuela / (2.0 * W_sol * W_sol));
   pv.eps = eps_raw;
 
-  // Bound energy at the recovered rho and Ye, not at the atmosphere state.
-  // Keep eps_raw unchanged for the acceptance and conservative-update checks.
+  // Keep raw energy for acceptance and conservative-update checks.
   if (use_temp) {
     const auto rgeps = eos_3p->range_eps_from_rho_ye(pv.rho, pv.Ye);
     pv.eps = std::min(std::max(pv.eps, rgeps.min), rgeps.max);
@@ -295,7 +288,6 @@ c2p_1DPalenzuela::funcRoot_1DPalenzuela(CCTK_REAL Ssq, CCTK_REAL Bsq,
                                tPalenzuela * tPalenzuela / (2 * x * x) +
                                sPalenzuela / (2 * W_loc * W_loc));
 
-  // Use the same local EOS bounds as in the final primitive recovery.
   if (use_temp) {
     const auto rgeps = eos_3p->range_eps_from_rho_ye(rho_loc, Ye_loc);
     eps_loc = std::min(std::max(eps_loc, rgeps.min), rgeps.max);
@@ -481,9 +473,7 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   const bool eps_clipped =
       use_temp && (eps_raw < rgeps.min || eps_raw > rgeps.max);
 
-  // Preserve the non-positive-energy fallback for nonnegative EOSs.
-  // If the local EOS allows negative energy, reject only below its minimum.
-  // Do not broaden this fallback to every upper/lower energy correction.
+  // Negative energy is valid only within the local EOS energy range.
   const bool eps_invalid =
       rgeps.min < 0.0 ? eps_raw < rgeps.min : eps_raw <= 0.0;
   if ((!isfinite(eps_raw)) || (reject_nonpositive_eps && eps_invalid)) {
@@ -498,12 +488,6 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
     rep.adjust_cons = true;
   }
 
-  // `root_failed` covers both a bracket that never converged and one that ran
-  // out of iterations, so the max_iters check that used to be wanted here is
-  // no longer needed. It also avoids re-deriving brent's convergence test from
-  // its bracket, which was both a duplicate of the tolerance in Algo and
-  // awkward to make safe against NaN and inf operands. The soft-convergence
-  // fallback below is unchanged.
   const CCTK_REAL root_width = abs(result.first - result.second);
   if (root_failed) {
     bool accept_soft = false;
@@ -553,6 +537,10 @@ c2p_1DPalenzuela::solve(const EOSType *eos_3p, prim_vars &pv, cons_vars &cv,
   }
 
   c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
+  if (rep.failed()) {
+    cv = cv_const;
+    return;
+  }
 
   // Recompute cons if prims have been adjusted
   if (rep.adjust_cons) {

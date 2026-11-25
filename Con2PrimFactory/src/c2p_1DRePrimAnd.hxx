@@ -18,7 +18,6 @@ namespace Con2PrimFactory {
 
 class c2p_1DRePrimAnd : public c2p {
 public:
-  CCTK_REAL GammaIdealFluid;
 
   template <typename EOSType>
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline c2p_1DRePrimAnd(
@@ -50,7 +49,6 @@ public:
     sigma_max = sigma_max_in;
     inv_beta_max = inv_beta_max_in;
 
-    GammaIdealFluid = eos_3p->gamma;
   }
 
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline void
@@ -119,8 +117,7 @@ public:
     const bool ye_clipped =
         (Ye_raw < eos_3p->rgye.min) || (Ye_raw > eos_3p->rgye.max);
 
-    // The bound h0 = 1 + min(0, eps_min) requires eps_min > -1.
-    // Reject an unsupported energy range rather than inventing an h0 floor.
+    // A positive enthalpy lower bound requires eps_min > -1.
     if ((!isfinite(eos_3p->rgeps.min)) || eos_3p->rgeps.min <= -1.0) {
       rep.set_range_eps(eos_3p->rgeps.min);
       cv = cv_const;
@@ -236,9 +233,7 @@ public:
     const bool eps_clipped =
         cache.eps_raw < rgeps.min || cache.eps_raw > rgeps.max;
 
-    // Inspect raw energy before clipping, using the same policy as Palenzuela.
-    // Preserve the non-positive-energy fallback for nonnegative EOSs;
-    // negative physical energy is allowed down to the local EOS minimum.
+    // Negative energy is valid only within the local EOS energy range.
     const bool eps_invalid =
         rgeps.min < 0.0 ? cache.eps_raw < rgeps.min : cache.eps_raw <= 0.0;
     if ((!isfinite(cache.eps_raw)) ||
@@ -314,6 +309,10 @@ public:
     }
 
     c2p::prims_floors_and_ceilings(eos_3p, pv, cv, alp, beta, glo, rep);
+    if (rep.failed()) {
+      cv = cv_const;
+      return;
+    }
 
     if (rep.adjust_cons) {
       cv.from_prim(pv, glo);

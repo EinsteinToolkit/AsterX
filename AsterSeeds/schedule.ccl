@@ -1,5 +1,12 @@
 #Schedule definitions for thorn AsterSeeds
 
+if (unit_test) {
+  SCHEDULE AsterSeeds_TestBetaFloor AT CCTK_WRAGH AFTER EOSX_Setup_EOS {
+    LANG: C
+    OPTIONS: GLOBAL
+  } "Test EOS-consistent beta floors"
+}
+
 STORAGE: Avec_cent
 
 STORAGE: CoM_NS1
@@ -170,6 +177,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
         {
           LANG: C
           READS: HydroBaseX::vel(everywhere) HydroBaseX::Bvec(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
+          READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::entropy(everywhere)
           READS: ADMBaseX::metric(everywhere)
           READS: vel_NS1(everywhere) vel_NS2(everywhere) CoM_NS1(everywhere) CoM_NS2(everywhere)
           WRITES: HydrobaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::entropy(everywhere)  HydrobaseX::vel(everywhere)
@@ -223,6 +231,7 @@ if (CCTK_Equals(test_type, "3DTest")) {
         {
           LANG: C
           READS: HydroBaseX::vel(everywhere) HydroBaseX::Bvec(everywhere) HydroBaseX::press(everywhere) HydroBaseX::temperature(everywhere) HydroBaseX::Ye(everywhere)
+          READS: HydroBaseX::rho(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::entropy(everywhere)
           READS: ADMBaseX::metric(everywhere)
           READS: vel_NS1(everywhere) vel_NS2(everywhere) CoM_NS1(everywhere) CoM_NS2(everywhere)
           WRITES: HydrobaseX::rho(everywhere) HydroBaseX::press(everywhere) HydroBaseX::eps(everywhere) HydroBaseX::entropy(everywhere) HydrobaseX::vel(everywhere)
