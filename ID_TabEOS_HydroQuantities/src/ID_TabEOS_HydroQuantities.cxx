@@ -44,12 +44,8 @@ extern "C" void ID_TabEOS_HydroQuantities_initial_Y_e(CCTK_ARGUMENTS) {
     // Set nrho
     const CCTK_INT nrho = eos_3p_tab3d->interptable->num_points[0];
 
-    // Set interpolation stencil size
-    const int interp_stencil_size = 5;
-
     Ye_reader id_ye_reader;
-    id_ye_reader.init(nrho, Y_e_file, eos_3p_tab3d->interptable->x[0],
-                      interp_stencil_size); // eg. logrho array
+    id_ye_reader.init(nrho, Y_e_file, eos_3p_tab3d->interptable->x[0]);
 
     // Close the file
     fclose(Y_e_file);
@@ -69,10 +65,11 @@ extern "C" void ID_TabEOS_HydroQuantities_initial_Y_e(CCTK_ARGUMENTS) {
             // Interpolate Y_e(rho_i) at gridpoint i
             const CCTK_REAL Y_eL =
                 id_ye_reader.interpolate_1d_quantity_as_function_of_rho(
-                    interp_stencil_size, nrho, rho(p.I));
+                    rho(p.I));
             // Finally, set the Y_e gridfunction
-            Ye(p.I) = MIN(MAX(Y_eL, eos_3p_tab3d->interptable->xmin<2>()),
-                          eos_3p_tab3d->interptable->xmax<2>());
+            Ye(p.I) = std::clamp(
+                Y_eL, eos_3p_tab3d->interptable->xmin<2>(),
+                eos_3p_tab3d->interptable->xmax<2>());
           } else {
             Ye(p.I) = atmo.ye_atmo;
           }

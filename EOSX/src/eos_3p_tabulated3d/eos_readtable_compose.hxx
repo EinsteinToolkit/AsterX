@@ -54,9 +54,11 @@ static inline int hdf5_link_exists(hid_t loc, const char *path) {
 }
 
 CCTK_HOST inline void eos_readtable_compose(const std::string &filename,
+                                            const CCTK_REAL rest_mass_mev,
                                             eos_tabulated3d_raw_table_t &tab) {
 
-  CCTK_VINFO("Reading COMPOSE EOS table '%s'", filename.c_str());
+  CCTK_VINFO("Reading COMPOSE EOS table '%s' with hydrodynamic rest mass "
+             "%.15g MeV", filename.c_str(), (double)rest_mass_mev);
 
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -76,8 +78,20 @@ CCTK_HOST inline void eos_readtable_compose(const std::string &filename,
   const double cm3_to_fm3 = 1.0e39;         // (cm^-3) = (fm^-3) * 1e39
   const double c_cgs = 2.99792458e10;       // cm/s
   const double c2_cgs = c_cgs * c_cgs;
-  const double m_neutron_MeV = 939.56542052; // neutron mass energy [MeV]
-  const double baryon_mass = m_neutron_MeV * MeV_to_erg / c2_cgs; // g
+  // CompOSE thermodynamic quantity 7 is E/m_n - 1. The reference neutron
+  // mass stored in the source eos.thermo file for these tables is in MeV.
+  constexpr double compose_reference_mass_mev = 939.56535;
+  if (rest_mass_mev < 100.0)
+    CCTK_VError(__LINE__, __FILE__, CCTK_THORNSTRING,
+                "EOSX::particle_mass=%.15g is not a plausible CompOSE rest "
+                "mass in MeV/c^2", (double)rest_mass_mev);
+  const double rest_mass_g =
+      (double)rest_mass_mev * MeV_to_erg / c2_cgs;
+  const double reference_to_rest_mass =
+      compose_reference_mass_mev / (double)rest_mass_mev;
+  const auto convert_eps = [=](const double eps_ref) {
+    return reference_to_rest_mass * (1.0 + eps_ref) - 1.0;
+  };
 
   hid_t file = -1;
   hid_t parameters = -1;
@@ -148,7 +162,7 @@ CCTK_HOST inline void eos_readtable_compose(const std::string &filename,
     READ_EOS_HDF5_COMPOSE(parameters, "yq", yq, H5T_NATIVE_DOUBLE, H5S_ALL);
 
     for (int i = 0; i < nrho; i++) {
-      const double rho_cgs = nb[i] * baryon_mass * cm3_to_fm3; // g/cm^3
+      const double rho_cgs = nb[i] * rest_mass_g * cm3_to_fm3; // g/cm^3
       logrho_h[i] = (CCTK_REAL)log10(rho_cgs);
     }
     for (int i = 0; i < ntemp; i++) {
@@ -198,13 +212,15 @@ CCTK_HOST inline void eos_readtable_compose(const std::string &filename,
           "Could not find required Thermo_qty indices in COMPOSE table");
     }
 
-    // eps is dimensionless -> compute shift in dimensionless units
+    // Convert to the selected rest-mass convention before computing the
+    // positive shift needed for logarithmic interpolation.
     double eps_min_dimless = std::numeric_limits<double>::max();
     for (int k = 0; k < nye; k++)
       for (int j = 0; j < ntemp; j++)
         for (int i = 0; i < nrho; i++) {
           const int idx = i + nrho * (j + ntemp * (k + nye * iE));
-          eps_min_dimless = std::min(eps_min_dimless, thermo_table[idx]);
+          eps_min_dimless =
+              std::min(eps_min_dimless, convert_eps(thermo_table[idx]));
         }
 
     double energy_shift_dimless = 0.0;
@@ -234,11 +250,12 @@ CCTK_HOST inline void eos_readtable_compose(const std::string &filename,
                 (CCTK_REAL)log10(std::max(press_cgs, 1e-300));
           }
 
-          // eps is dimensionless -> (eps + shift)*c^2 in erg/g -> log10
+          // eps in the selected rest-mass convention -> erg/g -> log10
           {
             const int idx = i + nrho * (j + ntemp * (k + nye * iE));
+            const double eps_dimless = convert_eps(thermo_table[idx]);
             const double e_cgs =
-                (thermo_table[idx] + energy_shift_dimless) * c2_cgs;
+                (eps_dimless + energy_shift_dimless) * c2_cgs;
             alltables_h[b + eos_3p_tabulated3d::EV::EPS] =
                 (CCTK_REAL)log10(std::max(e_cgs, 1e-300));
           }
