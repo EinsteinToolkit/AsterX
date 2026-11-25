@@ -49,6 +49,10 @@ CCTK_REAL Ye_atmo "Electron fraction of the atmosphere" STEERABLE = recover {
   0 : *::"Larger than zero"
 } 0.5
 
+BOOLEAN Ye_atmo_beq "Use beta-equilibrium Ye for the tabulated atmosphere" STEERABLE = recover
+{
+} "no"
+
 CCTK_REAL B_lim "Upper limit for the value of magnetization" STEERABLE=ALWAYS
 {
   0:            :: "Must be positive"

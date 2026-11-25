@@ -48,6 +48,7 @@ USES CCTK_REAL eps_atmo
 USES CCTK_REAL p_atmo
 USES CCTK_REAL t_atmo
 USES CCTK_REAL Ye_atmo
+USES BOOLEAN Ye_atmo_beq
 USES CCTK_REAL r_atmo
 USES CCTK_REAL n_rho_atmo
 USES CCTK_REAL n_press_atmo
@@ -55,6 +56,6 @@ USES CCTK_REAL n_temp_atmo
 
 private:
 
-BOOLEAN unit_test "Check thermodynamic consistency after initial-data conversion"
+BOOLEAN unit_test "Check initial Ye, thermal profiles and converted state"
 {
 } "no"

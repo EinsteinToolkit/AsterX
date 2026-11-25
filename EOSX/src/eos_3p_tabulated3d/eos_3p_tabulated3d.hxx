@@ -379,6 +379,54 @@ public:
     return mue + mup - mun;
   }
 
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  ye_beq_from_rho_temp(const CCTK_REAL rho, const CCTK_REAL temp) const {
+    // Neutrino-less beta equilibrium: mu_e + mu_p - mu_n = 0.
+    const CCTK_REAL lr =
+        log(std::fmin(std::fmax(rho, rgrho.min), rgrho.max));
+    const CCTK_REAL lt =
+        log(std::fmin(std::fmax(temp, rgtemp.min), rgtemp.max));
+    const auto func = [&](const CCTK_REAL Ye) {
+      const auto mu = interptable->interpolate<EV::MU_E, EV::MU_P, EV::MU_N>(
+          lr, lt, Ye);
+      return mu[0] + mu[1] - mu[2];
+    };
+
+    const auto *yes = interptable->x[2];
+    size_t a = 0, b = interptable->num_points[2] - 1;
+    CCTK_REAL fa = func(yes[a]), fb = func(yes[b]);
+    assert(std::isfinite(fa) && std::isfinite(fb));
+    if (fa == 0.0)
+      return yes[a];
+    if (fb == 0.0)
+      return yes[b];
+
+    // If equilibrium lies outside the table, use the closest endpoint.
+    if ((fa < 0.0) == (fb < 0.0))
+      return fabs(fa) <= fabs(fb) ? yes[a] : yes[b];
+
+    // Locate the sign-changing Ye cell. The chemical potentials are linear
+    // in Ye inside this cell, so the final interpolation gives its root.
+    while (b - a > 1) {
+      const size_t m = a + (b - a) / 2;
+      const CCTK_REAL fm = func(yes[m]);
+      assert(std::isfinite(fm));
+      if (fm == 0.0)
+        return yes[m];
+      if ((fa < 0.0) != (fm < 0.0)) {
+        b = m;
+        fb = fm;
+      } else {
+        a = m;
+        fa = fm;
+      }
+    }
+
+    const CCTK_REAL scale = std::fmax(fabs(fa), fabs(fb));
+    const CCTK_REAL wa = fabs(fa) / scale, wb = fabs(fb) / scale;
+    return yes[a] + (yes[b] - yes[a]) * (wa / (wa + wb));
+  }
+
   CCTK_HOST CCTK_DEVICE CCTK_ATTRIBUTE_ALWAYS_INLINE inline CCTK_REAL
   press_from_rho_kappa_ye(const CCTK_REAL rho,
                           const CCTK_REAL kappa, // kappa=entropy
@@ -402,6 +450,13 @@ public:
                         const CCTK_REAL ye) const {
     return entropy_from_rho_temp_ye(rho, temp_from_rho_eps_ye(rho, eps, ye),
                                     ye);
+  }
+
+  CCTK_HOST CCTK_DEVICE inline CCTK_REAL
+  kappa_from_rho_temp_ye(const CCTK_REAL rho, const CCTK_REAL temp,
+                        const CCTK_REAL ye) const {
+    // Table entropy is evolved kappa. Reuse the known temperature.
+    return entropy_from_rho_temp_ye(rho, temp, ye);
   }
 
   CCTK_HOST CCTK_DEVICE inline range
