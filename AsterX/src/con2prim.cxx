@@ -278,12 +278,12 @@ void AsterX_Con2Prim_typeEoS(CCTK_ARGUMENTS, EOSIDType *eos_1p,
     c2p_report rep_second;
     c2p_report rep_ent;
 
-    // Limit conservatives before calling C2P
-    c2p_Noble.cons_floors_and_ceilings(eos_3p, cv, glo, tauFluid_atmo);
-
     // ----- ----- C2P ----- -----
 
     if (call_c2p) {
+      // Limit conservatives before calling C2P
+      // Do not modify a completed atmosphere or excision reset.
+      c2p_Noble.cons_floors_and_ceilings(eos_3p, cv, glo, tauFluid_atmo);
 
       // Calling the first C2P
       c2p_flag_code = C2P_PRIME;
